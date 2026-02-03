@@ -1,36 +1,59 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Football English Training Web App
 
-## Getting Started
+## Setup
 
-First, run the development server:
-
+### 1. Install Dependencies
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cd football-trainer
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Configure Environment Variables
+Create a `.env.local` file in the `football-trainer` directory based on the template:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```env
+# OpenAI
+OPENAI_API_KEY=your_openai_key
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# Supabase (Storage bucket: 'tal-audio')
+SUPABASE_URL=your_supabase_url
+SUPABASE_KEY=your_supabase_anon_key
 
-## Learn More
+# Google Sheets
+GOOGLE_SERVICE_ACCOUNT_EMAIL=your_service_account_email
+GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n..."
+GOOGLE_SHEET_ID=your_sheet_id
+```
 
-To learn more about Next.js, take a look at the following resources:
+> **Note**: For Google Sheets, ensure the Sheet is shared with the Service Account Email and has a sheet named "Attempts" (or it will use the first sheet).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 3. Run Locally
+```bash
+npm run dev
+```
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Features
 
-## Deploy on Vercel
+### Player Mode (`/train`)
+- Displays a situational scenario and target English phrase.
+- **Record**: Captures audio using MediaRecorder.
+- **Submit**: 
+  1. Uploads audio to Supabase Storage.
+  2. Transcribes using OpenAI Whisper.
+  3. Calculates AI Score (accuracy).
+  4. Saves attempt to Google Sheets.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Admin Mode (`/admin`)
+- Lists all attempts from Google Sheets.
+- Plays audio directly in the browser.
+- Allows Coach Feedback & Score updates (saved back to Sheets).
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Deployment
+
+For detailed Vercel deployment instructions (required for mobile support), please see [DEPLOYMENT.md](./DEPLOYMENT.md).
+
+1. Push this folder to a GitHub repository.
+2. Import the project into Vercel.
+3. During import, add the **Environment Variables** defined in `.env.local`.
+4. Deploy!

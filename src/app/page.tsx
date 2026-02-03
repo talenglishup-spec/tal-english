@@ -1,66 +1,77 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+'use client';
+
+import Link from 'next/link';
+import { useState } from 'react';
 
 export default function Home() {
+  const [level, setLevel] = useState<string>('L0');
+
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>To get started, edit the page.tsx file.</h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <main style={{
+      minHeight: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '2.5rem',
+      background: 'var(--color-bg)',
+      color: 'var(--color-text-main)',
+      padding: '2rem'
+    }}>
+      <div style={{ textAlign: 'center' }}>
+        <h1 style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Football English</h1>
+        <p style={{ color: 'var(--color-text-muted)' }}>Select your level to start training</p>
+      </div>
+
+      <div style={{ display: 'flex', gap: '1rem', background: 'var(--color-surface)', padding: '0.5rem', borderRadius: 'var(--radius-lg)' }}>
+        {['L0', 'L1'].map((l) => (
+          <button
+            key={l}
+            onClick={() => setLevel(l)}
+            style={{
+              padding: '0.75rem 2rem',
+              borderRadius: 'var(--radius-md)',
+              background: level === l ? 'var(--color-primary)' : 'transparent',
+              color: level === l ? 'white' : 'var(--color-text-muted)',
+              fontWeight: '600',
+              transition: 'all 0.2s'
+            }}
           >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+            {l}
+          </button>
+        ))}
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%', maxWidth: '300px' }}>
+        <Link
+          href={`/train?level=${level}`}
+          style={{
+            padding: '1rem',
+            background: 'var(--color-secondary)',
+            color: 'white',
+            borderRadius: 'var(--radius-md)',
+            fontWeight: '600',
+            textAlign: 'center',
+            boxShadow: 'var(--shadow-lg)'
+          }}
+        >
+          Start Training
+        </Link>
+        <Link
+          href="/admin"
+          style={{
+            padding: '1rem',
+            background: 'var(--color-surface)',
+            color: 'var(--color-text-main)',
+            borderRadius: 'var(--radius-md)',
+            fontWeight: '600',
+            textAlign: 'center',
+            border: '1px solid var(--color-border)'
+          }}
+        >
+          Admin Dashboard
+        </Link>
+      </div>
+    </main>
   );
 }

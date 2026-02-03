@@ -1,0 +1,132 @@
+.page {
+    padding: 2rem;
+    min-height: 100vh;
+    color: var(--color-text-main);
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.header {
+    margin-bottom: 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.title {
+    font-size: 1.875rem;
+    font-weight: 700;
+}
+
+.refreshButton {
+    padding: 0.5rem 1rem;
+    background: var(--color-surface);
+    color: var(--color-text-main);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s;
+}
+
+.refreshButton:hover {
+    background: var(--color-border);
+}
+
+.tableContainer {
+    overflow-x: auto;
+    background: var(--color-surface);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+.table th,
+.table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.table th {
+    background: rgba(0, 0, 0, 0.2);
+    font-weight: 600;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    white-space: nowrap;
+}
+
+.table tr:last-child td {
+    border-bottom: none;
+}
+
+.audioButton {
+    background: none;
+    border: 1px solid var(--color-primary);
+    color: var(--color-primary);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.audioButton:hover {
+    background: var(--color-primary);
+    color: white;
+}
+
+.audioButton svg {
+    width: 14px;
+    height: 14px;
+    fill: currentColor;
+}
+
+.input {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-main);
+    padding: 0.5rem;
+    border-radius: var(--radius-md);
+    font-family: inherit;
+    width: 100%;
+}
+
+.input:focus {
+    outline: 2px solid var(--color-primary);
+    border-color: transparent;
+}
+
+.scoreInput {
+    width: 60px;
+    text-align: center;
+}
+
+.saveButton {
+    padding: 0.5rem 1rem;
+    background-color: var(--color-secondary);
+    color: white;
+    border-radius: var(--radius-md);
+    font-weight: 500;
+    font-size: 0.75rem;
+    transition: opacity 0.2s;
+}
+
+.saveButton:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.statusGood {
+    color: var(--color-secondary);
+}
+
+.statusBad {
+    color: var(--color-danger);
+}
