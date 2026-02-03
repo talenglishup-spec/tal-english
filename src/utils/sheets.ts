@@ -4,11 +4,21 @@ import { JWT } from 'google-auth-library';
 // Config
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
 const SERVICE_EMAIL = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-const PRIVATE_KEY = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'); // Handle newline characters
+
+// Handle private key: robustly parse assuming it might have extra quotes or literal \n
+const rawKey = process.env.GOOGLE_PRIVATE_KEY || '';
+const PRIVATE_KEY = rawKey.replace(/\\n/g, '\n').replace(/^"|"$/g, '');
 
 if (!SHEET_ID || !SERVICE_EMAIL || !PRIVATE_KEY) {
-    // Warn but don't crash on build (might be missing in CI/local dev initially)
+    // Warn but don't crash on build
     console.warn("Missing Google Sheets credentials in environment variables.");
+} else {
+    console.log("Sheet Config Loaded:", {
+        sheetId: SHEET_ID,
+        email: SERVICE_EMAIL,
+        keyLength: PRIVATE_KEY.length,
+        firstLine: PRIVATE_KEY.split('\n')[0]
+    });
 }
 
 const auth = new JWT({
@@ -36,9 +46,16 @@ export type AttemptRow = {
 
 // Helper to get specific sheet
 export async function getSheet(title: string) {
-    await doc.loadInfo();
-    const sheet = doc.sheetsByTitle[title];
-    return sheet;
+    try {
+        console.log(`Loading doc info for sheet: ${title}...`);
+        await doc.loadInfo();
+        console.log(`Doc loaded. Sheets: ${doc.sheetCount}`);
+        const sheet = doc.sheetsByTitle[title];
+        return sheet;
+    } catch (e) {
+        console.error('Error loading Google Sheet doc:', e);
+        throw e;
+    }
 }
 
 export async function getAttemptsSheet() {
