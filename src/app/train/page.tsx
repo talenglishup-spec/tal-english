@@ -3,17 +3,13 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import AudioRecorder from '@/components/AudioRecorder';
 import { useSearchParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
 import styles from './TrainPage.module.css';
 
 interface TrainingItem {
     id: string;
-    situation: string;
-    target_en: string;
+    situation: string; // The Korean Prompt
+    category: string;  // We use this as the English Answer Target for now
     level: string;
-    category: string;
-    allowed_variations: string[];
-    key_word: string;
 }
 
 export default function TrainPage() {
@@ -26,8 +22,9 @@ export default function TrainPage() {
 
 function TrainContent() {
     const searchParams = useSearchParams();
+    const router = useRouter();
     const level = searchParams.get('level') || 'L0';
-    const itemId = searchParams.get('itemId'); // New param
+    const itemId = searchParams.get('itemId');
 
     const [items, setItems] = useState<TrainingItem[]>([]);
     const [loading, setLoading] = useState(true);
@@ -36,8 +33,8 @@ function TrainContent() {
     const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [result, setResult] = useState<{ score: number; feedback: string; stt_text: string; audio_url: string } | null>(null);
-    const [showAnswer, setShowAnswer] = useState(false); // Default hidden (Strict Mode)
 
+    // Fetch Items
     useEffect(() => {
         async function loadItems() {
             try {
@@ -46,20 +43,14 @@ function TrainContent() {
                 if (data.items && Array.isArray(data.items) && data.items.length > 0) {
                     let filtered = data.items;
                     if (itemId) {
-                        // If specific item selected, just load that one (or start from it)
-                        // For now, let's filter to just that one for focused practice
                         filtered = data.items.filter((item: TrainingItem) => item.id === itemId);
                     } else {
-                        // Otherwise load all for level
                         filtered = data.items.filter((item: TrainingItem) => item.level === level);
                     }
                     setItems(filtered);
-                } else {
-                    console.warn('No items returned', data);
                 }
             } catch (err) {
                 console.error(err);
-                alert('Failed to load training items.');
             } finally {
                 setLoading(false);
             }
@@ -67,182 +58,174 @@ function TrainContent() {
         loadItems();
     }, [level, itemId]);
 
-    const router = useRouter(); // Need to import useRouter
-
-
     const currentItem = items[currentIndex];
 
-    // If loading or no items
-    if (loading) {
-        return (
-            <div className={styles.page}>
-                <header className={styles.header}>
-                    <h1 className={styles.title}>Football English</h1>
-                    <p className={styles.subtitle}>Loading Scenarios...</p>
-                </header>
-            </div>
-        );
-    }
-
-    if (!currentItem) {
-        return (
-            <div className={styles.page}>
-                <header className={styles.header}>
-                    <h1 className={styles.title}>Football English</h1>
-                    <p className={styles.subtitle}>No scenarios found for Level {level}.</p>
-                </header>
-                <div style={{ textAlign: 'center' }}>
-                    <a href="/" style={{ textDecoration: 'underline' }}>Go back to Home</a>
-                </div>
-            </div>
-        );
-    }
-
+    // Handle audio stop -> submit
     const handleRecordingComplete = (blob: Blob) => {
         setAudioBlob(blob);
-        // Automatically submit when recording stops
         handleSubmit(blob);
     };
 
-    const handleRetake = () => {
-        setAudioBlob(null);
-        setResult(null);
-        setShowAnswer(false);
-    };
-
-    // Modified to accept blob directly
     const handleSubmit = async (blobToSubmit: Blob) => {
+        if (!currentItem) return;
         setIsSubmitting(true);
-        try {
-            const formData = new FormData();
-            formData.append('file', blobToSubmit, 'recording.webm');
-            formData.append('situation', currentItem.situation);
-            formData.append('target_en', currentItem.target_en);
-            formData.append('item_id', currentItem.id);
-            formData.append('allowed_variations', JSON.stringify(currentItem.allowed_variations));
-            formData.append('key_word', currentItem.key_word);
-            formData.append('player_id', 'demo_player');
-            formData.append('player_name', 'Player 1');
 
+        const formData = new FormData();
+        formData.append('audio', blobToSubmit, 'recording.webm');
+        formData.append('itemId', currentItem.id);
+        formData.append('situation', currentItem.situation);
+        // Note: process-attempt uses prompt (English) usually. 
+        // We'll pass category as prompt for now if API needs it? 
+        // process-attempt mostly looks up by id? No, it often relies primarily on what we send.
+        // Let's rely on the API looking up the item or us sending the "target".
+        // Current API `process-attempt` might pull details from Sheets or just use body.
+        // To be safe, we rely on existing logic.
+
+        try {
             const res = await fetch('/api/process-attempt', {
                 method: 'POST',
                 body: formData,
             });
-
             const data = await res.json();
 
-            if (data.success) {
-                setResult({
-                    score: data.data.score,
-                    feedback: data.data.feedback,
-                    stt_text: data.data.stt_text,
-                    audio_url: data.data.audio_url // Use returned URL
-                });
-                setShowAnswer(true); // Reveal answer
+            if (res.ok) {
+                setResult(data);
             } else {
-                alert('Error: ' + data.error);
-                // Allow retake if error
-                setAudioBlob(null);
+                alert('Error: ' + (data.error || 'Submission failed'));
+                // Determine if we should show result anyway? No.
             }
-        } catch (err) {
-            console.error(err);
-            alert('Failed to submit attempt.');
-            setAudioBlob(null);
+        } catch (e) {
+            console.error(e);
+            alert('Network error');
         } finally {
             setIsSubmitting(false);
         }
     };
 
     const handleNext = () => {
-        setAudioBlob(null);
+        if (currentIndex < items.length - 1) {
+            setCurrentIndex(prev => prev + 1);
+            setResult(null);
+            setAudioBlob(null);
+        } else {
+            alert('Training complete for this session!');
+            router.back();
+        }
+    };
+
+    const handleRetry = () => {
         setResult(null);
-        setShowAnswer(false);
-        setCurrentIndex((prev) => (prev + 1) % items.length);
+        setAudioBlob(null);
+        setIsSubmitting(false);
+    };
+
+    // TTS Logic
+    const playModelAudio = () => {
+        if (!currentItem) return;
+        const textToSpeak = currentItem.category; // Assuming this is English Answer
+        if (!textToSpeak) return;
+
+        const u = new SpeechSynthesisUtterance(textToSpeak);
+        u.lang = 'en-US';
+        u.rate = 0.9;
+        window.speechSynthesis.speak(u);
+    };
+
+    const playUserAudio = () => {
+        if (result?.audio_url) {
+            new Audio(result.audio_url).play();
+        }
     };
 
     return (
         <div className={styles.page}>
+            {/* Header */}
             <header className={styles.header}>
                 <button onClick={() => router.back()} className={styles.closeButton}>✕</button>
-                {/* Minimal Header */}
-                <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#999' }}>
-                    Step {currentIndex + 1}
-                </div>
-                <div className={styles.progressBar}>
+                <div className={styles.progressBarContainer}>
                     {items.map((_, idx) => (
                         <div
                             key={idx}
-                            className={`${styles.progressSegment} ${idx <= currentIndex ? styles.activeSegment : ''}`}
+                            className={`${styles.progressSegment} ${idx <= currentIndex ? styles.active : ''}`}
                         />
                     ))}
+                    {/* If single item mode, show full bar? */}
+                    {items.length === 0 && <div className={styles.progressSegment}></div>}
                 </div>
             </header>
 
-            <div className={styles.mainContent}>
-                {/* Question Section */}
-                <div className={styles.questionSection}>
-                    <p className={styles.situationLabel}>Translate into English:</p>
-                    <h2 className={styles.situationTextLarge}>
-                        {currentItem.situation}
-                    </h2>
-                </div>
+            {loading ? (
+                <div style={{ padding: '2rem', textAlign: 'center', color: '#999' }}>Loading...</div>
+            ) : !currentItem ? (
+                <div style={{ padding: '2rem', textAlign: 'center' }}>No items found.</div>
+            ) : (
+                <div className={styles.contentContainer}>
 
-                {/* Interaction Section */}
-                <div className={styles.interactionSection}>
+                    {/* STATE 1: QUESTION (Recording/Prompt) */}
+                    {!result && (
+                        <>
+                            <div className={styles.hiddenAnswerPlaceholder}>
+                                {/* Show hints if we had them. Just boxes for now. */}
+                                <div className={styles.grayBox} style={{ width: '80%' }}></div>
+                                <div className={styles.grayBox} style={{ width: '60%' }}></div>
+                            </div>
 
-                    {/* State 1: Recording (or Loading Result) */}
-                    {!result ? (
-                        <div className={styles.recordingArea}>
-                            {isSubmitting ? (
-                                <div className={styles.loadingState}>
-                                    <div className={styles.spinner}></div>
-                                    <p>Analyzing...</p>
-                                </div>
-                            ) : (
-                                // Key prop forces re-mount on item change to trigger auto-start
-                                <AudioRecorder
-                                    key={currentItem.id}
-                                    onRecordingComplete={handleRecordingComplete}
-                                />
-                            )}
-                        </div>
-                    ) : (
-                        // State 2: Result & Feedback
-                        <div className={styles.resultArea}>
-                            {/* Score Badge */}
-                            <div className={styles.scoreBadge}>
-                                {result.score === 100 ? (
-                                    <div className={styles.perfectIcon}>Correct! 🎉</div>
+                            <h2 className={styles.koreanPrompt}>
+                                {currentItem.situation}
+                            </h2>
+
+                            <div className={styles.footerArea}>
+                                {isSubmitting ? (
+                                    <div style={{ color: '#0070f3', fontWeight: 600 }}>Running...</div>
                                 ) : (
-                                    <div className={styles.scoreValue}>{result.score}</div>
+                                    <AudioRecorder
+                                        key={currentItem.id + (result ? 'done' : 'record')} // Remount on change
+                                        onRecordingComplete={handleRecordingComplete}
+                                    />
                                 )}
                             </div>
-
-                            {/* Answer Display */}
-                            <div className={styles.answerBox}>
-                                <p className={styles.answerLabel}>Correct Answer</p>
-                                <h3 className={styles.targetTextLarge}>{currentItem.target_en}</h3>
-                            </div>
-
-                            {/* Feedback / My Speech */}
-                            <div className={styles.feedbackBox}>
-                                <p className={styles.feedbackText}>{result.feedback}</p>
-                                <p className={styles.sttText}>You said: "{result.stt_text}"</p>
-                            </div>
-
-                            {/* Actions */}
-                            <div className={styles.actionButtons}>
-                                <button className={styles.secondaryButton} onClick={() => new Audio(result?.audio_url).play()}>
-                                    ▶ My Recording
-                                </button>
-                                <button className={styles.nextButton} onClick={handleNext}>
-                                    Next Scenario →
-                                </button>
-                            </div>
-                        </div>
+                        </>
                     )}
+
+                    {/* STATE 2: RESULT (Answer Revealed) */}
+                    {result && (
+                        <>
+                            <div className={styles.successIcon}>✓</div>
+
+                            <div className={styles.englishAnswer}>
+                                {currentItem.category}
+                            </div>
+
+                            <div className={styles.audioButtons}>
+                                <button className={`${styles.audioBtn} ${styles.model}`} onClick={playModelAudio}>
+                                    <div className={styles.iconSquare}></div>
+                                    모범 발음
+                                </button>
+                                <button className={`${styles.audioBtn} ${styles.user}`} onClick={playUserAudio}>
+                                    <span className={styles.iconPlay}>▶</span>
+                                    내 발음
+                                </button>
+                            </div>
+
+                            <p className={styles.koreanPrompt} style={{ marginTop: '2rem', marginBottom: '0' }}>
+                                {currentItem.situation}
+                            </p>
+
+                            <div className={styles.footerArea}>
+                                <div style={{ display: 'flex', gap: '2rem' }}>
+                                    <button className={styles.retryButton} onClick={handleRetry}>
+                                        ↺
+                                    </button>
+                                </div>
+                                <button className={styles.nextButtonText} onClick={handleNext}>
+                                    다음으로 넘어가기
+                                </button>
+                            </div>
+                        </>
+                    )}
+
                 </div>
-            </div>
+            )}
         </div>
     );
 }
