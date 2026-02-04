@@ -8,7 +8,8 @@ import styles from './TrainPage.module.css';
 interface TrainingItem {
     id: string;
     situation: string; // The Korean Prompt
-    category: string;  // We use this as the English Answer Target for now
+    category: string;
+    target_en: string; // The Actual English Answer
     level: string;
 }
 
@@ -71,15 +72,12 @@ function TrainContent() {
         setIsSubmitting(true);
 
         const formData = new FormData();
-        formData.append('audio', blobToSubmit, 'recording.webm');
+        // FIXED: Key must be 'file' to match API expectation, not 'audio'
+        formData.append('file', blobToSubmit, 'recording.webm');
         formData.append('itemId', currentItem.id);
         formData.append('situation', currentItem.situation);
-        // Note: process-attempt uses prompt (English) usually. 
-        // We'll pass category as prompt for now if API needs it? 
-        // process-attempt mostly looks up by id? No, it often relies primarily on what we send.
-        // Let's rely on the API looking up the item or us sending the "target".
-        // Current API `process-attempt` might pull details from Sheets or just use body.
-        // To be safe, we rely on existing logic.
+        // Pass English target for AI scoring
+        formData.append('target_en', currentItem.target_en || currentItem.category);
 
         try {
             const res = await fetch('/api/process-attempt', {
@@ -91,12 +89,12 @@ function TrainContent() {
             if (res.ok) {
                 setResult(data);
             } else {
-                alert('Error: ' + (data.error || 'Submission failed'));
-                // Determine if we should show result anyway? No.
+                console.error('Submission failed', data);
+                alert(`Error: ${data.error || 'Submission failed'}`);
             }
         } catch (e) {
             console.error(e);
-            alert('Network error');
+            alert('Network error during submission');
         } finally {
             setIsSubmitting(false);
         }
@@ -122,7 +120,8 @@ function TrainContent() {
     // TTS Logic
     const playModelAudio = () => {
         if (!currentItem) return;
-        const textToSpeak = currentItem.category; // Assuming this is English Answer
+        // Fallback to category if target_en is missing, but prefer target_en
+        const textToSpeak = currentItem.target_en || currentItem.category;
         if (!textToSpeak) return;
 
         const u = new SpeechSynthesisUtterance(textToSpeak);
@@ -149,7 +148,6 @@ function TrainContent() {
                             className={`${styles.progressSegment} ${idx <= currentIndex ? styles.active : ''}`}
                         />
                     ))}
-                    {/* If single item mode, show full bar? */}
                     {items.length === 0 && <div className={styles.progressSegment}></div>}
                 </div>
             </header>
@@ -165,7 +163,6 @@ function TrainContent() {
                     {!result && (
                         <>
                             <div className={styles.hiddenAnswerPlaceholder}>
-                                {/* Show hints if we had them. Just boxes for now. */}
                                 <div className={styles.grayBox} style={{ width: '80%' }}></div>
                                 <div className={styles.grayBox} style={{ width: '60%' }}></div>
                             </div>
@@ -176,10 +173,10 @@ function TrainContent() {
 
                             <div className={styles.footerArea}>
                                 {isSubmitting ? (
-                                    <div style={{ color: '#0070f3', fontWeight: 600 }}>Running...</div>
+                                    <div style={{ color: '#0070f3', fontWeight: 600 }}>Analyzing...</div>
                                 ) : (
                                     <AudioRecorder
-                                        key={currentItem.id + (result ? 'done' : 'record')} // Remount on change
+                                        key={currentItem.id + (result ? 'done' : 'record')}
                                         onRecordingComplete={handleRecordingComplete}
                                     />
                                 )}
@@ -193,7 +190,7 @@ function TrainContent() {
                             <div className={styles.successIcon}>✓</div>
 
                             <div className={styles.englishAnswer}>
-                                {currentItem.category}
+                                {currentItem.target_en || currentItem.category}
                             </div>
 
                             <div className={styles.audioButtons}>

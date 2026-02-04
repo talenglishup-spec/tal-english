@@ -34,10 +34,18 @@ export default function AudioRecorder({ onRecordingComplete, disabled }: AudioRe
 
     const startRecording = async () => {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            // Mobile Safari check / standard getUserMedia
+            const stream = await navigator.mediaDevices.getUserMedia({
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true
+                }
+            });
+
             let mimeType = 'audio/webm';
             if (MediaRecorder.isTypeSupported('audio/mp4')) {
-                mimeType = 'audio/mp4';
+                mimeType = 'audio/mp4'; // iOS Safari prefer
             } else if (MediaRecorder.isTypeSupported('audio/aac')) {
                 mimeType = 'audio/aac';
             }
@@ -67,9 +75,10 @@ export default function AudioRecorder({ onRecordingComplete, disabled }: AudioRe
                 setRecordingTime(prev => prev + 1);
             }, 1000);
 
-        } catch (err) {
+        } catch (err: any) {
             console.error('Error accessing microphone:', err);
-            // Don't alert on auto-start failure, just let user tap manually if needed
+            // Alert user on mobile if this fails so they know WHY it's 0:00
+            alert(`Microphone Error: ${err.message || err.name}. Please ensure permissions are allowed.`);
         }
     };
 
