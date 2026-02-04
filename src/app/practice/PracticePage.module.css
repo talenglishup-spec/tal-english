@@ -2,19 +2,19 @@
     min-height: 100vh;
     background-color: #f7f9fc;
     padding-bottom: 80px;
-    /* Space for BottomNav */
 }
 
 .header {
-    background-color: white;
-    padding: 1rem;
+    background-color: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    padding: 1rem 1.25rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
     position: sticky;
     top: 0;
     z-index: 100;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
 }
 
 .levelSelector {
@@ -22,60 +22,71 @@
 }
 
 .dropdown {
-    background: #f0f2f5;
-    border: none;
-    padding: 6px 12px;
+    background: #fff;
+    border: 2px solid #f0f2f5;
+    padding: 8px 16px;
     border-radius: 20px;
-    font-size: 0.85rem;
-    color: #333;
-    font-weight: 600;
+    font-size: 0.9rem;
+    color: #111;
+    font-weight: 700;
     cursor: pointer;
     outline: none;
+    transition: all 0.2s;
+}
+
+.dropdown:focus {
+    border-color: #0070f3;
 }
 
 .title {
     flex: 2;
     text-align: center;
-    font-weight: 700;
-    font-size: 1.1rem;
+    font-weight: 800;
+    font-size: 1.2rem;
     color: #111;
+    letter-spacing: -0.5px;
 }
 
 .streak {
     flex: 1;
     text-align: right;
-    font-weight: 700;
+    font-weight: 800;
     color: #ff6b00;
-    font-size: 0.95rem;
+    font-size: 1rem;
     display: flex;
     justify-content: flex-end;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
 }
 
 .content {
-    padding: 1rem;
+    padding: 1.5rem;
+    max-width: 600px;
+    margin: 0 auto;
 }
 
 .section {
-    margin-bottom: 2rem;
+    margin-bottom: 2.5rem;
 }
 
 .sectionTitle {
-    font-size: 1.1rem;
-    font-weight: 700;
+    font-size: 1.25rem;
+    font-weight: 800;
     margin-bottom: 1rem;
     display: flex;
     align-items: center;
     gap: 8px;
-    color: #111;
+    color: #1a1a1a;
+    letter-spacing: -0.5px;
 }
 
 .badge {
-    background-color: #e3f2fd;
-    color: #2196f3;
+    background-color: #0070f3;
+    color: white;
     font-size: 0.7rem;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }

@@ -1,45 +1,57 @@
 .page {
     min-height: 100vh;
     background-color: #f7f9fc;
-    padding: 1rem;
+    padding: 1.5rem;
     padding-bottom: 80px;
+    max-width: 600px;
+    margin: 0 auto;
 }
 
 .header {
     margin-bottom: 2rem;
+    text-align: center;
 }
 
 .header h1 {
-    font-size: 1.5rem;
+    font-size: 1.75rem;
     font-weight: 800;
+    color: #1a1a1a;
+    letter-spacing: -0.5px;
 }
 
 .list {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 1.25rem;
 }
 
 .itemCard {
     background: white;
-    padding: 1rem;
-    border-radius: 12px;
+    padding: 1.25rem;
+    border-radius: 16px;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 1rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    transition: transform 0.2s;
+    border: 1px solid rgba(0, 0, 0, 0.03);
+}
+
+.itemCard:active {
+    transform: scale(0.98);
 }
 
 .scoreBox {
-    width: 48px;
-    height: 48px;
-    border-radius: 8px;
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: 700;
-    font-size: 1.1rem;
+    font-weight: 800;
+    font-size: 1.2rem;
     flex-shrink: 0;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .details {
@@ -48,35 +60,44 @@
 
 .situation {
     font-size: 1rem;
-    font-weight: 600;
-    margin-bottom: 4px;
-    color: #333;
+    font-weight: 700;
+    margin-bottom: 6px;
+    color: #1a1a1a;
+    line-height: 1.4;
 }
 
 .date {
     font-size: 0.75rem;
     color: #999;
+    font-weight: 500;
+    margin-bottom: 8px;
 }
 
 .feedback {
-    font-size: 0.85rem;
-    color: #666;
-    margin-top: 4px;
-    background: #f5f5f5;
-    padding: 4px 8px;
-    border-radius: 4px;
+    font-size: 0.9rem;
+    color: #555;
+    background: #f7f9fc;
+    padding: 8px 12px;
+    border-radius: 10px;
     display: inline-block;
+    line-height: 1.4;
 }
 
 .playButton {
-    width: 36px;
-    height: 36px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
-    border: 1px solid #eee;
-    background: white;
-    color: #666;
+    border: none;
+    background: #f0f2f5;
+    color: #0070f3;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: background 0.2s;
+    font-size: 1.2rem;
+}
+
+.playButton:active {
+    background: #e3e8ee;
 }
