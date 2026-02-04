@@ -1,0 +1,82 @@
+.page {
+    min-height: 100vh;
+    background-color: #f7f9fc;
+    padding: 1rem;
+    padding-bottom: 80px;
+}
+
+.header {
+    margin-bottom: 2rem;
+}
+
+.header h1 {
+    font-size: 1.5rem;
+    font-weight: 800;
+}
+
+.list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.itemCard {
+    background: white;
+    padding: 1rem;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.scoreBox {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+.details {
+    flex: 1;
+}
+
+.situation {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: #333;
+}
+
+.date {
+    font-size: 0.75rem;
+    color: #999;
+}
+
+.feedback {
+    font-size: 0.85rem;
+    color: #666;
+    margin-top: 4px;
+    background: #f5f5f5;
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+.playButton {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid #eee;
+    background: white;
+    color: #666;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}

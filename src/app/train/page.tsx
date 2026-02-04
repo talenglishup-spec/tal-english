@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import AudioRecorder from '@/components/AudioRecorder';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import styles from './TrainPage.module.css';
 
 interface TrainingItem {
@@ -25,11 +26,13 @@ export default function TrainPage() {
 
 function TrainContent() {
     const searchParams = useSearchParams();
-    const level = searchParams.get('level') || 'L0'; // Default to L0
+    const level = searchParams.get('level') || 'L0';
+    const itemId = searchParams.get('itemId'); // New param
 
     const [items, setItems] = useState<TrainingItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [currentIndex, setCurrentIndex] = useState(0);
+
     const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [result, setResult] = useState<{ score: number; feedback: string; stt_text: string; audio_url: string } | null>(null);
@@ -41,8 +44,15 @@ function TrainContent() {
                 const res = await fetch('/api/train/items');
                 const data = await res.json();
                 if (data.items && Array.isArray(data.items) && data.items.length > 0) {
-                    // Filter items by selected level
-                    const filtered = data.items.filter((item: TrainingItem) => item.level === level);
+                    let filtered = data.items;
+                    if (itemId) {
+                        // If specific item selected, just load that one (or start from it)
+                        // For now, let's filter to just that one for focused practice
+                        filtered = data.items.filter((item: TrainingItem) => item.id === itemId);
+                    } else {
+                        // Otherwise load all for level
+                        filtered = data.items.filter((item: TrainingItem) => item.level === level);
+                    }
                     setItems(filtered);
                 } else {
                     console.warn('No items returned', data);
@@ -55,7 +65,10 @@ function TrainContent() {
             }
         }
         loadItems();
-    }, []);
+    }, [level, itemId]);
+
+    const router = useRouter(); // Need to import useRouter
+
 
     const currentItem = items[currentIndex];
 
@@ -150,6 +163,7 @@ function TrainContent() {
     return (
         <div className={styles.page}>
             <header className={styles.header}>
+                <button onClick={() => router.back()} className={styles.closeButton}>✕</button>
                 {/* Minimal Header */}
                 <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#999' }}>
                     Step {currentIndex + 1}
