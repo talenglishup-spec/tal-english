@@ -15,19 +15,29 @@ export default function AudioRecorder({ onRecordingComplete, disabled }: AudioRe
     const chunksRef = useRef<Blob[]>([]);
     const timerRef = useRef<NodeJS.Timeout | null>(null);
 
+    // Auto-start logic
+    useEffect(() => {
+        if (!disabled && !isRecording) {
+            startRecording();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Run once on mount
+
     useEffect(() => {
         return () => {
             if (timerRef.current) clearInterval(timerRef.current);
+            if (mediaRecorderRef.current && isRecording) {
+                mediaRecorderRef.current.stream.getTracks().forEach(t => t.stop());
+            }
         };
-    }, []);
+    }, [isRecording]);
 
     const startRecording = async () => {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            // Determine efficient mime type for mobile
             let mimeType = 'audio/webm';
             if (MediaRecorder.isTypeSupported('audio/mp4')) {
-                mimeType = 'audio/mp4'; // Better for iOS
+                mimeType = 'audio/mp4';
             } else if (MediaRecorder.isTypeSupported('audio/aac')) {
                 mimeType = 'audio/aac';
             }
@@ -45,7 +55,6 @@ export default function AudioRecorder({ onRecordingComplete, disabled }: AudioRe
             mediaRecorder.onstop = () => {
                 const blob = new Blob(chunksRef.current, { type: mimeType });
                 onRecordingComplete(blob);
-                // Stop all tracks
                 stream.getTracks().forEach(track => track.stop());
             };
 
@@ -53,13 +62,14 @@ export default function AudioRecorder({ onRecordingComplete, disabled }: AudioRe
             setIsRecording(true);
             setRecordingTime(0);
 
+            if (timerRef.current) clearInterval(timerRef.current);
             timerRef.current = setInterval(() => {
                 setRecordingTime(prev => prev + 1);
             }, 1000);
 
         } catch (err) {
             console.error('Error accessing microphone:', err);
-            alert('Microphone access is required to record audio.');
+            // Don't alert on auto-start failure, just let user tap manually if needed
         }
     };
 
@@ -79,8 +89,9 @@ export default function AudioRecorder({ onRecordingComplete, disabled }: AudioRe
 
     return (
         <div className={styles.container}>
-            <div className={styles.visualizer}>
-                {isRecording ? formatTime(recordingTime) : 'Ready'}
+            {/* Timer Display */}
+            <div className={styles.timerLarge}>
+                {formatTime(recordingTime)}
             </div>
 
             <div className={styles.controls}>
@@ -89,26 +100,20 @@ export default function AudioRecorder({ onRecordingComplete, disabled }: AudioRe
                         className={styles.recordButton}
                         onClick={startRecording}
                         disabled={disabled}
-                        aria-label="Start Recording"
                     >
-                        <svg viewBox="0 0 24 24">
-                            <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z" />
-                            <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z" />
-                        </svg>
+                        <div className={styles.micIcon}>🎤</div>
+                        <span>Tap to Record</span>
                     </button>
                 ) : (
                     <button
-                        className={`${styles.recordButton} ${styles.recording}`}
+                        className={`${styles.recordButton} ${styles.stopButton}`}
                         onClick={stopRecording}
-                        aria-label="Stop Recording"
                     >
-                        <div style={{ width: '24px', height: '24px', background: 'white', borderRadius: '4px' }} />
+                        <div className={styles.stopIcon} />
                     </button>
                 )}
             </div>
-            <div className={styles.timer}>
-                {isRecording ? 'Recording...' : 'Tap mic to record'}
-            </div>
+            {isRecording && <div className={styles.statusText}>Recording...</div>}
         </div>
     );
 }

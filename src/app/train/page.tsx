@@ -32,7 +32,7 @@ function TrainContent() {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [result, setResult] = useState<{ score: number; feedback: string; stt_text: string } | null>(null);
+    const [result, setResult] = useState<{ score: number; feedback: string; stt_text: string; audio_url: string } | null>(null);
     const [showAnswer, setShowAnswer] = useState(false); // Default hidden (Strict Mode)
 
     useEffect(() => {
@@ -87,27 +87,29 @@ function TrainContent() {
 
     const handleRecordingComplete = (blob: Blob) => {
         setAudioBlob(blob);
+        // Automatically submit when recording stops
+        handleSubmit(blob);
     };
 
     const handleRetake = () => {
         setAudioBlob(null);
         setResult(null);
+        setShowAnswer(false);
     };
 
-    const handleSubmit = async () => {
-        if (!audioBlob) return;
-
+    // Modified to accept blob directly
+    const handleSubmit = async (blobToSubmit: Blob) => {
         setIsSubmitting(true);
         try {
             const formData = new FormData();
-            formData.append('file', audioBlob, 'recording.webm');
+            formData.append('file', blobToSubmit, 'recording.webm');
             formData.append('situation', currentItem.situation);
             formData.append('target_en', currentItem.target_en);
             formData.append('item_id', currentItem.id);
             formData.append('allowed_variations', JSON.stringify(currentItem.allowed_variations));
             formData.append('key_word', currentItem.key_word);
-            formData.append('player_id', 'demo_player'); // Fixed for MVP
-            formData.append('player_name', 'Player 1');  // Fixed for MVP
+            formData.append('player_id', 'demo_player');
+            formData.append('player_name', 'Player 1');
 
             const res = await fetch('/api/process-attempt', {
                 method: 'POST',
@@ -121,13 +123,18 @@ function TrainContent() {
                     score: data.data.score,
                     feedback: data.data.feedback,
                     stt_text: data.data.stt_text,
+                    audio_url: data.data.audio_url // Use returned URL
                 });
+                setShowAnswer(true); // Reveal answer
             } else {
                 alert('Error: ' + data.error);
+                // Allow retake if error
+                setAudioBlob(null);
             }
         } catch (err) {
             console.error(err);
             alert('Failed to submit attempt.');
+            setAudioBlob(null);
         } finally {
             setIsSubmitting(false);
         }
@@ -143,74 +150,85 @@ function TrainContent() {
     return (
         <div className={styles.page}>
             <header className={styles.header}>
-                <h1 className={styles.title}>Football English</h1>
-                <p className={styles.subtitle}>Scenario {currentIndex + 1} / {items.length}</p>
+                {/* Minimal Header */}
+                <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#999' }}>
+                    Step {currentIndex + 1}
+                </div>
+                <div className={styles.progressBar}>
+                    {items.map((_, idx) => (
+                        <div
+                            key={idx}
+                            className={`${styles.progressSegment} ${idx <= currentIndex ? styles.activeSegment : ''}`}
+                        />
+                    ))}
+                </div>
             </header>
 
-            {!result ? (
-                <div className={styles.card}>
-                    <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div className={styles.situationLabel}>{currentItem.category} ({currentItem.level})</div>
-                        </div>
-                        <div className={styles.situationText}>{currentItem.situation}</div>
+            <div className={styles.mainContent}>
+                {/* Question Section */}
+                <div className={styles.questionSection}>
+                    <p className={styles.situationLabel}>Translate into English:</p>
+                    <h2 className={styles.situationTextLarge}>
+                        {currentItem.situation}
+                    </h2>
+                </div>
 
-                        {/* Toggle for Practice Mode vs Test Mode */}
-                        <div style={{ marginTop: '1rem' }}>
-                            <button
-                                onClick={() => setShowAnswer(!showAnswer)}
-                                style={{
-                                    background: 'none',
-                                    border: '1px solid var(--color-border)',
-                                    color: 'var(--color-text-muted)',
-                                    padding: '0.25rem 0.5rem',
-                                    borderRadius: '4px',
-                                    fontSize: '0.75rem',
-                                    cursor: 'pointer'
-                                }}
-                            >
-                                {showAnswer ? 'Hide Answer' : 'Show Answer'}
-                            </button>
-                            {showAnswer && (
-                                <div className={styles.targetText}>{currentItem.target_en}</div>
+                {/* Interaction Section */}
+                <div className={styles.interactionSection}>
+
+                    {/* State 1: Recording (or Loading Result) */}
+                    {!result ? (
+                        <div className={styles.recordingArea}>
+                            {isSubmitting ? (
+                                <div className={styles.loadingState}>
+                                    <div className={styles.spinner}></div>
+                                    <p>Analyzing...</p>
+                                </div>
+                            ) : (
+                                // Key prop forces re-mount on item change to trigger auto-start
+                                <AudioRecorder
+                                    key={currentItem.id}
+                                    onRecordingComplete={handleRecordingComplete}
+                                />
                             )}
                         </div>
-                    </div>
+                    ) : (
+                        // State 2: Result & Feedback
+                        <div className={styles.resultArea}>
+                            {/* Score Badge */}
+                            <div className={styles.scoreBadge}>
+                                {result.score === 100 ? (
+                                    <div className={styles.perfectIcon}>Correct! 🎉</div>
+                                ) : (
+                                    <div className={styles.scoreValue}>{result.score}</div>
+                                )}
+                            </div>
 
-                    <div className={styles.actions}>
-                        {!audioBlob ? (
-                            <AudioRecorder onRecordingComplete={handleRecordingComplete} />
-                        ) : (
-                            <>
-                                <audio controls src={URL.createObjectURL(audioBlob)} className={styles.audioPreview} />
-                                <button className={styles.submitButton} onClick={handleSubmit} disabled={isSubmitting}>
-                                    {isSubmitting ? 'Analyzing...' : 'Submit Answer'}
+                            {/* Answer Display */}
+                            <div className={styles.answerBox}>
+                                <p className={styles.answerLabel}>Correct Answer</p>
+                                <h3 className={styles.targetTextLarge}>{currentItem.target_en}</h3>
+                            </div>
+
+                            {/* Feedback / My Speech */}
+                            <div className={styles.feedbackBox}>
+                                <p className={styles.feedbackText}>{result.feedback}</p>
+                                <p className={styles.sttText}>You said: "{result.stt_text}"</p>
+                            </div>
+
+                            {/* Actions */}
+                            <div className={styles.actionButtons}>
+                                <button className={styles.secondaryButton} onClick={() => new Audio(result?.audio_url).play()}>
+                                    ▶ My Recording
                                 </button>
-                                <button onClick={handleRetake} style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>
-                                    Record Again
+                                <button className={styles.nextButton} onClick={handleNext}>
+                                    Next Scenario →
                                 </button>
-                            </>
-                        )}
-                    </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
-            ) : (
-                <div className={styles.resultCard}>
-                    <div className={styles.scoreCircle}>
-                        <span className={styles.scoreValue}>{result.score}</span>
-                        <span className={styles.scoreLabel}>Score</span>
-                    </div>
-                    <p className={styles.feedback}>{result.feedback}</p>
-
-                    <div className={styles.sttResult}>
-                        <span className={styles.sttLabel}>What we heard:</span>
-                        <p>"{result.stt_text}"</p>
-                    </div>
-
-                    <button className={styles.nextButton} onClick={handleNext}>
-                        Next Scenario
-                    </button>
-                </div>
-            )}
+            </div>
         </div>
     );
 }
