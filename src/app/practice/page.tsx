@@ -15,7 +15,7 @@ interface TrainingItem {
 export default function PracticePage() {
     const [items, setItems] = useState<TrainingItem[]>([]);
     const [loading, setLoading] = useState(true);
-    const [selectedLevel, setSelectedLevel] = useState('All');
+    const [selectedCategory, setSelectedCategory] = useState('All');
     const [streak, setStreak] = useState(1); // Mock streak for now
 
     useEffect(() => {
@@ -36,9 +36,16 @@ export default function PracticePage() {
     }, []);
 
     // Filter items based on logic
-    const displayedItems = selectedLevel === 'All'
+    const displayedItems = selectedCategory === 'All'
         ? items
-        : items.filter(i => i.level === selectedLevel);
+        : items.filter(i => {
+            // Loose matching for category
+            const cat = i.category || '';
+            const target = selectedCategory;
+            if (target === 'Match') return cat.includes('Match') || cat.includes('Pass') || cat.includes('Tac');
+            if (target === 'Life') return cat.includes('Life') || cat.includes('Gen') || cat.includes('Comm');
+            return cat === target;
+        });
 
     // Grouping for "Recommendations" vs "Others"
     // specific logic: Just take the first 1 as "Custom Lesson" and rest as "Jump-in"
@@ -51,14 +58,13 @@ export default function PracticePage() {
             <header className={styles.header}>
                 <div className={styles.levelSelector}>
                     <select
-                        value={selectedLevel}
-                        onChange={(e) => setSelectedLevel(e.target.value)}
+                        value={selectedCategory}
+                        onChange={(e) => setSelectedCategory(e.target.value)}
                         className={styles.dropdown}
                     >
-                        <option value="All">Level All</option>
-                        <option value="L0">Level 0</option>
-                        <option value="L1">Level 1</option>
-                        <option value="L2">Level 2</option>
+                        <option value="All">Category All</option>
+                        <option value="Match">경기 (Match)</option>
+                        <option value="Life">생활 (Life)</option>
                     </select>
                 </div>
                 <div className={styles.title}>Practice</div>

@@ -40,7 +40,7 @@ export default function ChallengePage() {
 
             <div className={styles.card}>
                 <h2 className={styles.cardTitle}>{stats.streak}일 차</h2>
-                <p className={styles.cardSubtitle}>매일 방문하고 보너스를 받으세요.</p>
+                <p className={styles.cardSubtitle}>Practice makes perfect!</p>
 
                 <div className={styles.calendarGrid}>
                     {days.map((day, i) => (
