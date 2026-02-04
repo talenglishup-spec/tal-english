@@ -85,6 +85,17 @@ export async function POST(req: NextRequest) {
 
     } catch (error: any) {
         console.error('Process Attempt Error:', error);
-        return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+
+        let errorMessage = error.message || 'Internal Server Error';
+        if (errorMessage.includes('403')) {
+            errorMessage = 'Google Sheets Permission Error (Check Service Account)';
+        } else if (errorMessage.includes('bucket')) {
+            errorMessage = 'Supabase Storage Error (Check Bucket Name/Public Access)';
+        }
+
+        return NextResponse.json({
+            error: errorMessage,
+            step: error.step || 'unknown'
+        }, { status: 500 });
     }
 }
