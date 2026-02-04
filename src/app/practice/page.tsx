@@ -1,22 +1,22 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import LessonCard from '@/components/LessonCard';
 import styles from './PracticePage.module.css';
 
 interface TrainingItem {
     id: string;
-    situation: string; // This is the English scenario title usually? No, prompt_kr is situation.
-    // Making Assumption: 'category' is the English Title, 'situation' is Korean Subtitle
+    situation: string;
     category: string;
     level: string;
+    target_en?: string;
 }
 
 export default function PracticePage() {
     const [items, setItems] = useState<TrainingItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedCategory, setSelectedCategory] = useState('All');
-    const [streak, setStreak] = useState(1); // Mock streak for now
+    const [streak, setStreak] = useState(1);
 
     useEffect(() => {
         async function fetchItems() {
@@ -35,20 +35,16 @@ export default function PracticePage() {
         fetchItems();
     }, []);
 
-    // Filter items based on logic
+    // Dynamic Categories: Get unique categories from items
+    const categories = useMemo(() => {
+        const cats = new Set(items.map(i => i.category).filter(Boolean));
+        return Array.from(cats).sort();
+    }, [items]);
+
     const displayedItems = selectedCategory === 'All'
         ? items
-        : items.filter(i => {
-            // Loose matching for category
-            const cat = i.category || '';
-            const target = selectedCategory;
-            if (target === 'Match') return cat.includes('Match') || cat.includes('Pass') || cat.includes('Tac');
-            if (target === 'Life') return cat.includes('Life') || cat.includes('Gen') || cat.includes('Comm');
-            return cat === target;
-        });
+        : items.filter(i => i.category === selectedCategory);
 
-    // Grouping for "Recommendations" vs "Others"
-    // specific logic: Just take the first 1 as "Custom Lesson" and rest as "Jump-in"
     const recommendedLesson = displayedItems[0];
     const otherLessons = displayedItems.slice(1);
 
@@ -62,9 +58,10 @@ export default function PracticePage() {
                         onChange={(e) => setSelectedCategory(e.target.value)}
                         className={styles.dropdown}
                     >
-                        <option value="All">Category All</option>
-                        <option value="Match">경기 (Match)</option>
-                        <option value="Life">생활 (Life)</option>
+                        <option value="All">전체 보기</option>
+                        {categories.map(cat => (
+                            <option key={cat} value={cat}>{cat}</option>
+                        ))}
                     </select>
                 </div>
                 <div className={styles.title}>Practice</div>
@@ -105,6 +102,7 @@ export default function PracticePage() {
                                     subtitle={item.situation}
                                     category={item.category}
                                     level={item.level}
+                                // Pass English text if we want it shown, but LessonCard probably just shows titles
                                 />
                             ))}
                         </div>
@@ -112,7 +110,7 @@ export default function PracticePage() {
 
                     {displayedItems.length === 0 && (
                         <p style={{ textAlign: 'center', color: '#999', marginTop: '2rem' }}>
-                            No lessons found for this level.
+                            No lessons found for this category.
                         </p>
                     )}
                 </div>
