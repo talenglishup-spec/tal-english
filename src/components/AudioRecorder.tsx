@@ -13,7 +13,20 @@ export default function AudioRecorder({ onRecordingComplete, disabled }: AudioRe
     const [recordingTime, setRecordingTime] = useState(0);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const chunksRef = useRef<Blob[]>([]);
-    const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Timer Logic: Reactive to isRecording state
+    useEffect(() => {
+        let interval: NodeJS.Timeout | null = null;
+        if (isRecording) {
+            setRecordingTime(0);
+            interval = setInterval(() => {
+                setRecordingTime((prev) => prev + 1);
+            }, 1000);
+        }
+        return () => {
+            if (interval) clearInterval(interval);
+        };
+    }, [isRecording]);
 
     // Auto-start logic
     useEffect(() => {
@@ -21,20 +34,20 @@ export default function AudioRecorder({ onRecordingComplete, disabled }: AudioRe
             startRecording();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []); // Run once on mount
+    }, []);
 
+    // Cleanup Logic
     useEffect(() => {
         return () => {
-            if (timerRef.current) clearInterval(timerRef.current);
-            if (mediaRecorderRef.current && isRecording) {
+            if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
                 mediaRecorderRef.current.stream.getTracks().forEach(t => t.stop());
+                mediaRecorderRef.current.stop();
             }
         };
-    }, [isRecording]);
+    }, []);
 
     const startRecording = async () => {
         try {
-            // Mobile Safari check / standard getUserMedia
             const stream = await navigator.mediaDevices.getUserMedia({
                 audio: {
                     echoCancellation: true,
@@ -45,7 +58,7 @@ export default function AudioRecorder({ onRecordingComplete, disabled }: AudioRe
 
             let mimeType = 'audio/webm';
             if (MediaRecorder.isTypeSupported('audio/mp4')) {
-                mimeType = 'audio/mp4'; // iOS Safari prefer
+                mimeType = 'audio/mp4';
             } else if (MediaRecorder.isTypeSupported('audio/aac')) {
                 mimeType = 'audio/aac';
             }
@@ -68,25 +81,25 @@ export default function AudioRecorder({ onRecordingComplete, disabled }: AudioRe
 
             mediaRecorder.start();
             setIsRecording(true);
-            setRecordingTime(0);
-
-            if (timerRef.current) clearInterval(timerRef.current);
-            timerRef.current = setInterval(() => {
-                setRecordingTime(prev => prev + 1);
-            }, 1000);
+            // Timer is handled by useEffect now
 
         } catch (err: any) {
             console.error('Error accessing microphone:', err);
-            // Alert user on mobile if this fails so they know WHY it's 0:00
-            alert(`Microphone Error: ${err.message || err.name}. Please ensure permissions are allowed.`);
+            // On iOS Safari, auto-play policies might block this.
+            // If it fails, we assume user must tap manually.
+            if (err.name === 'NotAllowedError' || err.name === 'SecurityError') {
+                alert('Microphone recording was blocked or requires permission. Please tap the microphone button to start.');
+            } else {
+                // Squelch other errors or show subtle UI if needed
+            }
         }
     };
 
     const stopRecording = () => {
         if (mediaRecorderRef.current && isRecording) {
+            // This triggers onstop event
             mediaRecorderRef.current.stop();
             setIsRecording(false);
-            if (timerRef.current) clearInterval(timerRef.current);
         }
     };
 
