@@ -1,15 +1,21 @@
-import { NextResponse } from 'next/server';
-import { getAttempts } from '@/utils/sheets';
+import { NextRequest, NextResponse } from 'next/server';
+import { getAttempts, getItems } from '@/utils/sheets';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
-        const attempts = await getAttempts();
+        const { searchParams } = new URL(req.url);
+        const playerId = searchParams.get('playerId');
 
-        // MVP: Filter for "demo_player" if needed, or just use all for single user app
-        // const myAttempts = attempts.filter(a => a.player_id === 'demo_player');
-        // Let's use all for now as it's a personal trainer app
+        let attempts = await getAttempts();
+        const items = await getItems();
+        const activeItemIds = new Set(items.map(i => i.id));
+
+        // Filter by player if provided
+        if (playerId) {
+            attempts = attempts.filter(a => a.player_id === playerId);
+        }
 
         const dates = attempts.map(a => {
             const d = new Date(a.date_time);
@@ -20,45 +26,11 @@ export async function GET() {
         const uniqueDates = Array.from(new Set(dates)).sort();
 
         // Calculate Streak
-        let streak = 0;
-        const today = new Date().toISOString().split('T')[0];
-        const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-
-        // Check if active today or yesterday to maintain streak
-        if (uniqueDates.includes(today) || uniqueDates.includes(yesterday)) {
-            let currentCheck = new Date();
-            // Start checking from today backwards
-            while (true) {
-                const checkStr = currentCheck.toISOString().split('T')[0];
-                if (uniqueDates.includes(checkStr)) {
-                    streak++;
-                    currentCheck.setDate(currentCheck.getDate() - 1);
-                } else {
-                    // Include edge case: if I haven't practiced today but did yesterday, streak is still alive but increment stops?
-                    // Simplified logic: Count consecutive days present in uniqueDates backwards from today/yesterday.
-
-                    // Better logic:
-                    // 1. Convert uniqueDates to Timestamps
-                    // 2. Iterate backwards
-                    break;
-                }
-            }
-        } else {
-            streak = 0;
-        }
-
-        // Simplified Streak Calculation for MVP reliability:
-        // Just count how many consecutive days immediately preceding today (inclusive) have entries.
-        // Actually for a demo app, let's just count unique active days in the last 7 days? 
-        // No, let's try to be real.
-
-        // Re-calc specific streak
         let currentStreak = 0;
         let dateCursor = new Date();
-        const oneDay = 24 * 60 * 60 * 1000;
+        const todayStr = dateCursor.toISOString().split('T')[0];
 
         // Allow missing today if we did it yesterday
-        const todayStr = dateCursor.toISOString().split('T')[0];
         if (!uniqueDates.includes(todayStr)) {
             dateCursor.setDate(dateCursor.getDate() - 1);
         }
@@ -73,10 +45,38 @@ export async function GET() {
             }
         }
 
+        // --- Additional Stats for Dashboard ---
+
+        // 1. Progress % (Unique Items Attempted / Total Active Items)
+        const attemptedItemIds = new Set(attempts.map(a => a.item_id).filter(id => id && id !== 'unknown' && activeItemIds.has(id)));
+        const uniqueAttemptsCount = attemptedItemIds.size;
+        const totalActiveItems = activeItemIds.size;
+        const progressPercent = totalActiveItems > 0 ? Math.round((uniqueAttemptsCount / totalActiveItems) * 100) : 0;
+
+        // 2. Avg AI Score (Last 10)
+        const gradedAttempts = attempts.filter(a => typeof a.ai_score === 'number' && !isNaN(a.ai_score));
+        const last10 = gradedAttempts.slice(0, 10);
+        const avgScore = last10.length > 0
+            ? Math.round(last10.reduce((sum, a) => sum + a.ai_score, 0) / last10.length)
+            : 0;
+
+        // 3. Needs Attention (Ungraded or specific feedback)
+        // Just count ungraded attempts (no coach_score)
+        const ungradedCount = attempts.filter(a => !a.coach_score).length;
+
+        // 4. Latest Attempt
+        const latestAttempt = attempts.length > 0 ? attempts[0] : null;
+
         return NextResponse.json({
             streak: currentStreak,
             activeDates: uniqueDates,
-            totalAttempts: attempts.length
+            totalAttempts: attempts.length,
+            uniqueAttemptsCount,
+            totalActiveItems,
+            progressPercent,
+            avgScore,
+            ungradedCount,
+            latestAttempt
         });
 
     } catch (e) {
