@@ -1,0 +1,117 @@
+.page {
+    min-height: 100vh;
+    background-color: #f7f9fc;
+    padding: 2rem;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding-bottom: 90px;
+}
+
+.header {
+    margin-bottom: 2rem;
+}
+
+.header h1 {
+    margin: 0;
+    color: #1a1a1a;
+}
+
+.header p {
+    color: #aeaeae;
+    margin: 4px 0 0 0;
+}
+
+.tableContainer {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    overflow-x: auto;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table th {
+    text-align: left;
+    padding: 1.2rem;
+    background: #f8f9fa;
+    color: #666;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.table td {
+    padding: 1.2rem;
+    border-bottom: 1px solid #eee;
+    color: #333;
+}
+
+.table tbody tr:hover {
+    background-color: #fcfcfc;
+}
+
+.playerCell {
+    display: flex;
+    flex-direction: column;
+}
+
+.playerName {
+    font-weight: 700;
+    color: #0070f3;
+}
+
+.playerId {
+    font-size: 0.75rem;
+    color: #999;
+}
+
+.badgeWarning {
+    background: #fff3e0;
+    color: #e65100;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.badgeSuccess {
+    background: #e8f5e9;
+    color: #2e7d32;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.scoreHigh {
+    color: #2e7d32;
+    font-weight: 700;
+}
+
+.scoreMid {
+    color: #f57f17;
+    font-weight: 700;
+}
+
+.scoreLow {
+    color: #c62828;
+    font-weight: 700;
+}
+
+.viewBtn {
+    background: white;
+    border: 1px solid #ddd;
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: #555;
+    transition: all 0.2s;
+}
+
+.viewBtn:hover {
+    border-color: #0070f3;
+    color: #0070f3;
+}
