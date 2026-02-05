@@ -10,6 +10,7 @@ export default function LoginPage() {
 
   // Inputs
   const [playerId, setPlayerId] = useState('');
+  const [playerPw, setPlayerPw] = useState('');
   const [teacherId, setTeacherId] = useState('');
   const [teacherPw, setTeacherPw] = useState('');
 
@@ -70,16 +71,27 @@ export default function LoginPage() {
 
         <form onSubmit={handleLogin} className={styles.form}>
           {activeTab === 'player' ? (
-            <div className={styles.inputGroup}>
-              <label>Player ID (or Name)</label>
-              <input
-                type="text"
-                value={playerId}
-                onChange={(e) => setPlayerId(e.target.value)}
-                placeholder="Enter your ID e.g. player01"
-                required
-              />
-            </div>
+            <>
+              <div className={styles.inputGroup}>
+                <label>Player ID (or Name)</label>
+                <input
+                  type="text"
+                  value={playerId}
+                  onChange={(e) => setPlayerId(e.target.value)}
+                  placeholder="Enter your ID e.g. player01"
+                  required
+                />
+              </div>
+              <div className={styles.inputGroup}>
+                <label>Password</label>
+                <input
+                  type="password"
+                  value={playerPw}
+                  onChange={(e) => setPlayerPw(e.target.value)}
+                  placeholder="••••••"
+                />
+              </div>
+            </>
           ) : (
             <>
               <div className={styles.inputGroup}>
