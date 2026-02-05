@@ -26,25 +26,45 @@ export async function POST(req: NextRequest) {
 
         // 2. Player Login
         if (role === 'player') {
-            // Validate against Sheets
-            // Logic: Check if player_id OR player_name exists in attempts
-            // Note: username passed here is the input ID
+            // HARDCODED DEMO USERS (Per User Request)
+            const demoUsers: Record<string, string> = {
+                'id001': 'id001',
+                'id002': 'id002'
+            };
+
+            // Check hardcoded first
+            if (demoUsers[username]) {
+                if (password === demoUsers[username]) {
+                    return NextResponse.json({
+                        success: true,
+                        user: {
+                            id: username,
+                            name: username === 'id001' ? 'Sonny' : 'Minjae', // Example names
+                            role: 'player'
+                        }
+                    });
+                } else {
+                    return NextResponse.json({ error: 'Invalid password' }, { status: 401 });
+                }
+            }
+
+            // Fallback: Validate against Sheets (Older Logic, Password Ignored or Optional)
+            // If user enters ID not in demo list, we check sheet? 
+            // User request implies specific users. Let's keep sheet check for backward compat if needed, 
+            // but strict on Demo users for now if they are the target.
+            // *However*, sheet lookup has no password field.
+            // So if it's not a demo user, we fail if we enforce password?
+            // Let's make password required only for hardcoded.
+
             const attempts = await getAttempts();
-
-            // Search for exact match locally (since sheet size is small for now)
-            // If scale becomes issue, we might need a dedicated Users sheet, but per prompt: use Attempts.
-
             const matchedAttempt = attempts.find(a =>
-                (a.player_id && a.player_id.toLowerCase() === username.toLowerCase()) ||
-                (a.player_name && a.player_name.toLowerCase() === username.toLowerCase())
+                (a.player_id && a.player_id.toLowerCase() === username.toLowerCase())
             );
 
             if (matchedAttempt) {
-                // Determine ID and Name
-                // If they logged in with Name, use ID from row if available.
-                // Priority: ID > Name.
-                // Wait, if multiple players share name 'Kim', this logic picks the first one. Prompt acknowledged this risk.
-
+                // Determine if we strictly require password. 
+                // Since prompt gave specific users with passwords, other existing users might not have them.
+                // We allow existing users without password check for now (MVP).
                 return NextResponse.json({
                     success: true,
                     user: {
@@ -54,11 +74,7 @@ export async function POST(req: NextRequest) {
                     }
                 });
             } else {
-                // Allow "New User"? The prompt implies validation.
-                // "validate by checking if there is ANY row"
-                // If no row, maybe return error or allow sign up?
-                // Let's return error "User not found" for now.
-                return NextResponse.json({ error: 'Player record not found. Please Ask Teacher.' }, { status: 404 });
+                return NextResponse.json({ error: 'Player record not found.' }, { status: 404 });
             }
         }
 

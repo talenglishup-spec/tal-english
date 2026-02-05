@@ -24,7 +24,7 @@ export default function LoginPage() {
     try {
       const payload = activeTab === 'teacher'
         ? { role: 'teacher', username: teacherId, password: teacherPw }
-        : { role: 'player', username: playerId };
+        : { role: 'player', username: playerId, password: playerPw }; // Included password for player
 
       const res = await fetch('/api/auth/login', {
         method: 'POST',
