@@ -1,77 +1,117 @@
 'use client';
 
-import Link from 'next/link';
-import { useState } from 'react';
+import React, { useState } from 'react';
+import { useAuth } from '@/context/AuthContext';
+import styles from './LoginPage.module.css';
 
-export default function Home() {
-  const [level, setLevel] = useState<string>('L0');
+export default function LoginPage() {
+  const { login } = useAuth();
+  const [activeTab, setActiveTab] = useState<'player' | 'teacher'>('player');
+
+  // Inputs
+  const [playerId, setPlayerId] = useState('');
+  const [teacherId, setTeacherId] = useState('');
+  const [teacherPw, setTeacherPw] = useState('');
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      const payload = activeTab === 'teacher'
+        ? { role: 'teacher', username: teacherId, password: teacherPw }
+        : { role: 'player', username: playerId };
+
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        login(data.user);
+      } else {
+        setError(data.error || 'Login failed');
+      }
+    } catch (err) {
+      console.error(err);
+      setError('Network error');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <main style={{
-      minHeight: '100vh',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: '2.5rem',
-      background: 'var(--color-bg)',
-      color: 'var(--color-text-main)',
-      padding: '2rem'
-    }}>
-      <div style={{ textAlign: 'center' }}>
-        <h1 style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Football English</h1>
-        <p style={{ color: 'var(--color-text-muted)' }}>Select your level to start training</p>
-      </div>
+    <div className={styles.container}>
+      <div className={styles.card}>
+        <h1 className={styles.title}>⚽ Football English Trainer</h1>
+        <p className={styles.subtitle}>Welcome back!</p>
 
-      <div style={{ display: 'flex', gap: '1rem', background: 'var(--color-surface)', padding: '0.5rem', borderRadius: 'var(--radius-lg)' }}>
-        {['L0', 'L1'].map((l) => (
+        <div className={styles.tabs}>
           <button
-            key={l}
-            onClick={() => setLevel(l)}
-            style={{
-              padding: '0.75rem 2rem',
-              borderRadius: 'var(--radius-md)',
-              background: level === l ? 'var(--color-primary)' : 'transparent',
-              color: level === l ? 'white' : 'var(--color-text-muted)',
-              fontWeight: '600',
-              transition: 'all 0.2s'
-            }}
+            className={`${styles.tab} ${activeTab === 'player' ? styles.activeTab : ''}`}
+            onClick={() => setActiveTab('player')}
           >
-            {l}
+            Player
           </button>
-        ))}
-      </div>
+          <button
+            className={`${styles.tab} ${activeTab === 'teacher' ? styles.activeTab : ''}`}
+            onClick={() => setActiveTab('teacher')}
+          >
+            Teacher
+          </button>
+        </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%', maxWidth: '300px' }}>
-        <Link
-          href={`/train?level=${level}`}
-          style={{
-            padding: '1rem',
-            background: 'var(--color-secondary)',
-            color: 'white',
-            borderRadius: 'var(--radius-md)',
-            fontWeight: '600',
-            textAlign: 'center',
-            boxShadow: 'var(--shadow-lg)'
-          }}
-        >
-          Start Training
-        </Link>
-        <Link
-          href="/admin"
-          style={{
-            padding: '1rem',
-            background: 'var(--color-surface)',
-            color: 'var(--color-text-main)',
-            borderRadius: 'var(--radius-md)',
-            fontWeight: '600',
-            textAlign: 'center',
-            border: '1px solid var(--color-border)'
-          }}
-        >
-          Admin Dashboard
-        </Link>
+        <form onSubmit={handleLogin} className={styles.form}>
+          {activeTab === 'player' ? (
+            <div className={styles.inputGroup}>
+              <label>Player ID (or Name)</label>
+              <input
+                type="text"
+                value={playerId}
+                onChange={(e) => setPlayerId(e.target.value)}
+                placeholder="Enter your ID e.g. player01"
+                required
+              />
+            </div>
+          ) : (
+            <>
+              <div className={styles.inputGroup}>
+                <label>Teacher ID</label>
+                <input
+                  type="text"
+                  value={teacherId}
+                  onChange={(e) => setTeacherId(e.target.value)}
+                  placeholder="admin"
+                  required
+                />
+              </div>
+              <div className={styles.inputGroup}>
+                <label>Password</label>
+                <input
+                  type="password"
+                  value={teacherPw}
+                  onChange={(e) => setTeacherPw(e.target.value)}
+                  placeholder="••••••"
+                  required
+                />
+              </div>
+            </>
+          )}
+
+          {error && <div className={styles.error}>{error}</div>}
+
+          <button type="submit" className={styles.submitBtn} disabled={loading}>
+            {loading ? 'Verifying...' : (activeTab === 'player' ? 'Start Training' : 'Teacher Dashboard')}
+          </button>
+        </form>
       </div>
-    </main>
+    </div>
   );
 }
