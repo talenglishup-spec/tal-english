@@ -92,9 +92,20 @@ export default function TeacherPage() {
 
     return (
         <div className={styles.page}>
-            <header className={styles.header}>
-                <h1>Teacher Dashboard 👨‍🏫</h1>
-                <p>Overview of all players</p>
+            <header className={styles.header} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                    <h1>Teacher Dashboard 👨‍🏫</h1>
+                    <p>Overview of all players</p>
+                </div>
+                <button
+                    onClick={() => router.push('/teacher/materials')}
+                    style={{
+                        background: '#0070f3', color: 'white', padding: '10px 16px', borderRadius: '8px',
+                        border: 'none', cursor: 'pointer', fontWeight: 'bold'
+                    }}
+                >
+                    📚 Manage Materials
+                </button>
             </header>
 
             <div className={styles.tableContainer}>
