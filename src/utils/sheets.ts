@@ -10,15 +10,9 @@ const rawKey = process.env.GOOGLE_PRIVATE_KEY || '';
 const PRIVATE_KEY = rawKey.replace(/\\n/g, '\n').replace(/^"|"$/g, '');
 
 if (!SHEET_ID || !SERVICE_EMAIL || !PRIVATE_KEY) {
-    // Warn but don't crash on build
     console.warn("Missing Google Sheets credentials in environment variables.");
 } else {
-    console.log("Sheet Config Loaded:", {
-        sheetId: SHEET_ID,
-        email: SERVICE_EMAIL,
-        keyLength: PRIVATE_KEY.length,
-        firstLine: PRIVATE_KEY.split('\n')[0]
-    });
+    // Log loaded config safely if needed
 }
 
 const auth = new JWT({
@@ -29,6 +23,7 @@ const auth = new JWT({
 
 const doc = new GoogleSpreadsheet(SHEET_ID as string, auth);
 
+// --- Existing Types ---
 export type AttemptRow = {
     attempt_id: string;
     date_time: string;
@@ -44,12 +39,33 @@ export type AttemptRow = {
     coach_feedback?: string;
 };
 
-// Helper to get specific sheet
+export type TrainingItem = {
+    id: string;
+    level: string;
+    category: string;
+    situation: string;
+    target_en: string;
+    allowed_variations: string[];
+    key_word: string;
+    focus_point: string;
+    coach_note: string;
+    active: boolean;
+};
+
+// --- New Type for Materials ---
+export type ClassMaterial = {
+    id: string;
+    date_added: string;
+    title: string;
+    url: string;
+    type: 'video' | 'document';
+    player_id: string; // 'all' or specific ID
+};
+
+// --- Helper ---
 export async function getSheet(title: string) {
     try {
-        console.log(`Loading doc info for sheet: ${title}...`);
         await doc.loadInfo();
-        console.log(`Doc loaded. Sheets: ${doc.sheetCount}`);
         const sheet = doc.sheetsByTitle[title];
         return sheet;
     } catch (e) {
@@ -60,36 +76,21 @@ export async function getSheet(title: string) {
 
 export async function getAttemptsSheet() {
     const sheet = await getSheet('Attempts');
-    if (!sheet) return doc.sheetsByIndex[0]; // Fallback
+    if (!sheet) return doc.sheetsByIndex[0];
     return sheet;
 }
 
-export type TrainingItem = {
-    id: string;
-    level: string;
-    category: string;
-    situation: string; // prompt_kr
-    target_en: string; // target_en
-    allowed_variations: string[];
-    key_word: string;
-    focus_point: string;
-    coach_note: string;
-    active: boolean;
-};
+// --- Existing Functions ---
 
 export async function getItems(): Promise<TrainingItem[]> {
     const sheet = await getSheet('Items');
-    if (!sheet) {
-        console.warn('Items sheet not found');
-        return [];
-    }
+    if (!sheet) return [];
 
     const rows = await sheet.getRows();
     return rows
         .map((row) => {
             const activeVal = row.get('active');
-            const isActive = activeVal === 'TRUE' || activeVal === true || activeVal === 'true'; // robust check
-
+            const isActive = activeVal === 'TRUE' || activeVal === true || activeVal === 'true';
             const variationsRaw = row.get('allowed_variations') || '';
             const variations = variationsRaw.split(',').map((s: string) => s.trim()).filter((s: string) => s.length > 0);
 
@@ -111,7 +112,6 @@ export async function getItems(): Promise<TrainingItem[]> {
 
 export async function appendAttempt(data: AttemptRow) {
     const sheet = await getAttemptsSheet();
-    // Convert strictly to string/number/boolean for sheets
     await sheet.addRow({
         attempt_id: data.attempt_id,
         date_time: data.date_time,
@@ -131,7 +131,6 @@ export async function appendAttempt(data: AttemptRow) {
 export async function getAttempts(): Promise<AttemptRow[]> {
     const sheet = await getAttemptsSheet();
     const rows = await sheet.getRows();
-
     return rows.map((row) => ({
         attempt_id: row.get('attempt_id'),
         date_time: row.get('date_time'),
@@ -145,13 +144,12 @@ export async function getAttempts(): Promise<AttemptRow[]> {
         audio_url: row.get('audio_url'),
         coach_score: row.get('coach_score'),
         coach_feedback: row.get('coach_feedback'),
-    })).reverse(); // Newest first usually
+    })).reverse();
 }
 
 export async function updateAttempt(attemptId: string, updates: { coach_score: string; coach_feedback: string }) {
     const sheet = await getAttemptsSheet();
     const rows = await sheet.getRows();
-
     const row = rows.find(r => r.get('attempt_id') === attemptId);
     if (row) {
         row.assign(updates);
@@ -159,4 +157,37 @@ export async function updateAttempt(attemptId: string, updates: { coach_score: s
         return true;
     }
     return false;
+}
+
+// --- New Functions for Materials ---
+
+export async function getMaterials(): Promise<ClassMaterial[]> {
+    const sheet = await getSheet('Materials');
+    if (!sheet) {
+        console.warn('Materials sheet not found');
+        return [];
+    }
+    const rows = await sheet.getRows();
+    return rows.map(row => ({
+        id: row.get('id'),
+        date_added: row.get('date_added'),
+        title: row.get('title'),
+        url: row.get('url'),
+        type: row.get('type') as 'video' | 'document',
+        player_id: row.get('player_id')
+    })).reverse(); // Newest first
+}
+
+export async function addMaterial(material: ClassMaterial) {
+    const sheet = await getSheet('Materials');
+    if (!sheet) throw new Error('Materials sheet not found');
+
+    await sheet.addRow({
+        id: material.id,
+        date_added: material.date_added,
+        title: material.title,
+        url: material.url,
+        type: material.type,
+        player_id: material.player_id
+    });
 }

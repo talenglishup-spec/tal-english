@@ -2,56 +2,70 @@
     min-height: 100vh;
     background-color: #f7f9fc;
     padding: 1.5rem;
-    padding-bottom: 80px;
-    max-width: 600px;
-    margin: 0 auto;
+    padding-bottom: 90px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 .header {
-    margin-bottom: 2rem;
-    text-align: center;
+    margin-bottom: 1.5rem;
 }
 
 .header h1 {
-    font-size: 1.75rem;
-    font-weight: 800;
+    font-size: 1.5rem;
     color: #1a1a1a;
-    letter-spacing: -0.5px;
+    margin: 0;
 }
 
-.list {
+.tabBtn {
+    background: white;
+    border: 1px solid #ddd;
+    padding: 10px 16px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #666;
+    cursor: pointer;
+}
+
+.activeTabBtn {
+    background: #0070f3;
+    border: 1px solid #0070f3;
+    padding: 10px 16px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: white;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 112, 243, 0.2);
+}
+
+.list,
+.grid {
     display: flex;
     flex-direction: column;
-    gap: 1.25rem;
+    gap: 1rem;
 }
 
 .itemCard {
     background: white;
-    padding: 1.25rem;
+    padding: 1rem;
     border-radius: 16px;
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: 1rem;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-    transition: transform 0.2s;
-    border: 1px solid rgba(0, 0, 0, 0.03);
-}
-
-.itemCard:active {
-    transform: scale(0.98);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
 .scoreBox {
-    width: 52px;
-    height: 52px;
-    border-radius: 14px;
+    width: 40px;
+    height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
+    border-radius: 12px;
     font-weight: 800;
-    font-size: 1.2rem;
+    font-size: 0.9rem;
     flex-shrink: 0;
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .details {
@@ -59,45 +73,94 @@
 }
 
 .situation {
+    margin: 0 0 4px 0;
     font-size: 1rem;
-    font-weight: 700;
-    margin-bottom: 6px;
-    color: #1a1a1a;
-    line-height: 1.4;
+    color: #333;
 }
 
 .date {
+    margin: 0;
     font-size: 0.75rem;
     color: #999;
-    font-weight: 500;
-    margin-bottom: 8px;
 }
 
 .feedback {
-    font-size: 0.9rem;
-    color: #555;
-    background: #f7f9fc;
-    padding: 8px 12px;
-    border-radius: 10px;
+    margin: 6px 0 0 0;
+    font-size: 0.85rem;
+    background: #fff3e0;
+    color: #e65100;
+    padding: 6px 10px;
+    border-radius: 8px;
     display: inline-block;
-    line-height: 1.4;
 }
 
 .playButton {
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
+    background: #f1f3f5;
     border: none;
-    background: #f0f2f5;
-    color: #0070f3;
     cursor: pointer;
+    color: #555;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.2s;
-    font-size: 1.2rem;
+    font-size: 0.8rem;
 }
 
-.playButton:active {
-    background: #e3e8ee;
+/* Material Card */
+.materialCard {
+    background: white;
+    padding: 1.2rem;
+    border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.materialHeader {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.materialType {
+    font-size: 0.65rem;
+    font-weight: 800;
+    color: #aaa;
+    letter-spacing: 0.5px;
+}
+
+.materialDate {
+    font-size: 0.75rem;
+    color: #ccc;
+}
+
+.materialTitle {
+    font-size: 1.1rem;
+    margin: 0 0 1rem 0;
+    color: #333;
+}
+
+.videoWrapper {
+    width: 100%;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #000;
+}
+
+.linkBtn {
+    display: block;
+    text-align: center;
+    background: #f8f9fa;
+    color: #0070f3;
+    padding: 12px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    border: 1px solid #eee;
+}
+
+.emptyState {
+    text-align: center;
+    color: #999;
+    padding: 2rem;
 }
