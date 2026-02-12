@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import styles from './TeacherPage.module.css';
 
 interface Attempt {
@@ -30,13 +31,13 @@ export default function TeacherPage() {
     const [loadingData, setLoadingData] = useState(true);
 
     useEffect(() => {
-        if (!isLoading && (!user || user.role !== 'teacher')) {
+        if (!isLoading && (!user || (user.role !== 'teacher' && user.role !== 'admin'))) {
             router.push('/');
         }
     }, [user, isLoading, router]);
 
     useEffect(() => {
-        if (user?.role === 'teacher') {
+        if (user?.role === 'teacher' || user?.role === 'admin') {
             fetch('/api/teacher/attempts')
                 .then(res => res.json())
                 .then(data => {
@@ -107,6 +108,19 @@ export default function TeacherPage() {
                     📚 Manage Materials
                 </button>
             </header>
+
+            <div className={styles.cardContainer}> {/* Added a container for cards */}
+                <Link href="/teacher/lessons" className={styles.card}>
+                    <div className={styles.icon}>📅</div>
+                    <h2>Lesson Manager</h2>
+                    <p>Assign lessons to players</p>
+                </Link>
+                <Link href="/teacher/items" className={styles.card}>
+                    <div className={styles.icon}>🔊</div>
+                    <h2>Items & Audio</h2>
+                    <p>Generate TTS</p>
+                </Link>
+            </div>
 
             <div className={styles.tableContainer}>
                 <table className={styles.table}>

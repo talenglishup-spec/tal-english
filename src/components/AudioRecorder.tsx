@@ -6,15 +6,34 @@ import styles from './AudioRecorder.module.css';
 interface AudioRecorderProps {
     onRecordingComplete: (audioBlob: Blob) => void;
     disabled?: boolean;
+    silenceDuration?: number; // ms to wait after speech stops
+    autoStop?: boolean; // enable VAD
+    minVolume?: number; // 0-255 threshold
 }
 
-export default function AudioRecorder({ onRecordingComplete, disabled }: AudioRecorderProps) {
+export default function AudioRecorder({
+    onRecordingComplete,
+    disabled,
+    silenceDuration = 1500,
+    autoStop = true,
+    minVolume = 5
+}: AudioRecorderProps) {
     const [isRecording, setIsRecording] = useState(false);
     const [recordingTime, setRecordingTime] = useState(0);
+    const [isListeningForSilence, setIsListeningForSilence] = useState(false);
+
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const chunksRef = useRef<Blob[]>([]);
 
-    // Timer Logic: Reactive to isRecording state
+    // VAD Refs
+    const audioContextRef = useRef<AudioContext | null>(null);
+    const analyserRef = useRef<AnalyserNode | null>(null);
+    const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+    const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const speechDetectedRef = useRef(false);
+    const animationFrameRef = useRef<number | null>(null);
+
+    // Timer Logic
     useEffect(() => {
         let interval: NodeJS.Timeout | null = null;
         if (isRecording) {
@@ -39,12 +58,24 @@ export default function AudioRecorder({ onRecordingComplete, disabled }: AudioRe
     // Cleanup Logic
     useEffect(() => {
         return () => {
+            stopVAD();
             if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
                 mediaRecorderRef.current.stream.getTracks().forEach(t => t.stop());
                 mediaRecorderRef.current.stop();
             }
         };
     }, []);
+
+    const stopVAD = () => {
+        if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+        if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+        if (audioContextRef.current) {
+            audioContextRef.current.close().catch(e => console.error(e));
+            audioContextRef.current = null;
+        }
+        speechDetectedRef.current = false;
+        setIsListeningForSilence(false);
+    };
 
     const startRecording = async () => {
         try {
@@ -76,28 +107,88 @@ export default function AudioRecorder({ onRecordingComplete, disabled }: AudioRe
             mediaRecorder.onstop = () => {
                 const blob = new Blob(chunksRef.current, { type: mimeType });
                 onRecordingComplete(blob);
+                stopVAD();
                 stream.getTracks().forEach(track => track.stop());
             };
 
             mediaRecorder.start();
             setIsRecording(true);
-            // Timer is handled by useEffect now
+
+            // Start VAD if enabled
+            if (autoStop) {
+                setupVAD(stream);
+            }
 
         } catch (err: any) {
             console.error('Error accessing microphone:', err);
-            // On iOS Safari, auto-play policies might block this.
-            // If it fails, we assume user must tap manually.
             if (err.name === 'NotAllowedError' || err.name === 'SecurityError') {
-                alert('Microphone recording was blocked or requires permission. Please tap the microphone button to start.');
-            } else {
-                // Squelch other errors or show subtle UI if needed
+                alert('Microphone recording was blocked. Please check permissions.');
             }
         }
     };
 
+    const setupVAD = async (stream: MediaStream) => {
+        try {
+            const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+            const audioCtx = new AudioContextClass();
+            if (audioCtx.state === 'suspended') {
+                await audioCtx.resume();
+            }
+            const analyser = audioCtx.createAnalyser();
+            analyser.fftSize = 512;
+
+            const source = audioCtx.createMediaStreamSource(stream);
+            source.connect(analyser);
+
+            audioContextRef.current = audioCtx;
+            analyserRef.current = analyser;
+            sourceRef.current = source;
+            speechDetectedRef.current = false;
+            setIsListeningForSilence(true);
+
+            monitorAudio();
+        } catch (e) {
+            console.error("VAD Setup Failed", e);
+        }
+    };
+
+    const monitorAudio = () => {
+        if (!analyserRef.current || !mediaRecorderRef.current || mediaRecorderRef.current.state !== 'recording') return;
+
+        const bufferLength = analyserRef.current.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        analyserRef.current.getByteFrequencyData(dataArray);
+
+        // Calculate average volume or max
+        let maxVol = 0;
+        for (let i = 0; i < bufferLength; i++) {
+            if (dataArray[i] > maxVol) maxVol = dataArray[i];
+        }
+
+        if (maxVol > minVolume) {
+            // Speech active
+            speechDetectedRef.current = true;
+            // Reset silence timer
+            if (silenceTimerRef.current) {
+                clearTimeout(silenceTimerRef.current);
+                silenceTimerRef.current = null;
+            }
+        } else {
+            // Silence
+            if (speechDetectedRef.current && !silenceTimerRef.current) {
+                // Start silence timer
+                silenceTimerRef.current = setTimeout(() => {
+                    // Stop recording!
+                    stopRecording();
+                }, silenceDuration);
+            }
+        }
+
+        animationFrameRef.current = requestAnimationFrame(monitorAudio);
+    };
+
     const stopRecording = () => {
-        if (mediaRecorderRef.current && isRecording) {
-            // This triggers onstop event
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
             mediaRecorderRef.current.stop();
             setIsRecording(false);
         }
@@ -111,7 +202,6 @@ export default function AudioRecorder({ onRecordingComplete, disabled }: AudioRe
 
     return (
         <div className={styles.container}>
-            {/* Timer Display */}
             <div className={styles.timerLarge}>
                 {formatTime(recordingTime)}
             </div>
@@ -135,7 +225,13 @@ export default function AudioRecorder({ onRecordingComplete, disabled }: AudioRe
                     </button>
                 )}
             </div>
-            {isRecording && <div className={styles.statusText}>Recording...</div>}
+            {isRecording && (
+                <div className={styles.statusText}>
+                    {isListeningForSilence
+                        ? (speechDetectedRef.current ? "Listening..." : "Speak now...")
+                        : "Recording..."}
+                </div>
+            )}
         </div>
     );
 }

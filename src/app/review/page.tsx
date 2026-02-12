@@ -4,160 +4,192 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import styles from './ReviewPage.module.css';
 
-interface Attempt {
-    attempt_id: string;
+// Types
+interface Lesson {
+    lesson_id: string;
+    lesson_no: number;
+    lesson_date: string;
+    note: string;
+}
+
+interface TrainingItem {
+    id: string;
     situation: string;
-    date_time: string;
-    ai_score: number;
-    coach_feedback?: string;
-    audio_url: string;
-    player_id: string; // needed for filtering if fetching all
+    category: string;
+    level: string;
+    target_en: string;
 }
 
 interface Material {
-    id: string;
-    date_added: string;
+    material_id: string;
     title: string;
     url: string;
-    type: 'video' | 'document';
-    player_id: string;
+    type: 'video' | 'doc' | 'link';
+    note: string;
 }
 
 export default function ReviewPage() {
-    const { user } = useAuth(); // Get current user
-    const [activeTab, setActiveTab] = useState<'history' | 'materials'>('history');
+    const { user, logout } = useAuth();
 
-    const [attempts, setAttempts] = useState<Attempt[]>([]);
-    const [materials, setMaterials] = useState<Material[]>([]);
-    const [loading, setLoading] = useState(true);
+    // Lessons State
+    const [lessons, setLessons] = useState<Lesson[]>([]);
+    const [loadingLessons, setLoadingLessons] = useState(true);
+    const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
 
+    // Detail State
+    const [lessonMaterials, setLessonMaterials] = useState<Material[]>([]);
+    const [loadingDetails, setLoadingDetails] = useState(false);
+
+    // Fetch Lessons on mount
     useEffect(() => {
-        const fetchData = async () => {
-            // 1. Fetch History (using stats API or similar)
-            // We'll reuse the logic from before, filtering for current user
-            try {
-                const resHistory = await fetch('/api/admin/attempts'); // or new filtered endpoint
-                const dataHistory = await resHistory.json();
-                if (dataHistory.attempts) {
-                    // Client-side filter for current user
-                    const myAttempts = dataHistory.attempts.filter((a: Attempt) =>
-                        user ? a.player_id === user.id : true
-                    );
-                    setAttempts(myAttempts);
-                }
+        if (!user) return;
 
-                // 2. Fetch Materials
-                const resMaterials = await fetch('/api/teacher/materials');
-                const dataMaterials = await resMaterials.json();
-                if (dataMaterials.materials) {
-                    // Filter: 'all' OR matches user.id
-                    const myMaterials = dataMaterials.materials.filter((m: Material) =>
-                        m.player_id === 'all' || (user && m.player_id === user.id)
-                    );
-                    setMaterials(myMaterials);
-                }
+        async function fetchLessons() {
+            try {
+                const res = await fetch(`/api/train/lessons?playerId=${user?.id}`);
+                const data = await res.json();
+                if (data.lessons) setLessons(data.lessons);
             } catch (e) {
                 console.error(e);
             } finally {
-                setLoading(false);
+                setLoadingLessons(false);
             }
-        };
-
-        if (user) fetchData();
+        }
+        fetchLessons();
     }, [user]);
+
+    // Fetch Details when a lesson is selected
+    useEffect(() => {
+        if (!selectedLesson) return;
+
+        async function fetchDetails() {
+            setLoadingDetails(true);
+            try {
+                // Fetch Materials (Content)
+                const materialsRes = await fetch(`/api/train/materials?lessonId=${selectedLesson?.lesson_id}`);
+                const materialsData = await materialsRes.json();
+                if (materialsData.materials) setLessonMaterials(materialsData.materials);
+
+            } catch (e) {
+                console.error(e);
+            } finally {
+                setLoadingDetails(false);
+            }
+        }
+        fetchDetails();
+    }, [selectedLesson]);
 
     // Helper to get YouTube ID
     const getYouTubeId = (url: string) => {
-        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-        const match = url.match(regExp);
-        return (match && match[2].length === 11) ? match[2] : null;
+        try {
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[2].length === 11) ? match[2] : null;
+        } catch (e) { return null; }
     };
 
-    if (!user) return <div className={styles.page}>Please login first.</div>;
+    const handleBack = () => {
+        setSelectedLesson(null);
+        setLessonMaterials([]);
+    };
+
+    if (!user) return null;
 
     return (
         <div className={styles.page}>
-            <header className={styles.header}>
-                <h1>📚 My Learning</h1>
+            <header className={styles.header} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className={styles.title}>수업리뷰</div>
+                <button onClick={logout} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' }}>
+                    🚪
+                </button>
             </header>
 
-            <div className={styles.tabs} style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
-                <button
-                    className={activeTab === 'history' ? styles.activeTabBtn : styles.tabBtn}
-                    onClick={() => setActiveTab('history')}
-                >
-                    🎙️ Practice History
-                </button>
-                <button
-                    className={activeTab === 'materials' ? styles.activeTabBtn : styles.tabBtn}
-                    onClick={() => setActiveTab('materials')}
-                >
-                    🎥 Class Materials
-                </button>
-            </div>
+            <div className={styles.content}>
+                {selectedLesson ? (
+                    // Detail View
+                    <div className={styles.detailView}>
+                        <button onClick={handleBack} className={styles.backBtn}>← 목록으로 돌아가기</button>
 
-            {activeTab === 'history' && (
-                <div className={styles.list}>
-                    {attempts.length === 0 ? (
-                        <div className={styles.emptyState}>No practice history yet.</div>
-                    ) : (
-                        attempts.map(attempt => (
-                            <div key={attempt.attempt_id} className={styles.itemCard}>
-                                <div className={styles.scoreBox} style={{
-                                    backgroundColor: attempt.ai_score >= 80 ? '#e8f5e9' : '#fff3e0',
-                                    color: attempt.ai_score >= 80 ? '#2e7d32' : '#ef6c00'
-                                }}>
-                                    {attempt.ai_score}
-                                </div>
-                                <div className={styles.details}>
-                                    <h3 className={styles.situation}>{attempt.situation}</h3>
-                                    <p className={styles.date}>{new Date(attempt.date_time).toLocaleDateString()}</p>
-                                    {attempt.coach_feedback && (
-                                        <p className={styles.feedback}>💡 {attempt.coach_feedback}</p>
-                                    )}
-                                </div>
-                                <button className={styles.playButton} onClick={() => new Audio(attempt.audio_url).play()}>
-                                    ▶
-                                </button>
-                            </div>
-                        ))
-                    )}
-                </div>
-            )}
+                        <div className={styles.lessonInfo}>
+                            <h2>Lesson {selectedLesson.lesson_no} – {selectedLesson.note}</h2>
+                            <p className={styles.date}>{selectedLesson.lesson_date}</p>
+                        </div>
 
-            {activeTab === 'materials' && (
-                <div className={styles.grid}>
-                    {materials.length === 0 ? (
-                        <div className={styles.emptyState}>No class materials assigned yet.</div>
-                    ) : (
-                        materials.map(m => (
-                            <div key={m.id} className={styles.materialCard}>
-                                <div className={styles.materialHeader}>
-                                    <span className={styles.materialType}>{m.type === 'video' ? 'VIDEO' : 'DOC'}</span>
-                                    <span className={styles.materialDate}>{m.date_added}</span>
-                                </div>
-                                <h3 className={styles.materialTitle}>{m.title}</h3>
+                        {loadingDetails ? (
+                            <p>Loading details...</p>
+                        ) : (
+                            <>
+                                {/* SECTION 1: MATERIALS */}
+                                {lessonMaterials.length > 0 ? (
+                                    <div className={styles.section}>
+                                        <h3>Class Materials</h3>
+                                        <div className={styles.grid}>
+                                            {lessonMaterials.map(m => (
+                                                <div key={m.material_id} className={styles.materialCard}>
+                                                    <div className={styles.materialHeader}>
+                                                        <span className={styles.materialType}>{m.type.toUpperCase()}</span>
+                                                        <span className={styles.materialDate}>{m.title}</span>
+                                                    </div>
+                                                    <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '4px' }}>
+                                                        Lesson {selectedLesson.lesson_no}
+                                                    </div>
+                                                    {m.note && <p className={styles.materialNote}>{m.note}</p>}
 
-                                {m.type === 'video' && getYouTubeId(m.url) ? (
-                                    <div className={styles.videoWrapper}>
-                                        <iframe
-                                            width="100%" height="200"
-                                            src={`https://www.youtube.com/embed/${getYouTubeId(m.url)}`}
-                                            frameBorder="0"
-                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                            allowFullScreen
-                                        />
+                                                    {m.type === 'video' && getYouTubeId(m.url) ? (
+                                                        <div className={styles.videoWrapper}>
+                                                            <iframe
+                                                                width="100%" height="200"
+                                                                src={`https://www.youtube.com/embed/${getYouTubeId(m.url)}`}
+                                                                frameBorder="0"
+                                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                                allowFullScreen
+                                                            />
+                                                        </div>
+                                                    ) : (
+                                                        <a href={m.url} target="_blank" className={styles.linkBtn}>
+                                                            Open Link ↗
+                                                        </a>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
                                 ) : (
-                                    <a href={m.url} target="_blank" className={styles.linkBtn}>
-                                        Open Link ↗
-                                    </a>
+                                    <p style={{ textAlign: 'center', color: '#999', marginTop: '2rem' }}>
+                                        수업 자료가 없습니다.
+                                    </p>
                                 )}
-                            </div>
-                        ))
-                    )}
-                </div>
-            )}
+                            </>
+                        )}
+                    </div>
+                ) : (
+                    // List View
+                    <div className={styles.lessonList}>
+                        {loadingLessons ? (
+                            <p style={{ textAlign: 'center', color: '#666' }}>수업 목록을 불러오는 중...</p>
+                        ) : lessons.length > 0 ? (
+                            lessons.map(lesson => (
+                                <div
+                                    key={lesson.lesson_id}
+                                    className={styles.lessonRow}
+                                    onClick={() => setSelectedLesson(lesson)}
+                                >
+                                    <div className={styles.lessonIcon}>📅</div>
+                                    <div className={styles.lessonDetails}>
+                                        <h3>Lesson {lesson.lesson_no} – {lesson.note}</h3>
+                                        <p>{lesson.lesson_date}</p>
+                                    </div>
+                                    <div className={styles.arrow}>›</div>
+                                </div>
+                            ))
+                        ) : (
+                            <p style={{ textAlign: 'center', color: '#999', marginTop: '2rem' }}>
+                                완료된 수업이 없습니다.
+                            </p>
+                        )}
+                    </div>
+                )}
+            </div>
         </div>
     );
 }

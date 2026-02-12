@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-export type UserRole = 'player' | 'teacher' | null;
+export type UserRole = 'player' | 'teacher' | 'admin' | null;
 
 export interface User {
     id: string; // player_id or 'admin'
@@ -15,7 +15,7 @@ export interface User {
 interface AuthContextType {
     user: User | null;
     isLoading: boolean;
-    login: (userData: User) => void;
+    login: (userData: User) => Promise<void>;
     logout: () => void;
 }
 
@@ -40,14 +40,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsLoading(false);
     }, []);
 
-    const login = (userData: User) => {
+    // Strict Auth Guard
+    useEffect(() => {
+        if (isLoading) return;
+
+        const path = window.location.pathname;
+        const isPublic = path === '/';
+
+        if (!user && !isPublic) {
+            router.push('/');
+        } else if (user && isPublic) {
+            if (user.role === 'teacher' || user.role === 'admin') {
+                router.push('/teacher');
+            } else {
+                router.push('/home');
+            }
+        }
+    }, [user, isLoading, router]);
+
+    // Login via API
+    const login = async (userData: any) => {
+        // userData comes from the API response now
         setUser(userData);
         localStorage.setItem('tal_user', JSON.stringify(userData));
-        if (userData.role === 'teacher') {
-            router.push('/teacher');
-        } else {
-            router.push('/home');
-        }
     };
 
     const logout = () => {

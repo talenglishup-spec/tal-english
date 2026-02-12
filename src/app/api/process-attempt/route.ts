@@ -15,9 +15,7 @@ export async function POST(req: NextRequest) {
         const player_id = formData.get('player_id') as string || 'anon';
         const player_name = formData.get('player_name') as string || 'Anonymous';
 
-        // New fields
-        const allowed_variations_json = formData.get('allowed_variations') as string;
-        const allowed_variations: string[] = allowed_variations_json ? JSON.parse(allowed_variations_json) : [];
+        const measurement_type = formData.get('measurement_type') as string || 'baseline';
         const key_word = formData.get('key_word') as string || '';
 
         if (!file) {
@@ -57,7 +55,7 @@ export async function POST(req: NextRequest) {
         const stt_text = transcription.text;
 
         // 3. Calculate Score with Variations and Keyword
-        const { score, feedback, matched_text } = calculateScore(target_en, stt_text, allowed_variations, key_word);
+        const { score, feedback, matched_text } = calculateScore(target_en, stt_text, [], key_word);
 
         // 4. Save to Google Sheets
         const attemptData = {
@@ -71,7 +69,8 @@ export async function POST(req: NextRequest) {
             stt_text,
             ai_score: score,
             audio_url,
-            coach_feedback: feedback + (matched_text && matched_text !== target_en ? ` (Matched: ${matched_text})` : "")
+            coach_feedback: feedback + (matched_text && matched_text !== target_en ? ` (Matched: ${matched_text})` : ""),
+            measurement_type: measurement_type as any
         };
 
         await appendAttempt(attemptData);

@@ -17,19 +17,20 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        const { title, url, type, player_id } = body;
+        const { title, url, type, note } = body;
 
         if (!title || !url || !type) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
         }
 
         const newMaterial = {
-            id: uuidv4(),
+            material_id: uuidv4(),
             date_added: new Date().toISOString().split('T')[0],
             title,
             url,
             type,
-            player_id: player_id || 'all'
+            note: note || '',
+            active: true
         };
 
         await addMaterial(newMaterial);

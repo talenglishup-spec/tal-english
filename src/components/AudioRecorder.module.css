@@ -16,7 +16,7 @@
 .timerLarge {
     font-size: 3rem;
     font-weight: 700;
-    color: var(--color-text-primary, #333);
+    color: currentColor;
     font-variant-numeric: tabular-nums;
 }
 

@@ -164,3 +164,192 @@
     color: #999;
     padding: 2rem;
 }
+
+.title {
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.content {
+    padding: 1rem;
+}
+
+
+/* Material Card */
+.grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.materialCard {
+    background: white;
+    padding: 1.2rem;
+    border-radius: 16px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.materialHeader {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.materialType {
+    font-size: 0.65rem;
+    font-weight: 800;
+    color: #aaa;
+    letter-spacing: 0.5px;
+}
+
+.materialDate {
+    font-size: 0.75rem;
+    color: #ccc;
+}
+
+.materialTitle {
+    font-size: 1.1rem;
+    margin: 0 0 1rem 0;
+    color: #333;
+}
+
+.videoWrapper {
+    width: 100%;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #000;
+}
+
+.linkBtn {
+    display: block;
+    text-align: center;
+    background: #f8f9fa;
+    color: #0070f3;
+    padding: 12px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    border: 1px solid #eee;
+}
+
+.emptyState {
+    text-align: center;
+    color: #999;
+    padding: 2rem;
+}
+
+/* Section */
+.section {
+    margin-bottom: 2rem;
+}
+
+.section h3 {
+    font-size: 1.1rem;
+    color: #444;
+    margin-bottom: 1rem;
+    border-left: 4px solid #0070f3;
+    padding-left: 10px;
+}
+
+.materialNote {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 0.8rem;
+}
+
+.lessonList {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* ... Rest of existing styles ... */
+
+.lessonRow {
+    background: white;
+    padding: 1rem;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    transition: background-color 0.2s;
+}
+
+.lessonRow:active {
+    background-color: #f0f0f0;
+}
+
+.lessonIcon {
+    font-size: 1.5rem;
+    background: #f0f0f0;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50%;
+}
+
+.lessonDetails {
+    flex: 1;
+}
+
+.lessonDetails h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.lessonDetails p {
+    margin: 4px 0 0;
+    font-size: 0.85rem;
+    color: #666;
+}
+
+.arrow {
+    color: #ccc;
+    font-size: 1.5rem;
+}
+
+.backBtn {
+    background: none;
+    border: none;
+    color: #007bff;
+    font-size: 1rem;
+    margin-bottom: 1rem;
+    cursor: pointer;
+    padding: 0;
+}
+
+.detailView {
+    animation: fadeIn 0.3s ease;
+}
+
+.lessonInfo {
+    margin-bottom: 1.5rem;
+}
+
+.lessonInfo h2 {
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+.itemsList {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

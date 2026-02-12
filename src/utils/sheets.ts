@@ -24,42 +24,53 @@ const auth = new JWT({
 const doc = new GoogleSpreadsheet(SHEET_ID as string, auth);
 
 // --- Existing Types ---
+// --- Existing Types ---
 export type AttemptRow = {
     attempt_id: string;
     date_time: string;
     player_id: string;
-    player_name: string;
     item_id: string;
-    situation: string;
-    target_en: string;
     stt_text: string;
     ai_score: number;
     audio_url: string;
     coach_score?: string;
     coach_feedback?: string;
+    measurement_type?: 'baseline' | 'immediate_after' | 'after_7d' | 'after_30d';
 };
 
 export type TrainingItem = {
-    id: string;
+    id: string; // item_id
     level: string;
     category: string;
-    situation: string;
-    target_en: string;
-    allowed_variations: string[];
-    key_word: string;
+    sub_category: string;
+    prompt_kr: string; // prompt_kr
+    target_en: string; // target_en
     focus_point: string;
     coach_note: string;
     active: boolean;
+    model_audio_url: string;
+    audio_source: string;
+    // allowed_variations removed per strict v4 spec
 };
 
-// --- New Type for Materials ---
+// --- New Type for Materials (Global Library) ---
 export type ClassMaterial = {
-    id: string;
-    date_added: string;
+    material_id: string;
     title: string;
+    type: 'video' | 'doc' | 'link';
     url: string;
-    type: 'video' | 'document';
-    player_id: string; // 'all' or specific ID
+    note: string;
+    active: boolean;
+    // date_added removed per strict v4 spec
+};
+
+export type PlayerRow = {
+    player_id: string;
+    player_name: string;
+    password?: string;
+    active: boolean;
+    note: string;
+    created_at?: string;
 };
 
 // --- Helper ---
@@ -80,7 +91,33 @@ export async function getAttemptsSheet() {
     return sheet;
 }
 
-// --- Existing Functions ---
+// --- Player Functions ---
+
+export async function getPlayer(playerId: string): Promise<PlayerRow | null> {
+    const sheet = await getSheet('Players');
+    if (!sheet) return null;
+
+    const rows = await sheet.getRows();
+    const row = rows.find(r => r.get('player_id') === playerId);
+
+    if (!row) return null;
+
+    const activeVal = row.get('active');
+    const isActive = activeVal === 'TRUE' || activeVal === true || activeVal === 'true';
+
+    if (!isActive) return null;
+
+    return {
+        player_id: row.get('player_id'),
+        player_name: row.get('player_name'),
+        password: row.get('password'),
+        active: isActive,
+        note: row.get('note') || '',
+        created_at: row.get('created_at')
+    };
+}
+
+// --- Exising Functions Updated ---
 
 export async function getItems(): Promise<TrainingItem[]> {
     const sheet = await getSheet('Items');
@@ -91,20 +128,19 @@ export async function getItems(): Promise<TrainingItem[]> {
         .map((row) => {
             const activeVal = row.get('active');
             const isActive = activeVal === 'TRUE' || activeVal === true || activeVal === 'true';
-            const variationsRaw = row.get('allowed_variations') || '';
-            const variations = variationsRaw.split(',').map((s: string) => s.trim()).filter((s: string) => s.length > 0);
 
             return {
-                id: row.get('item_id'),
+                id: row.get('item_id'), // Mapped from item_id
                 level: row.get('level') || '',
                 category: row.get('category') || '',
-                situation: row.get('prompt_kr'),
-                target_en: row.get('target_en'),
-                allowed_variations: variations,
-                key_word: row.get('key_word') || '',
+                sub_category: row.get('sub_category') || '',
+                prompt_kr: row.get('prompt_kr') || '',
+                target_en: row.get('target_en') || '',
                 focus_point: row.get('focus_point') || '',
                 coach_note: row.get('coach_note') || '',
-                active: isActive
+                active: isActive,
+                model_audio_url: row.get('model_audio_url') || '',
+                audio_source: row.get('audio_source') || ''
             };
         })
         .filter(item => item.active === true);
@@ -116,15 +152,13 @@ export async function appendAttempt(data: AttemptRow) {
         attempt_id: data.attempt_id,
         date_time: data.date_time,
         player_id: data.player_id,
-        player_name: data.player_name,
         item_id: data.item_id,
-        situation: data.situation,
-        target_en: data.target_en,
         stt_text: data.stt_text,
         ai_score: data.ai_score,
         audio_url: data.audio_url,
         coach_score: data.coach_score || '',
-        coach_feedback: data.coach_feedback || ''
+        coach_feedback: data.coach_feedback || '',
+        measurement_type: data.measurement_type || 'baseline'
     });
 }
 
@@ -135,31 +169,34 @@ export async function getAttempts(): Promise<AttemptRow[]> {
         attempt_id: row.get('attempt_id'),
         date_time: row.get('date_time'),
         player_id: row.get('player_id'),
-        player_name: row.get('player_name'),
         item_id: row.get('item_id'),
-        situation: row.get('situation'),
-        target_en: row.get('target_en'),
         stt_text: row.get('stt_text'),
         ai_score: Number(row.get('ai_score')),
         audio_url: row.get('audio_url'),
         coach_score: row.get('coach_score'),
         coach_feedback: row.get('coach_feedback'),
+        measurement_type: row.get('measurement_type') as any
     })).reverse();
 }
 
-export async function updateAttempt(attemptId: string, updates: { coach_score: string; coach_feedback: string }) {
+export async function updateAttempt(attemptId: string, updates: Partial<AttemptRow>): Promise<boolean> {
     const sheet = await getAttemptsSheet();
     const rows = await sheet.getRows();
     const row = rows.find(r => r.get('attempt_id') === attemptId);
-    if (row) {
-        row.assign(updates);
-        await row.save();
-        return true;
+
+    if (!row) {
+        return false;
     }
-    return false;
+
+    if (updates.coach_score !== undefined) row.set('coach_score', updates.coach_score);
+    if (updates.coach_feedback !== undefined) row.set('coach_feedback', updates.coach_feedback);
+    if (updates.ai_score !== undefined) row.set('ai_score', updates.ai_score.toString());
+
+    await row.save();
+    return true;
 }
 
-// --- New Functions for Materials ---
+// --- Materials Functions (Global Library) ---
 
 export async function getMaterials(): Promise<ClassMaterial[]> {
     const sheet = await getSheet('Materials');
@@ -168,14 +205,21 @@ export async function getMaterials(): Promise<ClassMaterial[]> {
         return [];
     }
     const rows = await sheet.getRows();
-    return rows.map(row => ({
-        id: row.get('id'),
-        date_added: row.get('date_added'),
-        title: row.get('title'),
-        url: row.get('url'),
-        type: row.get('type') as 'video' | 'document',
-        player_id: row.get('player_id')
-    })).reverse(); // Newest first
+    return rows
+        .map(row => {
+            const activeVal = row.get('active');
+            const isActive = activeVal === 'TRUE' || activeVal === true || activeVal === 'true';
+            return {
+                material_id: row.get('material_id'),
+                title: row.get('title'),
+                type: row.get('type') as 'video' | 'doc' | 'link',
+                url: row.get('url'),
+                note: row.get('note') || '',
+                active: isActive
+            };
+        })
+        .filter(m => m.active)
+        .reverse();
 }
 
 export async function addMaterial(material: ClassMaterial) {
@@ -183,11 +227,454 @@ export async function addMaterial(material: ClassMaterial) {
     if (!sheet) throw new Error('Materials sheet not found');
 
     await sheet.addRow({
-        id: material.id,
-        date_added: material.date_added,
+        material_id: material.material_id,
         title: material.title,
-        url: material.url,
         type: material.type,
-        player_id: material.player_id
+        url: material.url,
+        note: material.note,
+        active: material.active
     });
+}
+
+// ... Lesson Functions ...
+
+export async function getStructuredLessonContent(lessonId: string): Promise<StructuredLessonContent[]> {
+    const [situations, allSitItems, allItems] = await Promise.all([
+        getLessonSituations(lessonId),
+        getAllSituationItems(),
+        getItems()
+    ]);
+
+    // 1. Build Item Map
+    const itemMap = new Map<string, TrainingItem>();
+    allItems.forEach(i => itemMap.set(i.id, i));
+
+    // 2. Build Result (Relying on SituationItems as authority)
+    const results: StructuredLessonContent[] = [];
+
+    for (const sit of situations) {
+        // Find items for this situation
+        const sitItems = allSitItems
+            .filter(si => si.situation_id === sit.situation_id)
+            .sort((a, b) => a.item_order - b.item_order);
+
+        const items: TrainingItem[] = [];
+        for (const si of sitItems) {
+            // Check validity: Item must exist (Global Dict)
+            if (itemMap.has(si.item_id)) {
+                const item = itemMap.get(si.item_id)!;
+                items.push(item);
+            }
+        }
+
+        if (items.length > 0) {
+            results.push({
+                situation: sit,
+                items: items
+            });
+        }
+    }
+
+    return results;
+}
+
+// --- Lessons & LessonItems (Player Assignment) ---
+
+export type LessonRow = {
+    lesson_id: string;
+    player_id: string;
+    lesson_no: number;
+    lesson_date: string;
+    note: string;
+    active: boolean;
+};
+
+export type LessonItemRow = {
+    lesson_id: string;
+    item_id: string;
+    active: boolean;
+};
+
+export type LessonSituationRow = {
+    situation_id: string;
+    lesson_id: string;
+    situation_title_ko: string;
+    situation_order: number;
+    active: boolean;
+    note: string;
+};
+
+export type SituationItemRow = {
+    situation_id: string;
+    item_id: string;
+    item_order: number;
+    active: boolean;
+    note: string;
+};
+
+// Relation: Lesson <-> Materials
+export type LessonMaterialRow = {
+    lesson_id: string;
+    material_id: string;
+    material_order: number;
+    active: boolean;
+    note: string;
+};
+
+export async function getLessons(playerId?: string): Promise<LessonRow[]> {
+    const sheet = await getSheet('Lessons');
+    if (!sheet) return [];
+
+    const rows = await sheet.getRows();
+    return rows
+        .map(row => {
+            const activeVal = row.get('active');
+            const isActive = activeVal === 'TRUE' || activeVal === true || activeVal === 'true';
+            return {
+                lesson_id: row.get('lesson_id'),
+                player_id: row.get('player_id'),
+                lesson_no: Number(row.get('lesson_no')),
+                lesson_date: row.get('lesson_date'),
+                note: row.get('note') || '',
+                active: isActive
+            };
+        })
+        .filter(lesson => {
+            if (!lesson.active) return false;
+            if (playerId && lesson.player_id !== playerId) return false;
+            return true;
+        })
+        .sort((a, b) => b.lesson_no - a.lesson_no);
+}
+
+// Check LessonItems for authority
+export async function getLessonItems(lessonId?: string): Promise<LessonItemRow[]> {
+    const sheet = await getSheet('LessonItems');
+    if (!sheet) return [];
+
+    const rows = await sheet.getRows();
+    return rows
+        .map(row => {
+            const activeVal = row.get('active');
+            const isActive = activeVal === 'TRUE' || activeVal === true || activeVal === 'true';
+            return {
+                lesson_id: row.get('lesson_id'),
+                item_id: row.get('item_id'),
+                active: isActive
+            };
+        })
+        .filter(li => li.active && (!lessonId || li.lesson_id === lessonId));
+}
+
+export async function getLessonMaterials(lessonId?: string): Promise<LessonMaterialRow[]> {
+    const sheet = await getSheet('LessonMaterials');
+    if (!sheet) return [];
+
+    const rows = await sheet.getRows();
+    return rows
+        .map(row => {
+            const activeVal = row.get('active');
+            const isActive = activeVal === 'TRUE' || activeVal === true || activeVal === 'true';
+            return {
+                lesson_id: row.get('lesson_id'),
+                material_id: row.get('material_id'),
+                material_order: Number(row.get('material_order') || 0),
+                active: isActive,
+                note: row.get('note') || ''
+            };
+        })
+        .filter(lm => lm.active && (!lessonId || lm.lesson_id === lessonId))
+        .sort((a, b) => a.material_order - b.material_order);
+}
+
+// Helper: Get full material objects for a lesson
+export async function getMaterialsForLesson(lessonId: string): Promise<ClassMaterial[]> {
+    const [allMaterials, lessonLinks] = await Promise.all([
+        getMaterials(),
+        getLessonMaterials(lessonId)
+    ]);
+
+    // Create map for order and checking existence
+    const linkMap = new Map<string, number>();
+    lessonLinks.forEach(l => linkMap.set(l.material_id, l.material_order));
+
+    return allMaterials
+        .filter(m => linkMap.has(m.material_id)) // Must be linked
+        .map(m => ({ ...m, order: linkMap.get(m.material_id) || 0 })) // Add order for sorting
+        .sort((a, b) => a.order - b.order); // Sort by LessonMaterial order
+}
+
+// --- Situation Management ---
+
+export async function getLessonSituations(lessonId: string): Promise<LessonSituationRow[]> {
+    const sheet = await getSheet('LessonSituations');
+    if (!sheet) return [];
+
+    const rows = await sheet.getRows();
+    return rows
+        .map(row => {
+            const activeVal = row.get('active');
+            const isActive = activeVal === 'TRUE' || activeVal === true || activeVal === 'true';
+            return {
+                situation_id: row.get('situation_id'),
+                lesson_id: row.get('lesson_id'),
+                situation_title_ko: row.get('situation_title_ko'),
+                situation_order: Number(row.get('situation_order') || 0),
+                active: isActive,
+                note: row.get('note') || ''
+            };
+        })
+        .filter(s => s.active && s.lesson_id === lessonId)
+        .sort((a, b) => a.situation_order - b.situation_order);
+}
+
+export async function getAllSituationItems(): Promise<SituationItemRow[]> {
+    const sheet = await getSheet('SituationItems');
+    if (!sheet) return [];
+
+    const rows = await sheet.getRows();
+    return rows.map(row => {
+        const activeVal = row.get('active');
+        const isActive = activeVal === 'TRUE' || activeVal === true || activeVal === 'true';
+        return {
+            situation_id: row.get('situation_id'),
+            item_id: row.get('item_id'),
+            item_order: Number(row.get('item_order') || 0),
+            active: isActive,
+            note: row.get('note') || ''
+        };
+    }).filter(si => si.active);
+}
+
+export type StructuredLessonContent = {
+    situation: LessonSituationRow;
+    items: TrainingItem[];
+};
+
+
+// Helper to get all unique active item IDs for a player (for Drills)
+// Helper to get items with Lesson Context for a player
+export type EnrichedItem = TrainingItem & {
+    lesson_id: string;
+    lesson_no: number;
+    lesson_note: string;
+};
+
+export async function getPlayerItemsWithContext(playerId: string): Promise<EnrichedItem[]> {
+    // 1. Get Player lessons
+    const lessons = await getLessons(playerId);
+    if (lessons.length === 0) return [];
+
+    // Sort lessons early (descending usually, or ascending?)
+    // User rule: "Practice... Lesson-first...". Usually implies logical order.
+    // Let's keep existing sort: sort((a, b) => b.lesson_no - a.lesson_no) from getLessons?
+    // getLessons sorts descending.
+
+    const lessonMap = new Map<string, LessonRow>();
+    lessons.forEach(l => lessonMap.set(l.lesson_id, l));
+    const activeLessonIds = new Set(lessons.map(l => l.lesson_id));
+
+    // 2. Get LessonSituations (Source of Truth for Lesson Content Structure)
+    const sitSheet = await getSheet('LessonSituations');
+    let allSituations: LessonSituationRow[] = [];
+    if (sitSheet) {
+        const rows = await sitSheet.getRows();
+        allSituations = rows.map(row => {
+            const activeVal = row.get('active');
+            const isActive = activeVal === 'TRUE' || activeVal === true || activeVal === 'true';
+            return {
+                situation_id: row.get('situation_id'),
+                lesson_id: row.get('lesson_id'),
+                situation_title_ko: row.get('situation_title_ko'),
+                situation_order: Number(row.get('situation_order') || 0),
+                active: isActive,
+                note: row.get('note') || ''
+            };
+        }).filter(s => s.active && activeLessonIds.has(s.lesson_id));
+    }
+
+    if (allSituations.length === 0) return [];
+
+    // 3. Get SituationItems (Source of Truth for Items in Situation)
+    const sitItemSheet = await getSheet('SituationItems');
+    let allSitItems: SituationItemRow[] = [];
+    if (sitItemSheet) {
+        const rows = await sitItemSheet.getRows();
+        allSitItems = rows.map(row => {
+            const activeVal = row.get('active');
+            const isActive = activeVal === 'TRUE' || activeVal === true || activeVal === 'true';
+            return {
+                situation_id: row.get('situation_id'),
+                item_id: row.get('item_id'),
+                item_order: Number(row.get('item_order') || 0),
+                active: isActive,
+                note: row.get('note') || ''
+            };
+        }).filter(si => si.active);
+    }
+
+    // 4. Get Items Library
+    const allItems = await getItems();
+    const itemMap = new Map<string, TrainingItem>();
+    allItems.forEach(i => itemMap.set(i.id, i));
+
+    // 5. Build Result: Lesson -> Situation -> Item
+    // We want flat list but ordered.
+    // Sort Situations first
+    allSituations.sort((a, b) => {
+        const lA = lessonMap.get(a.lesson_id)!;
+        const lB = lessonMap.get(b.lesson_id)!;
+        if (lA.lesson_no !== lB.lesson_no) return lB.lesson_no - lA.lesson_no; // Descending lesson
+        return a.situation_order - b.situation_order; // Ascending situation
+    });
+
+    const result: EnrichedItem[] = [];
+    const sitMap = new Map(allSituations.map(s => [s.situation_id, s]));
+
+    // Filter SituationItems by active situations
+    const relevantSitItems = allSitItems.filter(si => sitMap.has(si.situation_id));
+
+    // Group items by situation to sort them
+    const itemsBySit = new Map<string, SituationItemRow[]>();
+    relevantSitItems.forEach(si => {
+        if (!itemsBySit.has(si.situation_id)) itemsBySit.set(si.situation_id, []);
+        itemsBySit.get(si.situation_id)!.push(si);
+    });
+
+    // Iterate sorted situations to build final list
+    for (const sit of allSituations) {
+        const sitItems = itemsBySit.get(sit.situation_id) || [];
+        sitItems.sort((a, b) => a.item_order - b.item_order); // Ascending item order
+
+        const lesson = lessonMap.get(sit.lesson_id)!;
+
+        for (const si of sitItems) {
+            const item = itemMap.get(si.item_id);
+            if (item) {
+                result.push({
+                    ...item,
+                    lesson_id: lesson.lesson_id,
+                    lesson_no: lesson.lesson_no,
+                    lesson_note: lesson.note,
+                    // We could add situation info here if EnrichedItem supports it
+                });
+            }
+        }
+    }
+
+    return result;
+}
+
+export async function getAssignedItemIds(playerId: string): Promise<string[]> {
+    const lessons = await getLessons(playerId);
+    if (lessons.length === 0) return [];
+    const lessonIds = new Set(lessons.map(l => l.lesson_id));
+
+    // Use LessonSituations -> SituationItems
+    const sitSheet = await getSheet('LessonSituations');
+    const sitItemSheet = await getSheet('SituationItems');
+
+    if (!sitSheet || !sitItemSheet) return [];
+
+    const sitRows = await sitSheet.getRows();
+    const activeSitRows = sitRows.filter(r => {
+        const activeVal = r.get('active');
+        const isActive = activeVal === 'TRUE' || activeVal === true || activeVal === 'true';
+        return isActive && lessonIds.has(r.get('lesson_id'));
+    });
+
+    const situationIds = new Set(activeSitRows.map(r => r.get('situation_id')));
+
+    const sitItemRows = await sitItemSheet.getRows();
+    const assigned = sitItemRows
+        .filter(r => {
+            const activeVal = r.get('active');
+            const isActive = activeVal === 'TRUE' || activeVal === true || activeVal === 'true';
+            return isActive && situationIds.has(r.get('situation_id'));
+        })
+        .map(r => r.get('item_id'));
+
+    return Array.from(new Set(assigned));
+}
+
+// --- Teacher Dashboard Functions ---
+
+export async function addLesson(lesson: LessonRow) {
+    const sheet = await getSheet('Lessons');
+    if (!sheet) throw new Error('Lessons sheet not found');
+
+    await sheet.addRow({
+        lesson_id: lesson.lesson_id,
+        player_id: lesson.player_id,
+        lesson_no: lesson.lesson_no,
+        lesson_date: lesson.lesson_date,
+        note: lesson.note,
+        active: lesson.active
+    });
+}
+
+export async function addLessonItem(lessonId: string, itemId: string) {
+    const sheet = await getSheet('LessonItems');
+    if (!sheet) throw new Error('LessonItems sheet not found');
+
+    await sheet.addRow({
+        lesson_id: lessonId,
+        item_id: itemId
+    });
+}
+
+export async function addLessonMaterial(lessonId: string, materialId: string) {
+    const sheet = await getSheet('LessonMaterials');
+    if (!sheet) throw new Error('LessonMaterials sheet not found');
+
+    await sheet.addRow({
+        lesson_id: lessonId,
+        material_id: materialId
+    });
+}
+
+export async function deleteLessonItem(lessonId: string, itemId: string) {
+    const sheet = await getSheet('LessonItems');
+    if (!sheet) throw new Error('LessonItems sheet not found');
+
+    const rows = await sheet.getRows();
+    const rowToDelete = rows.find(r => r.get('lesson_id') === lessonId && r.get('item_id') === itemId);
+    if (rowToDelete) {
+        await rowToDelete.delete();
+    }
+}
+
+export async function deleteLessonMaterial(lessonId: string, materialId: string) {
+    const sheet = await getSheet('LessonMaterials');
+    if (!sheet) throw new Error('LessonMaterials sheet not found');
+
+    const rows = await sheet.getRows();
+    const rowToDelete = rows.find(r => r.get('lesson_id') === lessonId && r.get('material_id') === materialId);
+    if (rowToDelete) {
+        await rowToDelete.delete();
+    }
+}
+
+// --- Item Management (Update) ---
+
+export async function updateItem(itemId: string, updates: Partial<TrainingItem>) {
+    const sheet = await getSheet('Items');
+    if (!sheet) throw new Error('Items sheet not found');
+
+    const rows = await sheet.getRows();
+    const row = rows.find(r => r.get('item_id') === itemId);
+
+    if (!row) {
+        throw new Error(`Item with ID ${itemId} not found`);
+    }
+
+    // Update fields if they exist in updates
+    if (updates.model_audio_url !== undefined) row.set('model_audio_url', updates.model_audio_url);
+    if (updates.audio_source !== undefined) row.set('audio_source', updates.audio_source);
+
+    // Support other updates if needed
+    if (updates.target_en !== undefined) row.set('target_en', updates.target_en);
+    if (updates.prompt_kr !== undefined) row.set('prompt_kr', updates.prompt_kr);
+
+    await row.save();
 }

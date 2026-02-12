@@ -1,168 +1,206 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import LessonCard from '@/components/LessonCard';
+import ClozeDrillApp from '../../components/ClozeDrillApp';
 import styles from './ChallengePage.module.css';
+import { useAuth } from '@/context/AuthContext';
+
+interface EnrichedItem {
+    id: string;
+    prompt_kr: string; // v4
+    category: string;
+    sub_category: string; // v4
+    level: string;
+    target_en: string;
+    lesson_id: string;
+    lesson_no: number;
+    lesson_note: string;
+    model_audio_url?: string; // v4
+}
 
 export default function ChallengePage() {
-    const [stats, setStats] = useState<{ streak: number; activeDates: string[] }>({ streak: 0, activeDates: [] });
-    const [viewMode, setViewMode] = useState<'weekly' | 'monthly'>('weekly');
-    const [currentDate, setCurrentDate] = useState(new Date()); // For navigating months if needed
+    const { user, logout } = useAuth();
+    const [items, setItems] = useState<EnrichedItem[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [viewMode, setViewMode] = useState<'situation' | 'lesson'>('situation');
+
+    // Challenge Mode State
+    const [activeChallengeItem, setActiveChallengeItem] = useState<EnrichedItem | null>(null);
 
     useEffect(() => {
-        fetch('/api/user/stats')
-            .then(res => res.json())
-            .then(data => setStats(data));
-    }, []);
-
-    // --- Helper Functions ---
-
-    const getWeekLabel = (d: Date) => {
-        const date = new Date(d);
-        const day = date.getDay();
-        const diff = date.getDate() - day + (day === 0 ? -6 : 1); // Adjust to get Monday? or Sunday as start?
-        // User example: 2/2(Sun) ~ 2/8(Sat). Let's use Sunday start.
-
-        const startOfWeek = new Date(date);
-        startOfWeek.setDate(date.getDate() - date.getDay()); // Sunday
-
-        const endOfWeek = new Date(startOfWeek);
-        endOfWeek.setDate(startOfWeek.getDate() + 6); // Saturday
-
-        const month = startOfWeek.getMonth() + 1;
-
-        // Calculate Week Number of Month
-        // Simple approx: Math.ceil(date / 7)? No.
-        // Get the first date of the month
-        const firstDayOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
-        const offset = firstDayOfMonth.getDay();
-        const weekNum = Math.ceil((date.getDate() + offset) / 7);
-
-        return `${month}월 ${weekNum}주차 (${startOfWeek.getMonth() + 1}.${startOfWeek.getDate()} ~ ${endOfWeek.getMonth() + 1}.${endOfWeek.getDate()})`;
-    };
-
-    const generateWeeklyDates = (baseDate: Date) => {
-        const startOfWeek = new Date(baseDate);
-        startOfWeek.setHours(0, 0, 0, 0);
-        startOfWeek.setDate(baseDate.getDate() - baseDate.getDay()); // Sunday start
-
-        return Array.from({ length: 7 }, (_, i) => {
-            const d = new Date(startOfWeek);
-            d.setDate(startOfWeek.getDate() + i);
-            return d;
-        });
-    };
-
-    const generateMonthlyDates = (baseDate: Date) => {
-        const year = baseDate.getFullYear();
-        const month = baseDate.getMonth();
-
-        const firstDay = new Date(year, month, 1);
-        const lastDay = new Date(year, month + 1, 0);
-
-        const days = [];
-
-        // Pad start (Sunday to 1st)
-        for (let i = 0; i < firstDay.getDay(); i++) {
-            days.push(null);
+        async function fetchItems() {
+            if (!user) return;
+            try {
+                const query = user.role === 'player' ? `?playerId=${user.id}` : '';
+                const res = await fetch(`/api/train/items${query}`);
+                const data = await res.json();
+                if (data.items) {
+                    setItems(data.items);
+                }
+            } catch (e) {
+                console.error(e);
+            } finally {
+                setLoading(false);
+            }
         }
-
-        // Days
-        for (let i = 1; i <= lastDay.getDate(); i++) {
-            days.push(new Date(year, month, i));
+        if (user) {
+            fetchItems();
+        } else {
+            setLoading(false);
         }
+    }, [user]);
 
-        return days;
+    // Grouping Logic
+    const groupedData = useMemo(() => {
+        if (!items || items.length === 0) return [];
+
+        if (viewMode === 'lesson') {
+            const groups: Record<number, EnrichedItem[]> = {};
+            items.forEach(item => {
+                const no = item.lesson_no || 0;
+                if (!groups[no]) groups[no] = [];
+                groups[no].push(item);
+            });
+            return Object.entries(groups)
+                .sort((a, b) => Number(b[0]) - Number(a[0]))
+                .map(([key, val]) => ({
+                    title: `Lesson ${key}`,
+                    items: val
+                }));
+        } else {
+            // Situation View: Category -> SubCategory
+            const cats: Record<string, Record<string, EnrichedItem[]>> = {};
+            items.forEach(item => {
+                const cat = item.category || 'Uncategorized';
+                const sub = item.sub_category || 'General';
+                if (!cats[cat]) cats[cat] = {};
+                if (!cats[cat][sub]) cats[cat][sub] = [];
+                cats[cat][sub].push(item);
+            });
+
+            return Object.entries(cats).sort((a, b) => a[0].localeCompare(b[0])).map(([cat, subs]) => ({
+                title: cat,
+                subGroups: Object.entries(subs).sort((a, b) => a[0].localeCompare(b[0])).map(([sub, items]) => ({
+                    title: sub,
+                    items: items
+                }))
+            }));
+        }
+    }, [items, viewMode]);
+
+    const handleItemClick = (e: React.MouseEvent, item: EnrichedItem) => {
+        e.preventDefault();
+        setActiveChallengeItem(item);
     };
 
-    const isToday = (d: Date | null) => {
-        if (!d) return false;
-        return d.toISOString().split('T')[0] === new Date().toISOString().split('T')[0];
+    const handleChallengeClose = () => setActiveChallengeItem(null);
+
+    const handleChallengeNext = () => {
+        if (!activeChallengeItem) return;
+        // Logic to find next item in the flattened list for simplicity
+        const idx = items.findIndex(i => i.id === activeChallengeItem.id);
+        if (idx >= 0 && idx < items.length - 1) {
+            setActiveChallengeItem(items[idx + 1]);
+        } else {
+            alert("Challenge set complete!");
+            setActiveChallengeItem(null);
+        }
     };
 
-    const formatDate = (d: Date | null) => {
-        if (!d) return '';
-        // handle timezone offset issue - simple string split is safe for local dates if constructed properly, 
-        // but let's be careful. toISOString uses UTC. 
-        // We want Local YYYY-MM-DD for comparison with server stats (which matches local dates mostly).
-        // Actually server uses ISOString YYYY-MM-DD.
-        // Let's use simple manual format:
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-    };
-
-    const toggleView = () => {
-        setViewMode(prev => prev === 'weekly' ? 'monthly' : 'weekly');
-    };
-
-    // --- Render Logic ---
-    const daysLabel = ['일', '월', '화', '수', '목', '금', '토'];
-
-    // Data for Grid
-    let gridDates: (Date | null)[] = [];
-    if (viewMode === 'weekly') {
-        gridDates = generateWeeklyDates(currentDate);
-    } else {
-        gridDates = generateMonthlyDates(currentDate);
+    if (activeChallengeItem) {
+        return (
+            <ClozeDrillApp
+                item={activeChallengeItem}
+                onNext={handleChallengeNext}
+                onClose={handleChallengeClose}
+                mode="challenge"
+            />
+        );
     }
-
-    const weekLabel = getWeekLabel(currentDate);
-    const monthLabel = `${currentDate.getFullYear()}년 ${currentDate.getMonth() + 1}월`;
 
     return (
         <div className={styles.page}>
             <header className={styles.header}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <h1 style={{ margin: 0 }}>Challenge</h1>
-                    <span className={styles.dateLabel}>
-                        {viewMode === 'weekly' ? weekLabel : monthLabel}
-                    </span>
+                <div className={styles.headerTop}>
+                    <div className={styles.title}>Challenge</div>
+                    <button onClick={logout} className={styles.logoutBtn}>🚪</button>
                 </div>
 
-                <div className={styles.streakBadge}>
-                    🔥 {stats.streak}일 연속
+                <div className={styles.toggleContainer}>
+                    <button
+                        className={`${styles.toggleBtn} ${viewMode === 'situation' ? styles.active : ''}`}
+                        onClick={() => setViewMode('situation')}
+                    >
+                        By Situation
+                    </button>
+                    <button
+                        className={`${styles.toggleBtn} ${viewMode === 'lesson' ? styles.active : ''}`}
+                        onClick={() => setViewMode('lesson')}
+                    >
+                        By Lesson
+                    </button>
                 </div>
             </header>
 
-            <div className={styles.card}>
-                <div className={styles.cardHeader}>
-                    <div>
-                        <h2 className={styles.cardTitle}>{stats.streak}일 성공!</h2>
-                        <p className={styles.cardSubtitle}>꾸준함이 실력을 만듭니다.</p>
-                    </div>
-                    <button className={styles.viewToggleBtn} onClick={toggleView}>
-                        {viewMode === 'weekly' ? '월별 보기' : '주별 보기'}
-                    </button>
-                </div>
-
-                <div className={styles.calendarGrid}>
-                    {daysLabel.map((day) => (
-                        <div key={day} className={styles.dayLabel}>{day}</div>
-                    ))}
-
-                    {gridDates.map((date, i) => {
-                        if (!date) return <div key={i} className={styles.dayCell}></div>;
-
-                        const dateStr = formatDate(date);
-                        const isActive = stats.activeDates.includes(dateStr);
-                        const isTodayDate = isToday(date);
-
-                        return (
-                            <div key={i} className={styles.dayCell}>
-                                <div className={`${styles.statusCircle} ${isActive ? styles.active : ''} ${isTodayDate ? styles.today : ''}`}>
-                                    {isActive ? '✓' : date.getDate()}
-                                    {/* Show Date number if not active, check if active */}
+            <div className={styles.content}>
+                {loading ? <p>Loading challenges...</p> : (
+                    <>
+                        {viewMode === 'lesson' ? (
+                            groupedData.map((group: any) => (
+                                <div key={group.title} className={styles.section}>
+                                    <h3 className={styles.groupTitle}>{group.title}</h3>
+                                    <div className={styles.list}>
+                                        {group.items.map((item: EnrichedItem) => (
+                                            <LessonCard
+                                                key={item.id}
+                                                id={item.id}
+                                                category={item.category}
+                                                title={item.prompt_kr}
+                                                subtitle={item.sub_category}
+                                                level={item.level}
+                                                onClick={(e) => handleItemClick(e, item)}
+                                            />
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
-
-            <div className={styles.historySection}>
-                {/* <h3>나의 학습 통계</h3> */}
-                {/* Could add total hours, accuracy avg etc here later */}
+                            ))
+                        ) : (
+                            groupedData.map((catGroup: any) => (
+                                <div key={catGroup.title} className={styles.categoryBlock}>
+                                    <h2 className={styles.categoryTitle}>{catGroup.title}</h2>
+                                    {catGroup.subGroups.map((sub: any) => (
+                                        <div key={sub.title} className={styles.subGroup}>
+                                            <h4 className={styles.subTitle}>{sub.title}</h4>
+                                            <div className={styles.list}>
+                                                {sub.items.map((item: EnrichedItem) => (
+                                                    <LessonCard
+                                                        key={item.id}
+                                                        id={item.id}
+                                                        category={item.category}
+                                                        title={item.prompt_kr}
+                                                        subtitle={item.target_en} // Show target_en as subtitle? Or hide? 
+                                                        // Request: "Minimal info: Item title only (Situation)".
+                                                        // But LessonCard usually expects subtitle.
+                                                        // Let's passed empty string or sub_category.
+                                                        // Previously passing sub_category. 
+                                                        level={item.level}
+                                                        onClick={(e) => handleItemClick(e, item)}
+                                                    />
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ))
+                        )}
+                        {items && items.length === 0 && (
+                            <p className={styles.empty}>
+                                No items available.
+                            </p>
+                        )}
+                    </>
+                )}
             </div>
         </div>
     );

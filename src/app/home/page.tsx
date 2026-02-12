@@ -1,129 +1,107 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import styles from './HomePage.module.css';
 
-interface DashboardStats {
-    streak: number;
-    progressPercent: number;
-    avgScore: number;
-    totalAttempts: number;
-    ungradedCount: number;
-    latestAttempt: any;
+interface Lesson {
+    lesson_id: string;
+    lesson_no: number;
+    lesson_date: string;
+    note: string;
 }
 
-export default function PlayerHomePage() {
-    const { user, isLoading } = useAuth();
+export default function HomePage() {
+    const { user, logout } = useAuth();
     const router = useRouter();
-    const [stats, setStats] = useState<DashboardStats | null>(null);
+    const [latestLesson, setLatestLesson] = useState<Lesson | null>(null);
+    const [itemCount, setItemCount] = useState(0);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (!isLoading && !user) {
-            router.push('/');
-        } else if (user && user.role !== 'player') {
-            // Include logic to redirect teacher if they accidentally land here? 
-            // Or allow teacher to see own view? Teacher doesn't have player stats usually.
-            // Redirect to teacher dash.
-            router.push('/teacher');
-        }
-    }, [user, isLoading, router]);
+        async function fetchData() {
+            if (!user) return;
+            try {
+                // 1. Get Lessons
+                const lessonsRes = await fetch(`/api/train/lessons?playerId=${user.id}`);
+                const lessonsData = await lessonsRes.json();
 
-    useEffect(() => {
-        if (user?.id) {
-            fetch(`/api/user/stats?playerId=${user.id}`)
-                .then(res => res.json())
-                .then(data => setStats(data))
-                .catch(err => console.error(err));
-        }
-    }, [user?.id]);
+                if (lessonsData.lessons && lessonsData.lessons.length > 0) {
+                    const topLesson = lessonsData.lessons[0]; // Assuming sorted desc
+                    setLatestLesson(topLesson);
 
-    if (isLoading || !user) return <div className={styles.loading}>Loading...</div>;
+                    // 2. Get Items count for this lesson
+                    const itemsRes = await fetch(`/api/train/items?lessonId=${topLesson.lesson_id}`);
+                    const itemsData = await itemsRes.json();
+                    if (itemsData.items) {
+                        setItemCount(itemsData.items.length);
+                    }
+                }
+            } catch (e) {
+                console.error(e);
+            } finally {
+                setLoading(false);
+            }
+        }
+        if (user) {
+            fetchData();
+        }
+    }, [user]);
+
+    const handleStartPractice = () => {
+        if (latestLesson) {
+            router.push(`/practice?lessonId=${latestLesson.lesson_id}`);
+        } else {
+            router.push('/practice');
+        }
+    };
 
     return (
         <div className={styles.page}>
             <header className={styles.header}>
-                <div>
-                    <h1 className={styles.greeting}>Hi, {user.name} 👋</h1>
-                    <p className={styles.subtitle}>Ready for today's training?</p>
+                <div className={styles.brand}>
+                    <h2 className={styles.appLabel}>TAL Coach</h2>
+                    <h1 className={styles.mission}>Take A Leap</h1>
                 </div>
-                <button className={styles.trainButton} onClick={() => router.push('/train')}>
-                    Start Training ▶
-                </button>
+                <button onClick={logout} className={styles.logoutBtn}>🚪</button>
             </header>
 
-            {/* Stats Grid */}
-            <div className={styles.statsGrid}>
-                <div className={styles.statCard}>
-                    <div className={styles.statLabel}>Total Progress</div>
-                    <div className={styles.statValue}>{stats?.progressPercent || 0}%</div>
-                    <div className={styles.statSub}>of curriculum</div>
-                </div>
-                <div className={styles.statCard}>
-                    <div className={styles.statLabel}>Avg Score</div>
-                    <div className={`${styles.statValue} ${styles.score}`}>{stats?.avgScore || '-'}</div>
-                    <div className={styles.statSub}>Last 10 attempts</div>
-                </div>
-                <div className={styles.statCard}>
-                    <div className={styles.statLabel}>Streak</div>
-                    <div className={`${styles.statValue} ${styles.streak}`}>{stats?.streak || 0}</div>
-                    <div className={styles.statSub}>days in a row</div>
-                </div>
-            </div>
+            <div className={styles.content}>
+                <section className={styles.focusSection}>
+                    <h3 className={styles.sectionTitle}>Today's Focus</h3>
 
-            {/* Coach Feedback Alert */}
-            {stats?.latestAttempt?.coach_feedback && (
-                <div className={styles.feedbackCard}>
-                    <div className={styles.feedbackHeader}>
-                        <span className={styles.feedbackIcon}>💌</span> New Coach Feedback
-                    </div>
-                    <p className={styles.feedbackText}>
-                        "{stats.latestAttempt.coach_feedback}"
-                    </p>
-                    <div className={styles.feedbackDate}>
-                        From: {new Date(stats.latestAttempt.date_time).toLocaleDateString()}
-                    </div>
-                </div>
-            )}
-
-            {/* Recent Activity */}
-            <div className={styles.section}>
-                <div className={styles.sectionHeader}>
-                    <h2>Latest Attempt</h2>
-                    <button className={styles.linkButton} onClick={() => router.push('/review')}>View All</button>
-                </div>
-
-                {stats?.latestAttempt ? (
-                    <div className={styles.activityCard}>
-                        <div className={styles.activityInfo}>
-                            <h3>{stats.latestAttempt.situation}</h3>
-                            <p>{stats.latestAttempt.target_en}</p>
-                            <span className={styles.dateBadge}>
-                                {new Date(stats.latestAttempt.date_time).toLocaleString()}
-                            </span>
-                        </div>
-                        <div className={styles.activityScore}>
-                            <div className={styles.scoreCircle}>
-                                {stats.latestAttempt.ai_score}
+                    {loading ? (
+                        <div className={styles.cardSkeleton}>Loading...</div>
+                    ) : latestLesson ? (
+                        <div className={styles.focusCard}>
+                            <div className={styles.cardHeader}>
+                                <span className={styles.lessonBadges}>New</span>
+                                <span className={styles.date}>{latestLesson.lesson_date}</span>
                             </div>
-                            <span className={styles.scoreLabel}>AI Score</span>
-                        </div>
-                    </div>
-                ) : (
-                    <div className={styles.emptyState}>
-                        No attempts yet. Start your first training!
-                    </div>
-                )}
-            </div>
+                            <h2 className={styles.lessonTitle}>Lesson {latestLesson.lesson_no}</h2>
+                            <p className={styles.lessonNote}>{latestLesson.note}</p>
 
-            <div className={styles.navLinks}>
-                <button onClick={() => router.push('/challenge')} className={styles.navCard}>
-                    🏆 View Challenges
-                </button>
-                <button onClick={() => router.push('/review')} className={styles.navCard}>
-                    📝 Review History
-                </button>
+                            <div className={styles.stats}>
+                                <div className={styles.statItem}>
+                                    <span className={styles.statValue}>{itemCount}</span>
+                                    <span className={styles.statLabel}>items available</span>
+                                </div>
+                            </div>
+
+                            <button onClick={handleStartPractice} className={styles.primaryBtn}>
+                                Start Practice
+                            </button>
+                        </div>
+                    ) : (
+                        <div className={styles.emptyState}>
+                            <p>No lessons assigned yet.</p>
+                            <button onClick={() => router.push('/practice')} className={styles.secondaryBtn}>
+                                Go to Practice
+                            </button>
+                        </div>
+                    )}
+                </section>
             </div>
         </div>
     );
