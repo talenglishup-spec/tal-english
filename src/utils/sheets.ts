@@ -50,7 +50,12 @@ export type TrainingItem = {
     active: boolean;
     model_audio_url: string;
     audio_source: string;
-    // allowed_variations removed per strict v4 spec
+    // New Fields v5
+    practice_type: 'A' | 'B'; // A=3-Step, B=1-Step Cloze
+    cloze_target: string; // text to hide for Type B
+    challenge_type: 'Read' | 'Answer';
+    question_text: string;
+    question_audio_url: string;
 };
 
 // --- New Type for Materials (Global Library) ---
@@ -140,7 +145,13 @@ export async function getItems(): Promise<TrainingItem[]> {
                 coach_note: row.get('coach_note') || '',
                 active: isActive,
                 model_audio_url: row.get('model_audio_url') || '',
-                audio_source: row.get('audio_source') || ''
+                audio_source: row.get('audio_source') || '',
+                // New Fields v5
+                practice_type: (row.get('practice_type') as any) || 'A',
+                cloze_target: row.get('cloze_target') || '',
+                challenge_type: (row.get('challenge_type') as any) || 'Read',
+                question_text: row.get('question_text') || '',
+                question_audio_url: row.get('question_audio') || '' // Note: column name 'question_audio' maps to property 'question_audio_url'
             };
         })
         .filter(item => item.active === true);
@@ -675,6 +686,13 @@ export async function updateItem(itemId: string, updates: Partial<TrainingItem>)
     // Support other updates if needed
     if (updates.target_en !== undefined) row.set('target_en', updates.target_en);
     if (updates.prompt_kr !== undefined) row.set('prompt_kr', updates.prompt_kr);
+
+    // New Fields v5
+    if (updates.practice_type !== undefined) row.set('practice_type', updates.practice_type);
+    if (updates.cloze_target !== undefined) row.set('cloze_target', updates.cloze_target);
+    if (updates.challenge_type !== undefined) row.set('challenge_type', updates.challenge_type);
+    if (updates.question_text !== undefined) row.set('question_text', updates.question_text);
+    if (updates.question_audio_url !== undefined) row.set('question_audio', updates.question_audio_url); // map back to col name
 
     await row.save();
 }

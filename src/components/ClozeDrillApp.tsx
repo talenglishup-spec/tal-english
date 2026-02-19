@@ -12,7 +12,13 @@ interface TrainingItem {
     category: string;
     level: string;
     lesson_no?: number;
-    model_audio_url?: string; // New
+    model_audio_url?: string;
+    // New Fields
+    practice_type?: 'A' | 'B';
+    cloze_target?: string;
+    challenge_type?: 'Read' | 'Answer';
+    question_text?: string;
+    question_audio_url?: string;
 }
 
 interface ClozeDrillProps {
@@ -31,8 +37,17 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
     const [msg, setMsg] = useState('');
 
     // Reset on new item
+    // Initialize Step based on Mode & Type
     useEffect(() => {
-        setStep(mode === 'challenge' ? 3 : 1);
+        if (mode === 'challenge') {
+            // Challenge Mode
+            setStep(3); // Reusing Step 3 UI logic for "Final Recording" state
+        } else {
+            // Practice Mode
+            // Type A: Start Step 1
+            // Type B: Start Step 1 (but it's the only step effectively)
+            setStep(1);
+        }
         setResult(null);
         setIsSubmitting(false);
         setMsg('');
@@ -50,24 +65,30 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
 
     // Audio Logic Consolidated
     useEffect(() => {
-        // Step 1: English Model (Practice Mode and NOT result view)
-        if (mode === 'practice' && step === 1 && !result) {
+        // Type A - Step 1: English Model (Practice Mode and NOT result view)
+        // Type B - Step 1: No auto-play model audio? Maybe yes? 
+        // User requirement: "Type B: 1-step grammar drill". Text partly hidden.
+        // Let's NOT auto-play model for Type B, as it gives away the answer.
+        if (mode === 'practice' && item.practice_type !== 'B' && step === 1 && !result) {
             setMsg('Listen...');
             if (item.model_audio_url) {
                 const audio = new Audio(item.model_audio_url);
                 setAudioRef(audio);
                 audio.play()
                     .then(() => {
-                        // Auto advance after play
-                        audio.onended = () => setTimeout(() => setStep(2), 500);
+                        // Auto advance REMOVED for Step 1
+                        // audio.onended = ... 
+                        setMsg('Your Turn to Speak!');
                     })
                     .catch((e) => {
                         console.error("Audio play failed", e);
-                        setTimeout(() => setStep(2), 2000);
+                        // setTimeout(() => setStep(2), 2000); // No auto advance
                     });
             } else {
-                setTimeout(() => setStep(2), 2000);
+                // setTimeout(() => setStep(2), 2000);
             }
+        } else if (mode === 'practice' && item.practice_type === 'B') {
+            setMsg('Fill in the blank & Speak');
         }
 
         // Steps 2-5 (Practice) or Challenge: Korean TTS
@@ -98,7 +119,11 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
 
     // Handle Recorder Completion
     const handleRecordingComplete = (blob: Blob) => {
-        if (mode === 'practice' && step < 3) {
+        // Practice Type A: Steps 1 & 2 are local checks.
+        // Practice Type B: Step 1 is Final (Submit).
+        const isTypeA = item.practice_type !== 'B';
+
+        if (mode === 'practice' && isTypeA && step < 3) {
             // Intermediate Steps: Local Result (No Server)
             const url = URL.createObjectURL(blob);
             setResult({
@@ -108,7 +133,10 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
             });
             setMsg('Done!');
         } else {
-            // Final Step (Practice Step 3 or Challenge): Submit to Server
+            // Final Step:
+            // - Practice Type A Step 3
+            // - Practice Type B Step 1
+            // - Challenge (Step 3 state)
             handleSubmit(blob);
         }
     };
@@ -160,11 +188,14 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
     };
 
     const handleStepNext = () => {
-        if (mode === 'practice' && step < 3) {
+        const isTypeA = item.practice_type !== 'B';
+
+        if (mode === 'practice' && isTypeA && step < 3) {
             setStep(s => s + 1);
             setResult(null);
             setMsg('');
         } else {
+            // Type B or Final Step A or Challenge -> Next Item
             onNext();
         }
     };
@@ -172,30 +203,77 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
     // Render Text Logic
     const renderText = () => {
         const text = item.target_en;
+        const isTypeB = item.practice_type === 'B';
+        const isInterview = mode === 'challenge' && item.challenge_type === 'Answer';
+
         if (!text) return null;
 
-        if (step === 1 || result) {
+        // Challenge Interview Mode: Show Question instead of Target
+        // BUT if Result is shown, maybe show Target as "Model Answer"?
+        // Let's stick to Requirements: "Prompt with Question".
+        if (isInterview && !result) {
+            return (
+                <div className={styles.interviewContainer}>
+                    <div className={styles.interviewLabel}>Coach's Question:</div>
+                    <div className={styles.questionText}>
+                        {item.question_text || "(Listen to the audio question)"}
+                    </div>
+                    {item.question_audio_url && (
+                        <button
+                            className={styles.questionAudioBtn}
+                            onClick={() => new Audio(item.question_audio_url).play()}
+                        >
+                            Play Question 🔊
+                        </button>
+                    )}
+                </div>
+            );
+        }
+
+        // --- Practice Type B: 1-Step Cloze ---
+        if (isTypeB && mode === 'practice') {
+            // Logic: Hide `cloze_target` string within `text`
+            // Simple string replace for MVP (case-insensitive?)
+            if (!item.cloze_target) return <div className={styles.fullText}>{text}</div>;
+
+            // Split by target to insert blanks
+            const parts = text.split(new RegExp(`(${item.cloze_target})`, 'gi'));
+            return (
+                <div className={styles.fullText}>
+                    {parts.map((part, i) => {
+                        if (part.toLowerCase() === item.cloze_target!.toLowerCase()) {
+                            return <span key={i} className={styles.typeBBlank}>______</span>;
+                        }
+                        return <span key={i}>{part}</span>;
+                    })}
+                </div>
+            );
+        }
+
+        // --- Practice Type A (Step 1 or Result) OR Challenge (Read Mode) ---
+        if ((mode === 'practice' && step === 1) || result || (mode === 'challenge' && item.challenge_type !== 'Answer')) {
             // Full Text shown in Step 1 or Result View
             return <div className={styles.fullText}>{text}</div>;
         }
 
+        // --- Practice Type A (Step 3) OR Interview Result View ---
         if (step === 3 || mode === 'challenge') {
-            // Hidden (Step 3 or Challenge - Capture 8 style)
-            // Just return empty or placeholder?
-            // User: "Script not visible".
-            // Let's use a blurred or hidden placeholder.
+            // Hidden (Step 3 or Challenge Read Mode hidden)
+            // For Interview Mode, we already handled !result above. If result, we fall here?
+            // Actually, for Interview Result, we might want to show the Model Answer (Target).
+            // So if result is true, we hit the block above (fullText).
+
+            // So this block is purely for "Hiding Script" state.
             return <div className={styles.hiddenText}>???</div>;
         }
 
-        // Step 2: Partial Masking (Replacing old steps 2-4)
+        // --- Practice Type A (Step 2) ---
+        // Partial Masking
         const words = text.split(' ');
-
         return (
             <div className={styles.clozeContainer}>
                 {words.map((word, i) => {
                     // Simple stable logic for Step 2:
-                    // Hide every other word or random? 
-                    // Let's hide ~50% (every even index)
                     let show = true;
                     if (step === 2) show = i % 2 === 0;
 
@@ -216,14 +294,22 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
             <div className={styles.content}>
                 <div className={styles.stepIndicator}>
                     {mode === 'practice' ? (
-                        <div className={styles.progressBar}>
-                            <div className={`${styles.stepDot} ${step >= 1 ? styles.active : ''}`}>1</div>
-                            <div className={styles.stepLine}></div>
-                            <div className={`${styles.stepDot} ${step >= 2 ? styles.active : ''}`}>2</div>
-                            <div className={styles.stepLine}></div>
-                            <div className={`${styles.stepDot} ${step >= 3 ? styles.active : ''}`}>3</div>
-                        </div>
-                    ) : 'Challenge Mode'}
+                        item.practice_type === 'B' ? (
+                            // Type B: Simple Title
+                            <div className={styles.simpleTitle}>Grammar Drill</div>
+                        ) : (
+                            // Type A: Progress Bar
+                            <div className={styles.progressBar}>
+                                <div className={`${styles.stepDot} ${step >= 1 ? styles.active : ''}`}>1</div>
+                                <div className={styles.stepLine}></div>
+                                <div className={`${styles.stepDot} ${step >= 2 ? styles.active : ''}`}>2</div>
+                                <div className={styles.stepLine}></div>
+                                <div className={`${styles.stepDot} ${step >= 3 ? styles.active : ''}`}>3</div>
+                            </div>
+                        )
+                    ) : (
+                        item.challenge_type === 'Answer' ? 'Interview Challenge 🎤' : 'Reading Challenge 📖'
+                    )}
                 </div>
 
                 <h2 className={styles.koreanPrompt}>
@@ -237,14 +323,28 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
                 <div className={styles.footerArea}>
                     <div className={styles.statusMsg}>{msg}</div>
 
-                    {/* Recorder: Only for Steps 2-5, and not if submitting/result */}
-                    {step > 1 && !result && !isSubmitting && (
-                        <AudioRecorder
-                            key={`${item.id}-${step}`}
-                            onRecordingComplete={handleRecordingComplete}
-                            silenceDuration={1000}
-                            autoStop={true}
-                        />
+                    {/* Recorder: Enabled for Steps 1-3 (Practice) and Challenge */}
+                    {/* Step 1: Listen & Shadow (Full text) */}
+                    {/* Step 2: Practice (Partial) */}
+                    {/* Step 3: Master (Hidden) */}
+                    {!result && !isSubmitting && (
+                        <div className={styles.inputArea}>
+                            {/* NEW: Only show Model Audio in Practice Mode */}
+                            {mode === 'practice' && item.model_audio_url && (
+                                <button
+                                    className={`${styles.audioBtn} ${styles.listeningBtn}`}
+                                    onClick={() => new Audio(item.model_audio_url!).play()}
+                                >
+                                    Listen 🔊
+                                </button>
+                            )}
+                            <AudioRecorder
+                                key={`${item.id}-${step}`}
+                                onRecordingComplete={handleRecordingComplete}
+                                silenceDuration={1000}
+                                autoStop={true}
+                            />
+                        </div>
                     )}
 
                     {result && (
@@ -268,7 +368,7 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
                             </div>
 
                             <button onClick={handleStepNext} className={styles.nextButton}>
-                                {mode === 'practice' && step < 3 ? 'Next Step →' : 'Next Item →'}
+                                {mode === 'practice' && item.practice_type !== 'B' && step < 3 ? 'Next Step →' : 'Next Item →'}
                             </button>
                         </div>
                     )}
