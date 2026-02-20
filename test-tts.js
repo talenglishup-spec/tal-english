@@ -14,7 +14,7 @@ async function test() {
         const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
         const buffer = Buffer.from(await r.arrayBuffer());
         console.log('Buffer size:', buffer.length);
-        const result = await sb.storage.from('tal-audio').upload('tts/test_file.mp3', buffer, { upsert: true, contentType: 'audio/mpeg' });
+        const result = await sb.storage.from('tal-audio').upload('tts/test_file.mp3', buffer, { contentType: 'audio/mpeg' });
         if (result.error) console.log('Supabase Error:', result.error);
         else console.log('Upload OK!', result.data);
     } catch (e) { console.error('Error:', e.message); }

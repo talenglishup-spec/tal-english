@@ -52,8 +52,7 @@ export async function POST(req: NextRequest) {
                 const { error: uploadError } = await supabase.storage
                     .from('tal-audio')
                     .upload(fileName, buffer, {
-                        contentType: 'audio/mpeg',
-                        upsert: true
+                        contentType: 'audio/mpeg'
                     });
 
                 if (uploadError) throw uploadError;
