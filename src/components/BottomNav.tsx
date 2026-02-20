@@ -30,25 +30,29 @@ export default function BottomNav() {
                 </Link>
             )}
 
-            <Link href="/challenge" className={`${styles.navItem} ${isActive('/challenge') ? styles.active : ''}`}>
-                <div className={styles.icon}>🏆</div>
-                <span className={styles.label}>챌린지</span>
-            </Link>
+            {user.role === 'player' && (
+                <>
+                    <Link href="/challenge" className={`${styles.navItem} ${isActive('/challenge') ? styles.active : ''}`}>
+                        <div className={styles.icon}>🏆</div>
+                        <span className={styles.label}>챌린지</span>
+                    </Link>
 
-            <Link href="/practice" className={`${styles.navItem} ${isActive('/practice') ? styles.active : ''}`}>
-                <div className={styles.icon}>🎯</div>
-                <span className={styles.label}>연습</span>
-            </Link>
+                    <Link href="/practice" className={`${styles.navItem} ${isActive('/practice') ? styles.active : ''}`}>
+                        <div className={styles.icon}>🎯</div>
+                        <span className={styles.label}>연습</span>
+                    </Link>
 
-            <Link href="/review" className={`${styles.navItem} ${isActive('/review') ? styles.active : ''}`}>
-                <div className={styles.icon}>📝</div>
-                <span className={styles.label}>리뷰</span>
-            </Link>
+                    <Link href="/review" className={`${styles.navItem} ${isActive('/review') ? styles.active : ''}`}>
+                        <div className={styles.icon}>📝</div>
+                        <span className={styles.label}>리뷰</span>
+                    </Link>
 
-            <Link href="/record" className={`${styles.navItem} ${isActive('/record') ? styles.active : ''}`}>
-                <div className={styles.icon}>📅</div>
-                <span className={styles.label}>기록</span>
-            </Link>
+                    <Link href="/record" className={`${styles.navItem} ${isActive('/record') ? styles.active : ''}`}>
+                        <div className={styles.icon}>📅</div>
+                        <span className={styles.label}>기록</span>
+                    </Link>
+                </>
+            )}
         </nav>
     );
 }
