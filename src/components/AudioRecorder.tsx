@@ -221,7 +221,10 @@ export default function AudioRecorder({
                         className={`${styles.recordButton} ${styles.stopButton}`}
                         onClick={stopRecording}
                     >
-                        <div className={styles.stopIcon} />
+                        <div className={styles.stopIconWrapper}>
+                            <div className={styles.stopIcon} />
+                            <div className={styles.stopIcon} />
+                        </div>
                     </button>
                 )}
             </div>

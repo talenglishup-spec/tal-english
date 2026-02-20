@@ -169,113 +169,112 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
 
     return (
         <div className={styles.container}>
-            <button className={styles.closeBtn} onClick={onClose}>✕</button>
+            <div className={styles.topBar}>
+                <button className={styles.closeBtn} onClick={onClose}>✕</button>
+                <div className={styles.progressBar}>
+                    <div className={`${styles.progressDot} ${styles.active}`}></div>
+                    <div className={styles.progressDot}></div>
+                    <div className={styles.progressDot}></div>
+                    <div className={styles.progressDot}></div>
+                    <div className={styles.progressDot}></div>
+                </div>
+                <div className={styles.modeIndicator}>
+                    {mode === 'practice' ? '연습' : '챌린지'}
+                </div>
+            </div>
 
             <div className={styles.content}>
-                <div className={styles.modeIndicator}>
-                    {mode === 'practice' ? 'Practice Mode 🎯' : 'Challenge Mode 🔥'}
-                </div>
 
-                {/* Prompt Area */}
-                <div className={styles.promptArea}>
-                    {isEnType ? (
-                        <>
-                            <div className={styles.questionText}>{item.question_text || "(Listen to audio)"}</div>
-                            <div className={styles.promptControls}>
-                                {item.question_audio_url && (
-                                    <button className={styles.actionBtn} onClick={playQuestionAudio}>
-                                        Play Question 🔊
-                                    </button>
-                                )}
-                                <button className={styles.actionBtn} onClick={toggleTranslation}>
-                                    {showTranslation ? 'Hide Translation' : 'Show Translation'}
-                                </button>
-                            </div>
-                            {showTranslation && (
-                                <div className={styles.koreanPrompt}>{item.prompt_kr}</div>
-                            )}
-                        </>
+                {/* Status Indicator */}
+                {!result && <div className={styles.questionText}>{msg}</div>}
+
+                {/* Result Area Top */}
+                {result && (
+                    <div className={styles.resultBox}>
+                        <div className={styles.score}>
+                            {result.score >= 80 ? '✅' : '⚠️'} {result.score}점
+                        </div>
+                    </div>
+                )}
+
+                {/* Target or Blank Text */}
+                <div className={styles.targetText}>
+                    {result ? (
+                        <span>{item.target_en}</span>
+                    ) : answerRevealed || mode !== 'practice' ? (
+                        <span>{mode === 'practice' ? item.target_en : '...'}</span>
                     ) : (
-                        <div className={styles.koreanPrompt}>{item.prompt_kr}</div>
+                        <span className={styles.targetTextBlank}>I'm _______ an echo _______ .</span>
                     )}
                 </div>
 
-                {/* Practice Mode: Target & Model Audio Area */}
-                {mode === 'practice' && !result && (
-                    <div className={styles.practiceRevealArea}>
-                        {!answerRevealed ? (
-                            <button className={styles.revealBtn} onClick={revealAnswer}>
-                                Reveal Expected Answer
+                <div className={styles.koreanPrompt}>{item.prompt_kr}</div>
+
+                {isEnType && (
+                    <div className={styles.promptControls}>
+                        {item.question_audio_url && (
+                            <button className={styles.actionBtn} onClick={playQuestionAudio}>
+                                🔊 질문 듣기
                             </button>
-                        ) : (
-                            <div className={styles.targetEnBox}>
-                                <div className={styles.targetLabel}>Target Answer:</div>
-                                <div className={styles.targetText}>{item.target_en}</div>
-                                {item.model_audio_url && (
-                                    <button className={styles.actionBtn} onClick={playModelAudio}>
-                                        Listen to Model 🔊
-                                    </button>
-                                )}
-                            </div>
                         )}
+                        <button className={styles.actionBtn} onClick={toggleTranslation}>
+                            {showTranslation ? '해석 숨기기' : '해석 보기'}
+                        </button>
+                    </div>
+                )}
+
+                {/* Practice Mode: Reveal Button */}
+                {mode === 'practice' && !result && !answerRevealed && (
+                    <div className={styles.practiceRevealArea}>
+                        <button className={styles.revealBtn} onClick={revealAnswer}>
+                            정답 확인
+                        </button>
                     </div>
                 )}
 
                 <div className={styles.footerArea}>
-                    <div className={styles.statusMsg}>{msg}</div>
 
-                    {/* Recorder Area */}
-                    {!result && !isSubmitting && (
-                        <div className={styles.inputArea}>
-                            <AudioRecorder
-                                key={item.id}
-                                onRecordingComplete={handleRecordingComplete}
-                                silenceDuration={1000}
-                                autoStop={true}
-                            />
+                    {/* Audio Buttons in Result */}
+                    {result && mode === 'practice' && (
+                        <div className={styles.audioButtons}>
+                            {item.model_audio_url && (
+                                <button onClick={playModelAudio} className={styles.audioBtn}>
+                                    🔊 모범 발음
+                                </button>
+                            )}
+                            {result.audio_url && (
+                                <button onClick={() => new Audio(result.audio_url).play()} className={styles.audioBtn}>
+                                    ▶️ 내 발음
+                                </button>
+                            )}
                         </div>
                     )}
 
-                    {/* Result Area */}
+                    {/* Recorder Area */}
+                    {!result && !isSubmitting && (
+                        <AudioRecorder
+                            key={item.id}
+                            onRecordingComplete={handleRecordingComplete}
+                            silenceDuration={1000}
+                            autoStop={true}
+                        />
+                    )}
+
+                    {/* Footer Controls */}
                     {result && (
-                        <div className={styles.resultArea}>
-                            {mode === 'practice' ? (
-                                <>
-                                    <div className={styles.scoreBox}>
-                                        <div className={styles.score}>Score: {result.score}</div>
-                                        <div className={styles.feedback}>{result.feedback}</div>
-                                    </div>
-                                    <div className={styles.targetEnBox}>
-                                        <div className={styles.targetLabel}>Target Answer:</div>
-                                        <div className={styles.targetText}>{item.target_en}</div>
-                                        <div className={styles.targetLabel}>You said:</div>
-                                        <div className={styles.youSaidText}>{result.stt_text}</div>
-                                    </div>
-                                    <div className={styles.audioButtons}>
-                                        {item.model_audio_url && (
-                                            <button onClick={playModelAudio} className={`${styles.audioBtn} ${styles.model}`}>
-                                                Model Sound 🔊
-                                            </button>
-                                        )}
-                                        {result.audio_url && (
-                                            <button onClick={() => new Audio(result.audio_url).play()} className={`${styles.audioBtn} ${styles.user}`}>
-                                                My Sound 🎤
-                                            </button>
-                                        )}
-                                        <button onClick={handleRetry} className={`${styles.audioBtn} ${styles.retry}`}>
-                                            Retry ↺
-                                        </button>
-                                    </div>
-                                </>
-                            ) : (
-                                // For Challenge mode, do not show score or exact feedback!
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '1rem', width: '100%' }}>
+                            {mode === 'practice' && (
+                                <button onClick={handleRetry} className={styles.iconBtn}>
+                                    ↻
+                                </button>
+                            )}
+                            {mode === 'challenge' && (
                                 <div className={styles.challengeFinishedText}>
-                                    Your response has been saved for review.
+                                    답안이 저장되었습니다.
                                 </div>
                             )}
-
                             <button onClick={onNext} className={styles.nextButton}>
-                                Next Item →
+                                다음으로 넘어가기
                             </button>
                         </div>
                     )}
