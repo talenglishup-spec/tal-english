@@ -156,8 +156,8 @@ export async function getItems(): Promise<TrainingItem[]> {
                 focus_point: row.get('focus_point') || '',
                 coach_note: row.get('coach_note') || '',
                 active: isActive,
-                model_audio_url: row.get('model_audio_url') || '',
-                audio_source: row.get('audio_source') || '',
+                model_audio_url: row.get('model_audio_url_en') || '',
+                audio_source: row.get('audio_source_en') || '',
                 // New Fields v5
                 practice_type: (row.get('practice_type') as any) || 'A',
                 cloze_target: row.get('cloze_target') || '',
@@ -716,8 +716,8 @@ export async function updateItem(itemId: string, updates: Partial<TrainingItem>)
     }
 
     // Update fields if they exist in updates
-    if (updates.model_audio_url !== undefined) row.set('model_audio_url', updates.model_audio_url);
-    if (updates.audio_source !== undefined) row.set('audio_source', updates.audio_source);
+    if (updates.model_audio_url !== undefined) row.set('model_audio_url_en', updates.model_audio_url);
+    if (updates.audio_source !== undefined) row.set('audio_source_en', updates.audio_source);
 
     // Support other updates if needed
     if (updates.target_en !== undefined) row.set('target_en', updates.target_en);

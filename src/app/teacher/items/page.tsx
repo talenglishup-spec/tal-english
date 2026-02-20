@@ -150,7 +150,14 @@ export default function ItemsManagerPage() {
                     }
                     return item;
                 }));
-                alert(`Generated ${data.results.filter((r: any) => r.status === 'generated').length} items.`);
+                const generatedCount = data.results.filter((r: any) => r.status === 'generated').length;
+                const errors = data.results.filter((r: any) => r.status === 'error').map((r: any) => r.error);
+
+                if (errors.length > 0) {
+                    alert(`Generated ${generatedCount} items.\nEncountered errors: ${errors.join(', ')}`);
+                } else {
+                    alert(`Generated ${generatedCount} items successfully.`);
+                }
             } else {
                 alert(`Error: ${data.error}`);
             }
