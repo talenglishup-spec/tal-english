@@ -29,13 +29,25 @@ export type AttemptRow = {
     attempt_id: string;
     date_time: string;
     player_id: string;
+    session_id: string;
+    session_mode: 'challenge' | 'practice';
     item_id: string;
+    challenge_type: 'FOOTBALL_KO_TO_EN' | 'FOOTBALL_ENQ_TO_EN' | 'INTERVIEW_ENQ_TO_EN';
+
     stt_text: string;
-    ai_score: number;
     audio_url: string;
+    duration_sec: number;
+    time_to_first_response_ms: number;
+
+    ai_score: number;
     coach_score?: string;
     coach_feedback?: string;
-    measurement_type?: 'baseline' | 'immediate_after' | 'after_7d' | 'after_30d';
+    measurement_type?: string;
+
+    question_play_count: number;
+    model_play_count: number;
+    translation_toggle_count: number;
+    answer_revealed: boolean;
 };
 
 export type TrainingItem = {
@@ -53,7 +65,7 @@ export type TrainingItem = {
     // New Fields v5
     practice_type: 'A' | 'B'; // A=3-Step, B=1-Step Cloze
     cloze_target: string; // text to hide for Type B
-    challenge_type: 'Read' | 'Answer';
+    challenge_type: 'FOOTBALL_KO_TO_EN' | 'FOOTBALL_ENQ_TO_EN' | 'INTERVIEW_ENQ_TO_EN';
     question_text: string;
     question_audio_url: string;
 };
@@ -149,7 +161,7 @@ export async function getItems(): Promise<TrainingItem[]> {
                 // New Fields v5
                 practice_type: (row.get('practice_type') as any) || 'A',
                 cloze_target: row.get('cloze_target') || '',
-                challenge_type: (row.get('challenge_type') as any) || 'Read',
+                challenge_type: (row.get('challenge_type') as any) || 'FOOTBALL_KO_TO_EN',
                 question_text: row.get('question_text') || '',
                 question_audio_url: row.get('question_audio') || '' // Note: column name 'question_audio' maps to property 'question_audio_url'
             };
@@ -163,13 +175,25 @@ export async function appendAttempt(data: AttemptRow) {
         attempt_id: data.attempt_id,
         date_time: data.date_time,
         player_id: data.player_id,
+        session_id: data.session_id,
+        session_mode: data.session_mode,
         item_id: data.item_id,
+        challenge_type: data.challenge_type,
+
         stt_text: data.stt_text,
-        ai_score: data.ai_score,
         audio_url: data.audio_url,
+        duration_sec: data.duration_sec,
+        time_to_first_response_ms: data.time_to_first_response_ms,
+
+        ai_score: data.ai_score,
         coach_score: data.coach_score || '',
         coach_feedback: data.coach_feedback || '',
-        measurement_type: data.measurement_type || 'baseline'
+        measurement_type: data.measurement_type || '',
+
+        question_play_count: data.question_play_count || 0,
+        model_play_count: data.model_play_count || 0,
+        translation_toggle_count: data.translation_toggle_count || 0,
+        answer_revealed: data.answer_revealed || false
     });
 }
 
@@ -180,13 +204,25 @@ export async function getAttempts(): Promise<AttemptRow[]> {
         attempt_id: row.get('attempt_id'),
         date_time: row.get('date_time'),
         player_id: row.get('player_id'),
+        session_id: row.get('session_id'),
+        session_mode: row.get('session_mode') as 'challenge' | 'practice',
         item_id: row.get('item_id'),
+        challenge_type: row.get('challenge_type') as any,
+
         stt_text: row.get('stt_text'),
-        ai_score: Number(row.get('ai_score')),
         audio_url: row.get('audio_url'),
+        duration_sec: Number(row.get('duration_sec') || 0),
+        time_to_first_response_ms: Number(row.get('time_to_first_response_ms') || 0),
+
+        ai_score: Number(row.get('ai_score')),
         coach_score: row.get('coach_score'),
         coach_feedback: row.get('coach_feedback'),
-        measurement_type: row.get('measurement_type') as any
+        measurement_type: row.get('measurement_type'),
+
+        question_play_count: Number(row.get('question_play_count') || 0),
+        model_play_count: Number(row.get('model_play_count') || 0),
+        translation_toggle_count: Number(row.get('translation_toggle_count') || 0),
+        answer_revealed: row.get('answer_revealed') === 'TRUE' || row.get('answer_revealed') === 'true' || row.get('answer_revealed') === true
     })).reverse();
 }
 

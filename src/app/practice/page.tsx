@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import ClozeDrillApp from '../../components/ClozeDrillApp';
 import styles from './PracticePage.module.css';
 import { useAuth } from '@/context/AuthContext';
+import { v4 as uuidv4 } from 'uuid';
 
 // Types matching API and Sheets v4
 interface Lesson {
@@ -37,6 +38,7 @@ interface SituationGroup {
 function DrillSession({ items, onClose }: { items: TrainingItem[], onClose: () => void }) {
     const [index, setIndex] = useState(0);
     const currentItem = items[index];
+    const sessionId = React.useRef(uuidv4()).current;
 
     if (!currentItem) return null;
 
@@ -55,6 +57,7 @@ function DrillSession({ items, onClose }: { items: TrainingItem[], onClose: () =
             onNext={handleNext}
             onClose={onClose}
             mode="practice"
+            sessionId={sessionId}
         />
     );
 }

@@ -5,6 +5,7 @@ import LessonCard from '@/components/LessonCard';
 import ClozeDrillApp from '../../components/ClozeDrillApp';
 import styles from './ChallengePage.module.css';
 import { useAuth } from '@/context/AuthContext';
+import { v4 as uuidv4 } from 'uuid';
 
 interface EnrichedItem {
     id: string;
@@ -27,6 +28,7 @@ export default function ChallengePage() {
 
     // Challenge Mode State
     const [activeChallengeItem, setActiveChallengeItem] = useState<EnrichedItem | null>(null);
+    const [sessionId, setSessionId] = useState<string>('');
 
     useEffect(() => {
         async function fetchItems() {
@@ -91,10 +93,14 @@ export default function ChallengePage() {
 
     const handleItemClick = (e: React.MouseEvent, item: EnrichedItem) => {
         e.preventDefault();
+        setSessionId(uuidv4());
         setActiveChallengeItem(item);
     };
 
-    const handleChallengeClose = () => setActiveChallengeItem(null);
+    const handleChallengeClose = () => {
+        setActiveChallengeItem(null);
+        setSessionId('');
+    };
 
     const handleChallengeNext = () => {
         if (!activeChallengeItem) return;
@@ -115,6 +121,7 @@ export default function ChallengePage() {
                 onNext={handleChallengeNext}
                 onClose={handleChallengeClose}
                 mode="challenge"
+                sessionId={sessionId}
             />
         );
     }

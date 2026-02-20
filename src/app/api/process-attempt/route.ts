@@ -14,9 +14,19 @@ export async function POST(req: NextRequest) {
         const item_id = formData.get('item_id') as string || 'unknown';
         const player_id = formData.get('player_id') as string || 'anon';
         const player_name = formData.get('player_name') as string || 'Anonymous';
+        const session_id = formData.get('session_id') as string || uuidv4();
+        const session_mode = (formData.get('session_mode') as 'challenge' | 'practice') || 'practice';
+        const challenge_type = formData.get('challenge_type') as any || 'FOOTBALL_KO_TO_EN';
 
         const measurement_type = formData.get('measurement_type') as string || 'baseline';
         const key_word = formData.get('key_word') as string || '';
+
+        const duration_sec = Number(formData.get('duration_sec') || 0);
+        const time_to_first_response_ms = Number(formData.get('time_to_first_response_ms') || 0);
+        const question_play_count = Number(formData.get('question_play_count') || 0);
+        const model_play_count = Number(formData.get('model_play_count') || 0);
+        const translation_toggle_count = Number(formData.get('translation_toggle_count') || 0);
+        const answer_revealed = formData.get('answer_revealed') === 'true';
 
         if (!file) {
             return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
@@ -62,15 +72,21 @@ export async function POST(req: NextRequest) {
             attempt_id,
             date_time: new Date().toISOString(),
             player_id,
-            player_name,
+            session_id,
+            session_mode,
             item_id,
-            situation,
-            target_en,
+            challenge_type,
             stt_text,
-            ai_score: score,
             audio_url,
+            duration_sec,
+            time_to_first_response_ms,
+            ai_score: score,
             coach_feedback: feedback + (matched_text && matched_text !== target_en ? ` (Matched: ${matched_text})` : ""),
-            measurement_type: measurement_type as any
+            measurement_type,
+            question_play_count,
+            model_play_count,
+            translation_toggle_count,
+            answer_revealed
         };
 
         await appendAttempt(attemptData);

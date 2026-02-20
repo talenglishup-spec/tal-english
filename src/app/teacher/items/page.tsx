@@ -13,6 +13,30 @@ interface Item {
     category: string;
     sub_category: string;
     active: boolean;
+
+    // computed stats
+    cAvgResponseSpeed?: number;
+    cAvgAiScore?: number;
+    cTranslationRate?: number;
+    cRevealRate?: number;
+    cAvgQPlay?: number;
+
+    pAvgModelPlay?: number;
+    pAvgDuration?: number;
+
+    healthStatus?: 'Too Hard' | 'Too Easy' | 'Unclear' | 'Normal' | 'No Data';
+}
+
+interface Attempt {
+    item_id: string;
+    session_mode?: string;
+    time_to_first_response_ms?: number;
+    translation_toggle_count?: number;
+    answer_revealed?: boolean;
+    duration_sec?: number;
+    question_play_count?: number;
+    model_play_count?: number;
+    ai_score?: number;
 }
 
 export default function ItemsManagerPage() {
@@ -31,9 +55,69 @@ export default function ItemsManagerPage() {
     async function fetchItems() {
         setLoading(true);
         try {
-            const res = await fetch('/api/train/items'); // No params = all items
-            const data = await res.json();
-            if (data.items) setItems(data.items);
+            const [itemsRes, attemptsRes] = await Promise.all([
+                fetch('/api/train/items'),
+                fetch('/api/teacher/attempts')
+            ]);
+
+            const itemsData = await itemsRes.json();
+            const attemptsData = await attemptsRes.json();
+
+            if (itemsData.items && attemptsData.attempts) {
+                const rawItems: Item[] = itemsData.items;
+                const attempts: Attempt[] = attemptsData.attempts;
+
+                // Aggregate stats per item
+                const enhancedItems = rawItems.map(item => {
+                    const myAttempts = attempts.filter(a => a.item_id === item.id);
+
+                    let cCount = 0; let pCount = 0;
+                    let cResp = 0; let cAi = 0; let cTrans = 0; let cRev = 0; let cQPlay = 0;
+                    let pModel = 0; let pDur = 0;
+
+                    myAttempts.forEach(a => {
+                        if (a.session_mode === 'challenge') {
+                            cCount++;
+                            cResp += (a.time_to_first_response_ms || 0);
+                            cAi += (a.ai_score || 0);
+                            if (a.translation_toggle_count && a.translation_toggle_count > 0) cTrans++;
+                            if (a.answer_revealed) cRev++;
+                            cQPlay += (a.question_play_count || 0);
+                        } else {
+                            pCount++;
+                            pModel += (a.model_play_count || 0);
+                            pDur += (a.duration_sec || 0);
+                        }
+                    });
+
+                    const stats = {
+                        cAvgResponseSpeed: cCount > 0 ? Math.round(cResp / cCount) : 0,
+                        cAvgAiScore: cCount > 0 ? Math.round(cAi / cCount) : 0,
+                        cTranslationRate: cCount > 0 ? cTrans / cCount : 0,
+                        cRevealRate: cCount > 0 ? cRev / cCount : 0,
+                        cAvgQPlay: cCount > 0 ? cQPlay / cCount : 0,
+                        pAvgModelPlay: pCount > 0 ? Number((pModel / pCount).toFixed(1)) : 0,
+                        pAvgDuration: pCount > 0 ? Math.round(pDur / pCount) : 0,
+                        healthStatus: 'No Data' as 'Too Hard' | 'Too Easy' | 'Unclear' | 'Normal' | 'No Data'
+                    };
+
+                    if (cCount > 0) {
+                        if (stats.cAvgResponseSpeed > 3000 && stats.cRevealRate > 0.3 && stats.cTranslationRate > 0.3) {
+                            stats.healthStatus = 'Too Hard';
+                        } else if (stats.cAvgResponseSpeed < 1000 && stats.cRevealRate < 0.1 && stats.cAvgAiScore > 90) {
+                            stats.healthStatus = 'Too Easy';
+                        } else if (stats.cAvgQPlay > 2 && stats.cAvgAiScore < 60) {
+                            stats.healthStatus = 'Unclear';
+                        } else {
+                            stats.healthStatus = 'Normal';
+                        }
+                    }
+
+                    return { ...item, ...stats };
+                });
+
+                setItems(enhancedItems.sort((a, b) => (a.category + a.id).localeCompare(b.category + b.id)));
+            }
         } catch (e) {
             console.error(e);
         } finally {
@@ -122,37 +206,62 @@ export default function ItemsManagerPage() {
                                 <th>ID</th>
                                 <th>Category</th>
                                 <th>Prompt (KR)</th>
-                                <th>Target (EN)</th>
-                                <th>Audio</th>
-                                <th>Source</th>
-                                <th>Actions</th>
+                                <th style={{ width: '20%' }}>Target (EN)</th>
+                                <th>Health</th>
+                                <th>Challenge Metrics</th>
+                                <th>Practice Metrics</th>
+                                <th>Audio/TTS</th>
                             </tr>
                         </thead>
                         <tbody>
                             {filteredItems.map(item => (
                                 <tr key={item.id}>
-                                    <td>{item.id}</td>
-                                    <td>{item.category}/{item.sub_category}</td>
-                                    <td>{item.prompt_kr}</td>
-                                    <td>{item.target_en}</td>
+                                    <td style={{ fontSize: '0.8rem' }}>{item.id}</td>
+                                    <td style={{ fontSize: '0.85rem' }}><strong>{item.category}</strong><br />{item.sub_category}</td>
+                                    <td style={{ fontSize: '0.85rem' }}>{item.prompt_kr}</td>
+                                    <td style={{ fontSize: '0.85rem', color: '#0070f3' }}>{item.target_en}</td>
                                     <td>
-                                        {item.model_audio_url ? (
-                                            <a href={item.model_audio_url} target="_blank" rel="noreferrer">
-                                                🔊 Play
-                                            </a>
-                                        ) : (
-                                            <span style={{ color: '#999' }}>None</span>
-                                        )}
+                                        <span style={{
+                                            padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 'bold',
+                                            background: item.healthStatus === 'Too Hard' ? '#fee2e2' : item.healthStatus === 'Too Easy' ? '#e0e7ff' : item.healthStatus === 'Unclear' ? '#fef08a' : item.healthStatus === 'Normal' ? '#dcfce7' : '#f1f5f9',
+                                            color: item.healthStatus === 'Too Hard' ? '#991b1b' : item.healthStatus === 'Too Easy' ? '#3730a3' : item.healthStatus === 'Unclear' ? '#854d0e' : item.healthStatus === 'Normal' ? '#166534' : '#475569'
+                                        }}>
+                                            {item.healthStatus}
+                                        </span>
                                     </td>
-                                    <td>{item.audio_source || '-'}</td>
+                                    <td style={{ fontSize: '0.8rem' }}>
+                                        {item.healthStatus !== 'No Data' ? (
+                                            <>
+                                                Resp: {item.cAvgResponseSpeed}ms<br />
+                                                Trans: {Math.round((item.cTranslationRate || 0) * 100)}% | Rev: {Math.round((item.cRevealRate || 0) * 100)}%<br />
+                                                AI Score: {item.cAvgAiScore}
+                                            </>
+                                        ) : '-'}
+                                    </td>
+                                    <td style={{ fontSize: '0.8rem' }}>
+                                        {item.pAvgModelPlay !== undefined ? (
+                                            <>
+                                                Model Plays: {item.pAvgModelPlay}<br />
+                                                Rec. Dur: {item.pAvgDuration}s
+                                            </>
+                                        ) : '-'}
+                                    </td>
                                     <td>
-                                        <button
-                                            onClick={() => handleGenerate([item.id], !!item.model_audio_url)}
-                                            disabled={generating.has(item.id)}
-                                            className={styles.actionBtn}
-                                        >
-                                            {generating.has(item.id) ? '...' : (item.model_audio_url ? 'Regenerate' : 'Generate')}
-                                        </button>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                            {item.model_audio_url ? (
+                                                <a href={item.model_audio_url} target="_blank" rel="noreferrer" style={{ fontSize: '0.85rem' }}>🔊 Play</a>
+                                            ) : (
+                                                <span style={{ color: '#999', fontSize: '0.85rem' }}>None</span>
+                                            )}
+                                            <button
+                                                onClick={() => handleGenerate([item.id], !!item.model_audio_url)}
+                                                disabled={generating.has(item.id)}
+                                                className={styles.actionBtn}
+                                                style={{ fontSize: '0.75rem', padding: '2px 8px' }}
+                                            >
+                                                {generating.has(item.id) ? '...' : (item.model_audio_url ? 'Regen' : 'Gen TTS')}
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}

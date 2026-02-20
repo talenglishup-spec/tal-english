@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import styles from './AudioRecorder.module.css';
 
 interface AudioRecorderProps {
-    onRecordingComplete: (audioBlob: Blob) => void;
+    onRecordingComplete: (audioBlob: Blob, duration_sec: number) => void;
     disabled?: boolean;
     silenceDuration?: number; // ms to wait after speech stops
     autoStop?: boolean; // enable VAD
@@ -106,7 +106,7 @@ export default function AudioRecorder({
 
             mediaRecorder.onstop = () => {
                 const blob = new Blob(chunksRef.current, { type: mimeType });
-                onRecordingComplete(blob);
+                onRecordingComplete(blob, recordingTime);
                 stopVAD();
                 stream.getTracks().forEach(track => track.stop());
             };

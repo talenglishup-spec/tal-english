@@ -13,6 +13,13 @@ interface Attempt {
     ai_score: number;
     coach_score?: string;
     item_id: string;
+    session_mode?: 'challenge' | 'practice';
+    time_to_first_response_ms?: number;
+    translation_toggle_count?: number;
+    answer_revealed?: boolean;
+    duration_sec?: number;
+    model_play_count?: number;
+    question_play_count?: number;
 }
 
 interface PlayerSummary {
@@ -28,6 +35,21 @@ export default function TeacherPage() {
     const { user, isLoading } = useAuth();
     const router = useRouter();
     const [players, setPlayers] = useState<PlayerSummary[]>([]);
+
+    // Global KPIs
+    const [kpi, setKpi] = useState({
+        challengeAttempts: 0,
+        avgResponseSpeed: 0,
+        challengeAnswerRevealedRate: 0,
+        challengeTranslationRate: 0,
+        practiceAttempts: 0,
+        avgModelPlay: 0,
+        avgDurationSec: 0,
+        practiceTranslationToggleAvg: 0
+    });
+
+    const [alerts, setAlerts] = useState<{ msg: string, type: 'warning' | 'info' }[]>([]);
+
     const [loadingData, setLoadingData] = useState(true);
 
     useEffect(() => {
@@ -44,7 +66,12 @@ export default function TeacherPage() {
                     const attempts: Attempt[] = data.attempts;
                     const summaryMap = new Map<string, PlayerSummary>();
 
-                    // Aggregate attempts by player
+                    // Aggregating KPIs across ALL players
+                    let cCount = 0; let cResponseSum = 0; let cRevealCount = 0; let cTranslationCount = 0;
+                    let pCount = 0; let pModelSum = 0; let pDurationSum = 0; let pTranslationSum = 0;
+
+                    let totalUngraded = 0;
+
                     attempts.forEach(a => {
                         const pid = a.player_id || 'anon';
                         const pname = a.player_name || 'Anonymous';
@@ -64,14 +91,24 @@ export default function TeacherPage() {
                         p.totalAttempts += 1;
                         if (new Date(a.date_time) > new Date(p.lastActive)) {
                             p.lastActive = a.date_time;
-                            p.name = pname; // Update name to latest used
+                            p.name = pname;
                         }
-                        if (a.ai_score) {
-                            // Running sum for avg (will divide later)
-                            p.avgAiScore += a.ai_score;
-                        }
+                        if (a.ai_score) p.avgAiScore += a.ai_score;
                         if (!a.coach_score) {
                             p.ungradedCount += 1;
+                            totalUngraded += 1;
+                        }
+
+                        if (a.session_mode === 'challenge') {
+                            cCount++;
+                            cResponseSum += (a.time_to_first_response_ms || 0);
+                            if (a.answer_revealed) cRevealCount++;
+                            if (a.translation_toggle_count && a.translation_toggle_count > 0) cTranslationCount++;
+                        } else {
+                            pCount++;
+                            pModelSum += (a.model_play_count || 0);
+                            pDurationSum += (a.duration_sec || 0);
+                            pTranslationSum += (a.translation_toggle_count || 0);
                         }
                     });
 
@@ -83,6 +120,23 @@ export default function TeacherPage() {
                     }));
 
                     setPlayers(summaryList.sort((a, b) => new Date(b.lastActive).getTime() - new Date(a.lastActive).getTime()));
+
+                    setKpi({
+                        challengeAttempts: cCount,
+                        avgResponseSpeed: cCount > 0 ? Math.round(cResponseSum / cCount) : 0,
+                        challengeAnswerRevealedRate: cCount > 0 ? Math.round((cRevealCount / cCount) * 100) : 0,
+                        challengeTranslationRate: cCount > 0 ? Math.round((cTranslationCount / cCount) * 100) : 0,
+                        practiceAttempts: pCount,
+                        avgModelPlay: pCount > 0 ? Number((pModelSum / pCount).toFixed(1)) : 0,
+                        avgDurationSec: pCount > 0 ? Math.round(pDurationSum / pCount) : 0,
+                        practiceTranslationToggleAvg: pCount > 0 ? Number((pTranslationSum / pCount).toFixed(1)) : 0
+                    });
+
+                    const newAlerts = [];
+                    if (totalUngraded > 0) newAlerts.push({ msg: `${totalUngraded} attempts require Coach Grading`, type: 'warning' as const });
+                    if (cCount > 0 && cResponseSum / cCount > 3000) newAlerts.push({ msg: 'Average Challenge response is over 3 seconds (Hesitation limit reached)', type: 'warning' as const });
+                    setAlerts(newAlerts);
+
                     setLoadingData(false);
                 })
                 .catch(err => console.error(err));
@@ -109,7 +163,63 @@ export default function TeacherPage() {
                 </button>
             </header>
 
-            <div className={styles.cardContainer}> {/* Added a container for cards */}
+            <div className={styles.kpiDashboard}>
+                <div className={styles.kpiGroup}>
+                    <h3 style={{ color: '#f87171' }}>🔴 Challenge KPI (실전 적응도)</h3>
+                    <div className={styles.kpiCards}>
+                        <div className={styles.kpiCard}>
+                            <div className={styles.kpiVal}>{kpi.challengeAttempts}</div>
+                            <div className={styles.kpiLabel}>Attempts</div>
+                        </div>
+                        <div className={styles.kpiCard}>
+                            <div className={styles.kpiVal}>{kpi.avgResponseSpeed}ms</div>
+                            <div className={styles.kpiLabel}>Avg Response</div>
+                        </div>
+                        <div className={styles.kpiCard}>
+                            <div className={styles.kpiVal}>{kpi.challengeTranslationRate}%</div>
+                            <div className={styles.kpiLabel}>Used Translator</div>
+                        </div>
+                        <div className={styles.kpiCard}>
+                            <div className={styles.kpiVal}>{kpi.challengeAnswerRevealedRate}%</div>
+                            <div className={styles.kpiLabel}>Revealed Answer</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className={styles.kpiGroup}>
+                    <h3 style={{ color: '#60a5fa' }}>🔵 Practice KPI (훈련량/습관)</h3>
+                    <div className={styles.kpiCards}>
+                        <div className={styles.kpiCard}>
+                            <div className={styles.kpiVal}>{kpi.practiceAttempts}</div>
+                            <div className={styles.kpiLabel}>Attempts</div>
+                        </div>
+                        <div className={styles.kpiCard}>
+                            <div className={styles.kpiVal}>{kpi.avgModelPlay}</div>
+                            <div className={styles.kpiLabel}>Avg Model Plays</div>
+                        </div>
+                        <div className={styles.kpiCard}>
+                            <div className={styles.kpiVal}>{kpi.practiceTranslationToggleAvg}</div>
+                            <div className={styles.kpiLabel}>Avg Translation Toggles</div>
+                        </div>
+                        <div className={styles.kpiCard}>
+                            <div className={styles.kpiVal}>{kpi.avgDurationSec}s</div>
+                            <div className={styles.kpiLabel}>Avg Record Time</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {alerts.length > 0 && (
+                <div className={styles.alertsContainer}>
+                    {alerts.map((a, i) => (
+                        <div key={i} className={styles.alertBox}>
+                            ⚠️ {a.msg}
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            <div className={styles.cardContainer}>
                 <Link href="/teacher/lessons" className={styles.card}>
                     <div className={styles.icon}>📅</div>
                     <h2>Lesson Manager</h2>
@@ -118,7 +228,7 @@ export default function TeacherPage() {
                 <Link href="/teacher/items" className={styles.card}>
                     <div className={styles.icon}>🔊</div>
                     <h2>Items & Audio</h2>
-                    <p>Generate TTS</p>
+                    <p>Manage Questions</p>
                 </Link>
             </div>
 

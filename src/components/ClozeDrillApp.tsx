@@ -7,16 +7,13 @@ import styles from './ClozeDrillApp.module.css';
 
 interface TrainingItem {
     id: string;
-    prompt_kr: string; // situation -> prompt_kr
-    target_en: string; // target_en
+    prompt_kr: string;
+    target_en: string;
     category: string;
     level: string;
     lesson_no?: number;
     model_audio_url?: string;
-    // New Fields
-    practice_type?: 'A' | 'B';
-    cloze_target?: string;
-    challenge_type?: 'Read' | 'Answer';
+    challenge_type?: 'FOOTBALL_KO_TO_EN' | 'FOOTBALL_ENQ_TO_EN' | 'INTERVIEW_ENQ_TO_EN';
     question_text?: string;
     question_audio_url?: string;
 }
@@ -26,76 +23,51 @@ interface ClozeDrillProps {
     onNext: () => void;
     onClose: () => void;
     mode?: 'practice' | 'challenge';
+    sessionId: string;
 }
 
-export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice' }: ClozeDrillProps) {
+export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice', sessionId }: ClozeDrillProps) {
     const { user } = useAuth();
-    const [step, setStep] = useState(mode === 'challenge' ? 3 : 1);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [result, setResult] = useState<{ score: number; feedback: string; audio_url: string } | null>(null);
-    const [audioRef, setAudioRef] = useState<HTMLAudioElement | null>(null);
+    const [result, setResult] = useState<{ score: number; feedback: string; audio_url: string; stt_text: string } | null>(null);
     const [msg, setMsg] = useState('');
 
-    // Reset on new item
-    // Initialize Step based on Mode & Type
+    // Tracking variables
+    const initTime = useRef<number>(Date.now());
+    const [questionPlayCount, setQuestionPlayCount] = useState(0);
+    const [modelPlayCount, setModelPlayCount] = useState(0);
+    const [translationToggleCount, setTranslationToggleCount] = useState(0);
+    const [answerRevealed, setAnswerRevealed] = useState(false);
+
+    // UI state
+    const [showTranslation, setShowTranslation] = useState(false);
+
+    const challengeType = item.challenge_type || 'FOOTBALL_KO_TO_EN';
+    const isEnType = challengeType === 'FOOTBALL_ENQ_TO_EN' || challengeType === 'INTERVIEW_ENQ_TO_EN';
+
     useEffect(() => {
-        if (mode === 'challenge') {
-            // Challenge Mode
-            setStep(3); // Reusing Step 3 UI logic for "Final Recording" state
-        } else {
-            // Practice Mode
-            // Type A: Start Step 1
-            // Type B: Start Step 1 (but it's the only step effectively)
-            setStep(1);
-        }
+        // Reset state on new item
         setResult(null);
         setIsSubmitting(false);
         setMsg('');
-    }, [item, mode]);
+        initTime.current = Date.now();
+        setQuestionPlayCount(0);
+        setModelPlayCount(0);
+        setTranslationToggleCount(0);
+        setAnswerRevealed(false);
+        setShowTranslation(!isEnType); // If KO to EN, translation (KR) is always shown.
 
-    // Cleanup audio on unmount
-    useEffect(() => {
-        return () => {
-            if (audioRef) {
-                audioRef.pause();
-                audioRef.currentTime = 0;
-            }
-        };
-    }, [audioRef]);
-
-    // Audio Logic Consolidated
-    useEffect(() => {
-        // Type A - Step 1: English Model (Practice Mode and NOT result view)
-        // Type B - Step 1: No auto-play model audio? Maybe yes? 
-        // User requirement: "Type B: 1-step grammar drill". Text partly hidden.
-        // Let's NOT auto-play model for Type B, as it gives away the answer.
-        if (mode === 'practice' && item.practice_type !== 'B' && step === 1 && !result) {
-            setMsg('Listen...');
-            if (item.model_audio_url) {
-                const audio = new Audio(item.model_audio_url);
-                setAudioRef(audio);
-                audio.play()
-                    .then(() => {
-                        // Auto advance REMOVED for Step 1
-                        // audio.onended = ... 
-                        setMsg('Your Turn to Speak!');
-                    })
-                    .catch((e) => {
-                        console.error("Audio play failed", e);
-                        // setTimeout(() => setStep(2), 2000); // No auto advance
-                    });
-            } else {
-                // setTimeout(() => setStep(2), 2000);
-            }
-        } else if (mode === 'practice' && item.practice_type === 'B') {
-            setMsg('Fill in the blank & Speak');
+        if (mode === 'practice') {
+            setMsg('Practice: Ready to speak!');
+        } else {
+            setMsg('Challenge: Recording starts immediately after prompt.');
         }
 
-        // Steps 2-5 (Practice) or Challenge: Korean TTS
-        // Only if NOT showing result
-        const shouldPlayKorean = !result && ((mode === 'challenge') || (mode === 'practice' && step > 1));
-
-        if (shouldPlayKorean && item.prompt_kr) {
+        // Auto-play question if it exists and is EN type
+        if (isEnType && item.question_audio_url) {
+            playQuestionAudio();
+        } else if (!isEnType && item.prompt_kr) {
+            // Auto-play Korean TTS for KO_TO_EN
             window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(item.prompt_kr);
             utterance.lang = 'ko-KR';
@@ -106,50 +78,59 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
         return () => {
             window.speechSynthesis.cancel();
         };
-    }, [step, mode, result, item]);
+    }, [item, mode, isEnType]);
 
-    // Challenge Mode: Auto-play Model Audio on Success
-    useEffect(() => {
-        if (mode === 'challenge' && result && item.model_audio_url) {
-            const audio = new Audio(item.model_audio_url);
-            audio.play().catch(e => console.error("Auto-play model failed", e));
-        }
-    }, [result, mode, item]);
-
-
-    // Handle Recorder Completion
-    const handleRecordingComplete = (blob: Blob) => {
-        // Practice Type A: Steps 1 & 2 are local checks.
-        // Practice Type B: Step 1 is Final (Submit).
-        const isTypeA = item.practice_type !== 'B';
-
-        if (mode === 'practice' && isTypeA && step < 3) {
-            // Intermediate Steps: Local Result (No Server)
-            const url = URL.createObjectURL(blob);
-            setResult({
-                score: 0,
-                feedback: '',
-                audio_url: url
-            });
-            setMsg('Done!');
-        } else {
-            // Final Step:
-            // - Practice Type A Step 3
-            // - Practice Type B Step 1
-            // - Challenge (Step 3 state)
-            handleSubmit(blob);
-        }
+    const playQuestionAudio = () => {
+        if (!item.question_audio_url) return;
+        setQuestionPlayCount(prev => prev + 1);
+        const audio = new Audio(item.question_audio_url);
+        audio.play().catch(console.error);
     };
 
-    const handleSubmit = async (blob: Blob) => {
+    const playModelAudio = () => {
+        if (!item.model_audio_url) return;
+        setModelPlayCount(prev => prev + 1);
+        const audio = new Audio(item.model_audio_url);
+        audio.play().catch(console.error);
+    };
+
+    const toggleTranslation = () => {
+        if (!showTranslation) {
+            setTranslationToggleCount(prev => prev + 1);
+        }
+        setShowTranslation(!showTranslation);
+    };
+
+    const revealAnswer = () => {
+        setAnswerRevealed(true);
+    };
+
+    const handleRecordingComplete = (blob: Blob, duration_sec: number) => {
+        handleSubmit(blob, duration_sec);
+    };
+
+    const handleSubmit = async (blob: Blob, duration_sec: number) => {
         setIsSubmitting(true);
         setMsg('Analyzing...');
+
+        const timeToFirstResponseMs = Date.now() - initTime.current;
+
         const formData = new FormData();
         formData.append('file', blob, 'recording.webm');
         formData.append('item_id', item.id);
-        formData.append('situation', item.prompt_kr || 'Practice');
         formData.append('target_en', item.target_en || item.category);
         formData.append('measurement_type', mode === 'challenge' ? 'immediate_after' : 'baseline');
+
+        formData.append('session_id', sessionId);
+        formData.append('session_mode', mode);
+        formData.append('challenge_type', challengeType);
+
+        formData.append('duration_sec', duration_sec.toString());
+        formData.append('time_to_first_response_ms', timeToFirstResponseMs.toString());
+        formData.append('question_play_count', questionPlayCount.toString());
+        formData.append('model_play_count', modelPlayCount.toString());
+        formData.append('translation_toggle_count', translationToggleCount.toString());
+        formData.append('answer_revealed', answerRevealed ? 'true' : 'false');
 
         if (user) {
             formData.append('player_id', user.id);
@@ -163,13 +144,12 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
             });
             const data = await res.json();
             if (res.ok) {
-                setResult(data);
-                setMsg('Done!');
-                // For Practice Step 5, we show result. No auto-advance.
-                // For Challenge, we show result.
-
-                // EXCEPT if user wants auto-advance? 
-                // Requests say "Retry and Next". So manual advance is preferred.
+                setResult(data.data);
+                if (mode === 'challenge') {
+                    setMsg('Challenge Answer Recorded!');
+                } else {
+                    setMsg('Done!');
+                }
             } else {
                 setMsg('Error submitting.');
             }
@@ -181,110 +161,10 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
         }
     };
 
-    // Handlers
     const handleRetry = () => {
         setResult(null);
         setMsg('');
-    };
-
-    const handleStepNext = () => {
-        const isTypeA = item.practice_type !== 'B';
-
-        if (mode === 'practice' && isTypeA && step < 3) {
-            setStep(s => s + 1);
-            setResult(null);
-            setMsg('');
-        } else {
-            // Type B or Final Step A or Challenge -> Next Item
-            onNext();
-        }
-    };
-
-    // Render Text Logic
-    const renderText = () => {
-        const text = item.target_en;
-        const isTypeB = item.practice_type === 'B';
-        const isInterview = mode === 'challenge' && item.challenge_type === 'Answer';
-
-        if (!text) return null;
-
-        // Challenge Interview Mode: Show Question instead of Target
-        // BUT if Result is shown, maybe show Target as "Model Answer"?
-        // Let's stick to Requirements: "Prompt with Question".
-        if (isInterview && !result) {
-            return (
-                <div className={styles.interviewContainer}>
-                    <div className={styles.interviewLabel}>Coach's Question:</div>
-                    <div className={styles.questionText}>
-                        {item.question_text || "(Listen to the audio question)"}
-                    </div>
-                    {item.question_audio_url && (
-                        <button
-                            className={styles.questionAudioBtn}
-                            onClick={() => new Audio(item.question_audio_url).play()}
-                        >
-                            Play Question 🔊
-                        </button>
-                    )}
-                </div>
-            );
-        }
-
-        // --- Practice Type B: 1-Step Cloze ---
-        if (isTypeB && mode === 'practice') {
-            // Logic: Hide `cloze_target` string within `text`
-            // Simple string replace for MVP (case-insensitive?)
-            if (!item.cloze_target) return <div className={styles.fullText}>{text}</div>;
-
-            // Split by target to insert blanks
-            const parts = text.split(new RegExp(`(${item.cloze_target})`, 'gi'));
-            return (
-                <div className={styles.fullText}>
-                    {parts.map((part, i) => {
-                        if (part.toLowerCase() === item.cloze_target!.toLowerCase()) {
-                            return <span key={i} className={styles.typeBBlank}>______</span>;
-                        }
-                        return <span key={i}>{part}</span>;
-                    })}
-                </div>
-            );
-        }
-
-        // --- Practice Type A (Step 1 or Result) OR Challenge (Read Mode) ---
-        if ((mode === 'practice' && step === 1) || result || (mode === 'challenge' && item.challenge_type !== 'Answer')) {
-            // Full Text shown in Step 1 or Result View
-            return <div className={styles.fullText}>{text}</div>;
-        }
-
-        // --- Practice Type A (Step 3) OR Interview Result View ---
-        if (step === 3 || mode === 'challenge') {
-            // Hidden (Step 3 or Challenge Read Mode hidden)
-            // For Interview Mode, we already handled !result above. If result, we fall here?
-            // Actually, for Interview Result, we might want to show the Model Answer (Target).
-            // So if result is true, we hit the block above (fullText).
-
-            // So this block is purely for "Hiding Script" state.
-            return <div className={styles.hiddenText}>???</div>;
-        }
-
-        // --- Practice Type A (Step 2) ---
-        // Partial Masking
-        const words = text.split(' ');
-        return (
-            <div className={styles.clozeContainer}>
-                {words.map((word, i) => {
-                    // Simple stable logic for Step 2:
-                    let show = true;
-                    if (step === 2) show = i % 2 === 0;
-
-                    if (!show) {
-                        const width = word.length * 12 + 10;
-                        return <span key={i} className={styles.blank} style={{ width: `${width}px` }} />;
-                    }
-                    return <span key={i} className={styles.word}>{word}</span>;
-                })}
-            </div>
-        );
+        initTime.current = Date.now();
     };
 
     return (
@@ -292,54 +172,63 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
             <button className={styles.closeBtn} onClick={onClose}>✕</button>
 
             <div className={styles.content}>
-                <div className={styles.stepIndicator}>
-                    {mode === 'practice' ? (
-                        item.practice_type === 'B' ? (
-                            // Type B: Simple Title
-                            <div className={styles.simpleTitle}>Grammar Drill</div>
-                        ) : (
-                            // Type A: Progress Bar
-                            <div className={styles.progressBar}>
-                                <div className={`${styles.stepDot} ${step >= 1 ? styles.active : ''}`}>1</div>
-                                <div className={styles.stepLine}></div>
-                                <div className={`${styles.stepDot} ${step >= 2 ? styles.active : ''}`}>2</div>
-                                <div className={styles.stepLine}></div>
-                                <div className={`${styles.stepDot} ${step >= 3 ? styles.active : ''}`}>3</div>
+                <div className={styles.modeIndicator}>
+                    {mode === 'practice' ? 'Practice Mode 🎯' : 'Challenge Mode 🔥'}
+                </div>
+
+                {/* Prompt Area */}
+                <div className={styles.promptArea}>
+                    {isEnType ? (
+                        <>
+                            <div className={styles.questionText}>{item.question_text || "(Listen to audio)"}</div>
+                            <div className={styles.promptControls}>
+                                {item.question_audio_url && (
+                                    <button className={styles.actionBtn} onClick={playQuestionAudio}>
+                                        Play Question 🔊
+                                    </button>
+                                )}
+                                <button className={styles.actionBtn} onClick={toggleTranslation}>
+                                    {showTranslation ? 'Hide Translation' : 'Show Translation'}
+                                </button>
                             </div>
-                        )
+                            {showTranslation && (
+                                <div className={styles.koreanPrompt}>{item.prompt_kr}</div>
+                            )}
+                        </>
                     ) : (
-                        item.challenge_type === 'Answer' ? 'Interview Challenge 🎤' : 'Reading Challenge 📖'
+                        <div className={styles.koreanPrompt}>{item.prompt_kr}</div>
                     )}
                 </div>
 
-                <h2 className={styles.koreanPrompt}>
-                    {item.prompt_kr || item.category}
-                </h2>
-
-                <div className={styles.sentenceArea}>
-                    {renderText()}
-                </div>
+                {/* Practice Mode: Target & Model Audio Area */}
+                {mode === 'practice' && !result && (
+                    <div className={styles.practiceRevealArea}>
+                        {!answerRevealed ? (
+                            <button className={styles.revealBtn} onClick={revealAnswer}>
+                                Reveal Expected Answer
+                            </button>
+                        ) : (
+                            <div className={styles.targetEnBox}>
+                                <div className={styles.targetLabel}>Target Answer:</div>
+                                <div className={styles.targetText}>{item.target_en}</div>
+                                {item.model_audio_url && (
+                                    <button className={styles.actionBtn} onClick={playModelAudio}>
+                                        Listen to Model 🔊
+                                    </button>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 <div className={styles.footerArea}>
                     <div className={styles.statusMsg}>{msg}</div>
 
-                    {/* Recorder: Enabled for Steps 1-3 (Practice) and Challenge */}
-                    {/* Step 1: Listen & Shadow (Full text) */}
-                    {/* Step 2: Practice (Partial) */}
-                    {/* Step 3: Master (Hidden) */}
+                    {/* Recorder Area */}
                     {!result && !isSubmitting && (
                         <div className={styles.inputArea}>
-                            {/* NEW: Only show Model Audio in Practice Mode */}
-                            {mode === 'practice' && item.model_audio_url && (
-                                <button
-                                    className={`${styles.audioBtn} ${styles.listeningBtn}`}
-                                    onClick={() => new Audio(item.model_audio_url!).play()}
-                                >
-                                    Listen 🔊
-                                </button>
-                            )}
                             <AudioRecorder
-                                key={`${item.id}-${step}`}
+                                key={item.id}
                                 onRecordingComplete={handleRecordingComplete}
                                 silenceDuration={1000}
                                 autoStop={true}
@@ -347,28 +236,46 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
                         </div>
                     )}
 
+                    {/* Result Area */}
                     {result && (
                         <div className={styles.resultArea}>
-                            {result.score > 0 && <div className={styles.score}>Score: {result.score}</div>}
+                            {mode === 'practice' ? (
+                                <>
+                                    <div className={styles.scoreBox}>
+                                        <div className={styles.score}>Score: {result.score}</div>
+                                        <div className={styles.feedback}>{result.feedback}</div>
+                                    </div>
+                                    <div className={styles.targetEnBox}>
+                                        <div className={styles.targetLabel}>Target Answer:</div>
+                                        <div className={styles.targetText}>{item.target_en}</div>
+                                        <div className={styles.targetLabel}>You said:</div>
+                                        <div className={styles.youSaidText}>{result.stt_text}</div>
+                                    </div>
+                                    <div className={styles.audioButtons}>
+                                        {item.model_audio_url && (
+                                            <button onClick={playModelAudio} className={`${styles.audioBtn} ${styles.model}`}>
+                                                Model Sound 🔊
+                                            </button>
+                                        )}
+                                        {result.audio_url && (
+                                            <button onClick={() => new Audio(result.audio_url).play()} className={`${styles.audioBtn} ${styles.user}`}>
+                                                My Sound 🎤
+                                            </button>
+                                        )}
+                                        <button onClick={handleRetry} className={`${styles.audioBtn} ${styles.retry}`}>
+                                            Retry ↺
+                                        </button>
+                                    </div>
+                                </>
+                            ) : (
+                                // For Challenge mode, do not show score or exact feedback!
+                                <div className={styles.challengeFinishedText}>
+                                    Your response has been saved for review.
+                                </div>
+                            )}
 
-                            <div className={styles.audioButtons}>
-                                {item.model_audio_url && (
-                                    <button onClick={() => new Audio(item.model_audio_url).play()} className={`${styles.audioBtn} ${styles.model}`}>
-                                        Sound 🔊
-                                    </button>
-                                )}
-                                {result.audio_url && (
-                                    <button onClick={() => new Audio(result.audio_url).play()} className={`${styles.audioBtn} ${styles.user}`}>
-                                        Me 🎤
-                                    </button>
-                                )}
-                                <button onClick={handleRetry} className={`${styles.audioBtn} ${styles.retry}`}>
-                                    Retry ↺
-                                </button>
-                            </div>
-
-                            <button onClick={handleStepNext} className={styles.nextButton}>
-                                {mode === 'practice' && item.practice_type !== 'B' && step < 3 ? 'Next Step →' : 'Next Item →'}
+                            <button onClick={onNext} className={styles.nextButton}>
+                                Next Item →
                             </button>
                         </div>
                     )}
