@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/utils/supabase';
+import { supabaseAdmin } from '@/utils/supabase';
 import { openai } from '@/utils/openai';
 import { getItems, updateItem } from '@/utils/sheets';
 import { v4 as uuidv4 } from 'uuid';
@@ -46,22 +46,25 @@ export async function POST(req: NextRequest) {
 
                 // 2. Upload to Supabase
                 // clean filename
-                const fileName = `tts/${itemId}_${Date.now()}.mp3`;
+                // clean filename without Date.now()
+                const fileName = `tts/en/${itemId}.mp3`;
 
-                // Need to remove old one? Maybe later. For now just new file.
-                const { error: uploadError } = await supabase.storage
+                // Uses admin client with upsert (requires Service Role Key)
+                const { error: uploadError } = await supabaseAdmin.storage
                     .from('tal-audio')
                     .upload(fileName, buffer, {
-                        contentType: 'audio/mpeg'
+                        contentType: 'audio/mpeg',
+                        upsert: true
                     });
 
                 if (uploadError) throw uploadError;
 
-                const { data: publicUrlData } = supabase.storage
+                const { data: publicUrlData } = supabaseAdmin.storage
                     .from('tal-audio')
                     .getPublicUrl(fileName);
 
-                const audioUrl = publicUrlData.publicUrl;
+                // Add cache-bust parameter ?v=timestamp to bypass caching in browsers
+                const audioUrl = `${publicUrlData.publicUrl}?v=${Date.now()}`;
 
                 // 3. Update Sheet
                 await updateItem(itemId, {
