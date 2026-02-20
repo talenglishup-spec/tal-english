@@ -1,0 +1,28 @@
+Document Title: TAL_Items_Template
+
+Sheet: Items
+Columns: item_id, level, category, sub_category, prompt_kr, target_en, focus_point, coach_note, active, model_audio_url_kr, model_audio_url_en, audio_source_kr, audio_source_en, practice_type, cloze_target, challenge_type, question_kr, question_text, question_audio, question_audio_source
+
+Sheet: Attempts
+Columns: attempt_id, date_time, player_id, item_id, stt_text, ai_score, audio_url, coach_score, coach_feedback, measurement_type, session_id, session_mode, challenge_type, duration_sec, question_play_count, model_play_count, translation_toggle_count, answer_revealed, time_to_first_response_ms
+
+Sheet: Materials
+Columns: material_id, title, type, url, note, active
+
+Sheet: Lessons
+Columns: lesson_id, player_id, lesson_no, lesson_date, note, active
+
+Sheet: LessonItems
+Columns: lesson_id, item_id
+
+Sheet: Players
+Columns: player_id, player_name, password, active, created_at, note
+
+Sheet: LessonSituations
+Columns: situation_id, lesson_id, situation_title_ko, situation_order, active, note
+
+Sheet: SituationItems
+Columns: situation_id, item_id, item_order, active, note
+
+Sheet: LessonMaterials
+Columns: lesson_id, material_id, material_order, active, note

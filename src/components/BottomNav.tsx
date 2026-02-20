@@ -23,6 +23,13 @@ export default function BottomNav() {
                 <span className={styles.label}>홈</span>
             </Link>
 
+            {(user.role === 'teacher' || user.role === 'admin' || user.isAdmin) && (
+                <Link href="/teacher" className={`${styles.navItem} ${isActive('/teacher') ? styles.active : ''}`}>
+                    <div className={styles.icon}>🔥</div>
+                    <span className={styles.label}>대시보드</span>
+                </Link>
+            )}
+
             <Link href="/challenge" className={`${styles.navItem} ${isActive('/challenge') ? styles.active : ''}`}>
                 <div className={styles.icon}>🏆</div>
                 <span className={styles.label}>챌린지</span>
