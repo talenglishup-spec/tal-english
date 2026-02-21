@@ -5,7 +5,29 @@ import { getItems, updateItem } from '@/utils/sheets';
 import { v4 as uuidv4 } from 'uuid';
 import { TTS_CONFIG } from '@/utils/config';
 
+// 0. 간단한 In-memory IP Rate Limiter
+const rateLimitMap = new Map<string, number[]>();
+
 export async function POST(req: NextRequest) {
+    // 클라이언트 IP 추출 (Next.js App 라우터 호환)
+    const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
+
+    const now = Date.now();
+    const windowMs = 60 * 1000; // 1분
+    const maxRequests = 10;
+
+    let timestamps = rateLimitMap.get(ip) || [];
+    // 1분 이내의 타임스탬프만 유지
+    timestamps = timestamps.filter(ts => now - ts < windowMs);
+
+    if (timestamps.length >= maxRequests) {
+        return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
+    }
+
+    // 현재 요청 시간 기록
+    timestamps.push(now);
+    rateLimitMap.set(ip, timestamps);
+
     try {
         // 1. 보안: Admin Secret Header 검증
         const adminSecret = process.env.ADMIN_SECRET;
