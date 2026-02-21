@@ -104,10 +104,7 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
     };
 
     const toggleTranslation = () => {
-        if (!showTranslation) {
-            setTranslationToggleCount(prev => prev + 1);
-        }
-        setShowTranslation(!showTranslation);
+        // Obsolete: translation is always shown in practice mode now
     };
 
     const revealAnswer = () => {
@@ -198,13 +195,22 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
                 {!result && <div className={styles.questionText}>{msg}</div>}
 
                 {/* Result Area Top */}
-                {result && (
+                {result && mode === 'challenge' && (
                     <div className={styles.resultBox}>
                         <div className={styles.score}>
                             {result.score >= 80 ? '✅' : '⚠️'} {result.score}점
                         </div>
                     </div>
                 )}
+
+                {/* Speaking Box for Step 1 */}
+                {!result && !isSubmitting && mode === 'practice' &&
+                    (item.practice_type === 'A' || item.practice_type === '3-STEP' || !item.practice_type) &&
+                    subStep === 1 && (
+                        <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+                            <div className={styles.speakingBox}>이제 스피킹 하세요...</div>
+                        </div>
+                    )}
 
                 {/* Target or Blank Text */}
                 <div className={styles.targetText}>
@@ -214,48 +220,56 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
                         const isBlankStep = (type === '3-STEP' && subStep === 3) || type === '1-STEP-BLANK' || mode === 'challenge';
 
                         if (result || answerRevealed) {
-                            return <span>{item.target_en}</span>;
+                            return <span className={styles.targetTextNormal}>{item.target_en}</span>;
                         }
 
                         if (isBlankStep) {
-                            return <span className={styles.targetTextBlank}>...</span>;
+                            // Split by words to create blank box for each word
+                            return (
+                                <span>
+                                    {item.target_en.split(' ').map((word, i) => (
+                                        <React.Fragment key={i}>
+                                            <span className={styles.targetTextBlank}>{word}</span>
+                                            {' '}
+                                        </React.Fragment>
+                                    ))}
+                                </span>
+                            );
                         }
 
                         if (isClozeStep && item.cloze_target) {
-                            // Split cloze_target by comma to support multiple targets (e.g., "pass, ball")
                             const targets = item.cloze_target.split(',').map(t => t.trim()).filter(t => t.length > 0);
 
                             if (targets.length > 0) {
-                                // Escape regex special chars and create an OR pattern
                                 const escapedTargets = targets.map(t => t.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'));
                                 const pattern = new RegExp(`(${escapedTargets.join('|')})`, 'gi');
 
                                 const parts = item.target_en.split(pattern);
                                 return (
-                                    <span>
+                                    <span className={styles.targetTextNormal}>
                                         {parts.map((p, i) => {
                                             const isMatch = targets.some(t => t.toLowerCase() === p.toLowerCase());
                                             return isMatch
-                                                ? <span key={i} className={styles.targetTextBlank}>_______</span>
-                                                : p;
+                                                ? <span key={i} className={styles.targetTextBlank}>{p}</span>
+                                                : <span key={i}>{p}</span>;
                                         })}
                                     </span>
                                 );
                             }
                         }
 
-                        // Fallback (Step 1 or no cloze target)
-                        return <span>{item.target_en}</span>;
+                        // Step 1: Faded gray text
+                        return <span className={styles.targetTextStep1}>{item.target_en}</span>;
                     })()}
                 </div>
 
-                {mode === 'challenge' && (challengeType === 'INTERVIEW_ENQ_TO_EN' || challengeType === 'FOOTBALL_ENQ_TO_EN') ? (
+                {mode === 'challenge' && isEnType ? (
                     <div className={styles.koreanPrompt}>
                         {item.question_text}
                     </div>
                 ) : (
                     <div className={styles.koreanPrompt}>
-                        {(!isEnType || showTranslation) ? item.prompt_kr : ' '}
+                        {item.prompt_kr}
                     </div>
                 )}
 
@@ -264,12 +278,6 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
                         {(item.question_audio_en || item.question_audio_url) && (
                             <button className={styles.actionBtn} onClick={playQuestionAudio}>
                                 🔊 질문 듣기
-                            </button>
-                        )}
-                        {/* Remove '해석 보기' entirely in challenge mode for EN types */}
-                        {mode !== 'challenge' && (
-                            <button className={styles.actionBtn} onClick={toggleTranslation}>
-                                {showTranslation ? '해석 숨기기' : '해석 보기'}
                             </button>
                         )}
                     </div>

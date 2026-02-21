@@ -94,11 +94,36 @@
     line-height: 1.4;
 }
 
+.targetTextNormal {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #00b87c;
+}
+
 .targetTextBlank {
-    color: #cbd5e1;
-    background: #f1f5f9;
-    padding: 0 8px;
+    color: transparent;
+    background: #e2e8f0;
     border-radius: 8px;
+    display: inline-block;
+}
+
+.targetTextStep1 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #cbd5e1;
+    text-align: center;
+    line-height: 1.4;
+}
+
+.speakingBox {
+    background: #2563eb;
+    color: white;
+    padding: 0.5rem 1.5rem;
+    border-radius: 20px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    display: inline-block;
+    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2);
 }
 
 .koreanPrompt {
