@@ -7,10 +7,22 @@ import { TTS_CONFIG } from '@/utils/config';
 
 export async function POST(req: NextRequest) {
     try {
+        // 1. 보안: Admin Secret Header 검증
+        const adminSecret = process.env.ADMIN_SECRET;
+        const reqSecret = req.headers.get('x-admin-secret');
+        if (!adminSecret || reqSecret !== adminSecret) {
+            return NextResponse.json({ error: 'Unauthorized: Invalid or missing Admin Secret' }, { status: 401 });
+        }
+
         const { itemIds, force, type = 'answer' } = await req.json();
 
         if (!itemIds || !Array.isArray(itemIds)) {
             return NextResponse.json({ error: 'itemIds array is required' }, { status: 400 });
+        }
+
+        // 2. 안정화: 요청(Rate/Bulk) 제한 - 최대 30개 동시 생성 허용
+        if (itemIds.length > 30) {
+            return NextResponse.json({ error: 'Too many items. Maximum 30 items allowed per request.' }, { status: 429 });
         }
 
         const allItems = await getItems();

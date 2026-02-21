@@ -131,6 +131,13 @@ export default function ItemsManagerPage() {
     const handleGenerate = async (itemIds: string[], type: 'answer' | 'question', force = false) => {
         if (itemIds.length === 0) return;
 
+        let secret = sessionStorage.getItem('admin_secret');
+        if (!secret) {
+            secret = prompt('서버 보호를 위해 Admin Secret을 입력해 주세요:');
+            if (!secret) return; // Cancelled by user
+            sessionStorage.setItem('admin_secret', secret);
+        }
+
         // Optimistic UI updates? No, wait for result.
         const newGenerating = new Set(generating);
         itemIds.forEach(id => newGenerating.add(`${type}-${id}`));
@@ -139,9 +146,24 @@ export default function ItemsManagerPage() {
         try {
             const res = await fetch('/api/admin/generate-tts', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-admin-secret': secret
+                },
                 body: JSON.stringify({ itemIds, force, type })
             });
+
+            if (res.status === 401) {
+                sessionStorage.removeItem('admin_secret');
+                alert('잘못된 Admin Secret 입니다. 다시 시도해 주세요.');
+                return;
+            }
+
+            if (res.status === 429) {
+                alert('한 번에 허용된 생성 개수(30개)를 초과했습니다.');
+                return;
+            }
+
             const data = await res.json();
 
             if (data.success) {
