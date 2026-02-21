@@ -16,6 +16,7 @@ interface TrainingItem {
     challenge_type?: 'FOOTBALL_KO_TO_EN' | 'FOOTBALL_ENQ_TO_EN' | 'INTERVIEW_ENQ_TO_EN';
     question_text?: string;
     question_audio_url?: string;
+    question_audio_en?: string;
 }
 
 interface ClozeDrillProps {
@@ -60,11 +61,15 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
         if (mode === 'practice') {
             setMsg('Practice: Ready to speak!');
         } else {
-            setMsg('Challenge: Recording starts immediately after prompt.');
+            if (isEnType) {
+                setMsg('인터뷰 질문을 듣고 답변을 녹음하세요.');
+            } else {
+                setMsg('제시된 상황을 보고 답변을 녹음하세요.');
+            }
         }
 
         // Auto-play question if it exists and is EN type
-        if (isEnType && item.question_audio_url) {
+        if (isEnType && (item.question_audio_en || item.question_audio_url)) {
             playQuestionAudio();
         } else if (!isEnType && item.prompt_kr) {
             // Auto-play Korean TTS for KO_TO_EN
@@ -81,9 +86,10 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
     }, [item, mode, isEnType]);
 
     const playQuestionAudio = () => {
-        if (!item.question_audio_url) return;
+        const audioUrl = item.question_audio_en || item.question_audio_url;
+        if (!audioUrl) return;
         setQuestionPlayCount(prev => prev + 1);
-        const audio = new Audio(item.question_audio_url);
+        const audio = new Audio(audioUrl);
         audio.play().catch(console.error);
     };
 
@@ -208,18 +214,29 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
                     )}
                 </div>
 
-                <div className={styles.koreanPrompt}>{item.prompt_kr}</div>
+                {mode === 'challenge' && (challengeType === 'INTERVIEW_ENQ_TO_EN' || challengeType === 'FOOTBALL_ENQ_TO_EN') ? (
+                    <div className={styles.koreanPrompt}>
+                        {item.question_text}
+                    </div>
+                ) : (
+                    <div className={styles.koreanPrompt}>
+                        {(!isEnType || showTranslation) ? item.prompt_kr : ' '}
+                    </div>
+                )}
 
                 {isEnType && (
                     <div className={styles.promptControls}>
-                        {item.question_audio_url && (
+                        {(item.question_audio_en || item.question_audio_url) && (
                             <button className={styles.actionBtn} onClick={playQuestionAudio}>
                                 🔊 질문 듣기
                             </button>
                         )}
-                        <button className={styles.actionBtn} onClick={toggleTranslation}>
-                            {showTranslation ? '해석 숨기기' : '해석 보기'}
-                        </button>
+                        {/* Remove '해석 보기' entirely in challenge mode for EN types */}
+                        {mode !== 'challenge' && (
+                            <button className={styles.actionBtn} onClick={toggleTranslation}>
+                                {showTranslation ? '해석 숨기기' : '해석 보기'}
+                            </button>
+                        )}
                     </div>
                 )}
 
