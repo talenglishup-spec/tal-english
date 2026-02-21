@@ -283,14 +283,7 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
                     </div>
                 )}
 
-                {/* Practice Mode: Reveal Button */}
-                {mode === 'practice' && !result && !answerRevealed && (
-                    <div className={styles.practiceRevealArea}>
-                        <button className={styles.revealBtn} onClick={revealAnswer}>
-                            정답 확인
-                        </button>
-                    </div>
-                )}
+
 
                 <div className={styles.footerArea}>
 
