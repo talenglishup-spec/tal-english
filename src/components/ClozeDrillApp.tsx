@@ -222,17 +222,26 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
                         }
 
                         if (isClozeStep && item.cloze_target) {
-                            // Split by case-insensitive cloze_target and render blanks
-                            const parts = item.target_en.split(new RegExp(`(${item.cloze_target})`, 'gi'));
-                            return (
-                                <span>
-                                    {parts.map((p, i) =>
-                                        p.toLowerCase() === item.cloze_target?.toLowerCase()
-                                            ? <span key={i} className={styles.targetTextBlank}>_______</span>
-                                            : p
-                                    )}
-                                </span>
-                            );
+                            // Split cloze_target by comma to support multiple targets (e.g., "pass, ball")
+                            const targets = item.cloze_target.split(',').map(t => t.trim()).filter(t => t.length > 0);
+
+                            if (targets.length > 0) {
+                                // Escape regex special chars and create an OR pattern
+                                const escapedTargets = targets.map(t => t.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'));
+                                const pattern = new RegExp(`(${escapedTargets.join('|')})`, 'gi');
+
+                                const parts = item.target_en.split(pattern);
+                                return (
+                                    <span>
+                                        {parts.map((p, i) => {
+                                            const isMatch = targets.some(t => t.toLowerCase() === p.toLowerCase());
+                                            return isMatch
+                                                ? <span key={i} className={styles.targetTextBlank}>_______</span>
+                                                : p;
+                                        })}
+                                    </span>
+                                );
+                            }
                         }
 
                         // Fallback (Step 1 or no cloze target)
