@@ -7,7 +7,7 @@ import { TTS_CONFIG } from '@/utils/config';
 
 export async function POST(req: NextRequest) {
     try {
-        const { itemIds, force } = await req.json();
+        const { itemIds, force, type = 'answer' } = await req.json();
 
         if (!itemIds || !Array.isArray(itemIds)) {
             return NextResponse.json({ error: 'itemIds array is required' }, { status: 400 });
@@ -23,33 +23,54 @@ export async function POST(req: NextRequest) {
                 continue;
             }
 
-            if (item.model_audio_url && !force) {
-                results.push({ itemId, status: 'skipped', url: item.model_audio_url });
-                continue;
-            }
-
-            if (!item.target_en) {
-                results.push({ itemId, status: 'no_target_text' });
-                continue;
-            }
-
             try {
+                let textToSpeak = '';
+                let fileName = '';
+                let isQuestion = type === 'question';
+
+                if (isQuestion) {
+                    // Skip conditions for Question TTS
+                    if (!item.question_text || item.question_text.trim() === '') {
+                        results.push({ itemId, status: 'skipped', reason: 'no_question_text' });
+                        continue;
+                    }
+                    if (item.question_audio_source === 'manual') {
+                        results.push({ itemId, status: 'skipped', reason: 'manual_source' });
+                        continue;
+                    }
+                    if (item.question_audio_en && !force) {
+                        results.push({ itemId, status: 'skipped', url: item.question_audio_en });
+                        continue;
+                    }
+
+                    textToSpeak = item.question_text.trim();
+                    fileName = `tts/q/${itemId}.mp3`;
+                } else {
+                    // Skip conditions for Answer TTS
+                    if (!item.target_en) {
+                        results.push({ itemId, status: 'no_target_text' });
+                        continue;
+                    }
+                    if (item.model_audio_url && !force) {
+                        results.push({ itemId, status: 'skipped', url: item.model_audio_url });
+                        continue;
+                    }
+
+                    textToSpeak = item.target_en;
+                    fileName = `tts/en/${itemId}.mp3`;
+                }
+
                 // 1. Generate TTS
-                console.log(`Generating TTS for ${itemId}: ${item.target_en} (Voice: ${TTS_CONFIG.voice})`);
+                console.log(`Generating TTS for ${itemId}: ${textToSpeak} (Voice: ${TTS_CONFIG.voice}, Type: ${type})`);
                 const mp3Response = await openai.audio.speech.create({
                     model: TTS_CONFIG.model,
                     voice: TTS_CONFIG.voice,
-                    input: item.target_en,
+                    input: textToSpeak,
                 });
 
                 const buffer = Buffer.from(await mp3Response.arrayBuffer());
 
                 // 2. Upload to Supabase
-                // clean filename
-                // clean filename without Date.now()
-                const fileName = `tts/en/${itemId}.mp3`;
-
-                // Uses admin client with upsert (requires Service Role Key)
                 const { error: uploadError } = await supabaseAdmin.storage
                     .from('tal-audio')
                     .upload(fileName, buffer, {
@@ -67,10 +88,17 @@ export async function POST(req: NextRequest) {
                 const audioUrl = `${publicUrlData.publicUrl}?v=${Date.now()}`;
 
                 // 3. Update Sheet
-                await updateItem(itemId, {
-                    model_audio_url: audioUrl,
-                    audio_source: 'tts'
-                });
+                if (isQuestion) {
+                    await updateItem(itemId, {
+                        question_audio_en: audioUrl,
+                        question_audio_source: 'tts'
+                    });
+                } else {
+                    await updateItem(itemId, {
+                        model_audio_url: audioUrl,
+                        audio_source: 'tts'
+                    });
+                }
 
                 results.push({ itemId, status: 'generated', url: audioUrl });
 

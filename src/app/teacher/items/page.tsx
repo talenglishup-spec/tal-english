@@ -13,6 +13,9 @@ interface Item {
     category: string;
     sub_category: string;
     active: boolean;
+    question_text?: string;
+    question_audio_en?: string;
+    question_audio_source?: string;
 
     // computed stats
     cAvgResponseSpeed?: number;
@@ -125,19 +128,19 @@ export default function ItemsManagerPage() {
         }
     }
 
-    const handleGenerate = async (itemIds: string[], force = false) => {
+    const handleGenerate = async (itemIds: string[], type: 'answer' | 'question', force = false) => {
         if (itemIds.length === 0) return;
 
         // Optimistic UI updates? No, wait for result.
         const newGenerating = new Set(generating);
-        itemIds.forEach(id => newGenerating.add(id));
+        itemIds.forEach(id => newGenerating.add(`${type}-${id}`));
         setGenerating(newGenerating);
 
         try {
             const res = await fetch('/api/admin/generate-tts', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ itemIds, force })
+                body: JSON.stringify({ itemIds, force, type })
             });
             const data = await res.json();
 
@@ -146,7 +149,11 @@ export default function ItemsManagerPage() {
                 setItems(prev => prev.map(item => {
                     const result = data.results.find((r: any) => r.itemId === item.id);
                     if (result && result.status === 'generated') {
-                        return { ...item, model_audio_url: result.url, audio_source: 'tts' };
+                        if (type === 'question') {
+                            return { ...item, question_audio_en: result.url, question_audio_source: 'tts' };
+                        } else {
+                            return { ...item, model_audio_url: result.url, audio_source: 'tts' };
+                        }
                     }
                     return item;
                 }));
@@ -154,9 +161,9 @@ export default function ItemsManagerPage() {
                 const errors = data.results.filter((r: any) => r.status === 'error').map((r: any) => r.error);
 
                 if (errors.length > 0) {
-                    alert(`Generated ${generatedCount} items.\nEncountered errors: ${errors.join(', ')}`);
+                    alert(`Generated ${generatedCount} ${type} TTS items.\nEncountered errors: ${errors.join(', ')}`);
                 } else {
-                    alert(`Generated ${generatedCount} items successfully.`);
+                    alert(`Generated ${generatedCount} ${type} TTS items successfully.`);
                 }
             } else {
                 alert(`Error: ${data.error}`);
@@ -166,13 +173,29 @@ export default function ItemsManagerPage() {
             alert('Network error');
         } finally {
             const cleanup = new Set(generating);
-            itemIds.forEach(id => cleanup.delete(id));
+            itemIds.forEach(id => cleanup.delete(`${type}-${id}`));
             setGenerating(cleanup);
         }
     };
 
+    const generateAllMissing = async () => {
+        const missingAnswers = items.filter(i => !i.model_audio_url && i.target_en).map(i => i.id);
+        const missingQuestions = items.filter(i => !i.question_audio_en && i.question_text && i.question_audio_source !== 'manual').map(i => i.id);
+
+        if (missingAnswers.length > 0) {
+            await handleGenerate(missingAnswers, 'answer', false);
+        }
+        if (missingQuestions.length > 0) {
+            await handleGenerate(missingQuestions, 'question', false);
+        }
+
+        if (missingAnswers.length === 0 && missingQuestions.length === 0) {
+            alert('All items already have correct TTS generated.');
+        }
+    };
+
     const filteredItems = items.filter(item => {
-        if (filter === 'missing') return !item.model_audio_url;
+        if (filter === 'missing') return !item.model_audio_url || (item.question_text && !item.question_audio_en);
         return true;
     });
 
@@ -195,6 +218,14 @@ export default function ItemsManagerPage() {
                         <option value="all">All Items</option>
                         <option value="missing">Missing Audio Only</option>
                     </select>
+                    <button
+                        onClick={generateAllMissing}
+                        className={styles.refreshBtn}
+                        style={{ background: '#0070f3' }}
+                        disabled={loading}
+                    >
+                        Gen Missing All TTS
+                    </button>
                     <button
                         onClick={() => fetchItems()}
                         className={styles.refreshBtn}
@@ -254,20 +285,70 @@ export default function ItemsManagerPage() {
                                         ) : '-'}
                                     </td>
                                     <td>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                            {item.model_audio_url ? (
-                                                <a href={item.model_audio_url} target="_blank" rel="noreferrer" style={{ fontSize: '0.85rem' }}>🔊 Play</a>
-                                            ) : (
-                                                <span style={{ color: '#999', fontSize: '0.85rem' }}>None</span>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', background: '#f8f9fa', padding: '4px', borderRadius: '4px' }}>
+                                                <strong style={{ fontSize: '0.75rem', color: '#555' }}>Answer</strong>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                    {item.model_audio_url ? (
+                                                        <>
+                                                            <a href={item.model_audio_url} target="_blank" rel="noreferrer" style={{ fontSize: '0.8rem' }}>🔊 Play</a>
+                                                            <button
+                                                                onClick={() => handleGenerate([item.id], 'answer', true)}
+                                                                disabled={generating.has(`answer-${item.id}`)}
+                                                                className={styles.actionBtn}
+                                                                style={{ fontSize: '0.7rem', padding: '2px 6px' }}
+                                                            >
+                                                                {generating.has(`answer-${item.id}`) ? '...' : 'Regen'}
+                                                            </button>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <span style={{ color: '#999', fontSize: '0.8rem' }}>None</span>
+                                                            <button
+                                                                onClick={() => handleGenerate([item.id], 'answer', false)}
+                                                                disabled={generating.has(`answer-${item.id}`)}
+                                                                className={styles.actionBtn}
+                                                                style={{ fontSize: '0.7rem', padding: '2px 6px' }}
+                                                            >
+                                                                {generating.has(`answer-${item.id}`) ? '...' : 'Gen'}
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {item.question_text && (
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', background: '#f8f9fa', padding: '4px', borderRadius: '4px' }}>
+                                                    <strong style={{ fontSize: '0.75rem', color: '#555' }}>Question</strong>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                        {item.question_audio_en ? (
+                                                            <>
+                                                                <a href={item.question_audio_en} target="_blank" rel="noreferrer" style={{ fontSize: '0.8rem' }}>🔊 Play</a>
+                                                                <button
+                                                                    onClick={() => handleGenerate([item.id], 'question', true)}
+                                                                    disabled={generating.has(`question-${item.id}`)}
+                                                                    className={styles.actionBtn}
+                                                                    style={{ fontSize: '0.7rem', padding: '2px 6px' }}
+                                                                >
+                                                                    {generating.has(`question-${item.id}`) ? '...' : 'Regen'}
+                                                                </button>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <span style={{ color: '#999', fontSize: '0.8rem' }}>None</span>
+                                                                <button
+                                                                    onClick={() => handleGenerate([item.id], 'question', false)}
+                                                                    disabled={generating.has(`question-${item.id}`)}
+                                                                    className={styles.actionBtn}
+                                                                    style={{ fontSize: '0.7rem', padding: '2px 6px' }}
+                                                                >
+                                                                    {generating.has(`question-${item.id}`) ? '...' : 'Gen'}
+                                                                </button>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </div>
                                             )}
-                                            <button
-                                                onClick={() => handleGenerate([item.id], !!item.model_audio_url)}
-                                                disabled={generating.has(item.id)}
-                                                className={styles.actionBtn}
-                                                style={{ fontSize: '0.75rem', padding: '2px 8px' }}
-                                            >
-                                                {generating.has(item.id) ? '...' : (item.model_audio_url ? 'Regen' : 'Gen TTS')}
-                                            </button>
                                         </div>
                                     </td>
                                 </tr>

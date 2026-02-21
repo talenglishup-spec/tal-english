@@ -68,6 +68,8 @@ export type TrainingItem = {
     challenge_type: 'FOOTBALL_KO_TO_EN' | 'FOOTBALL_ENQ_TO_EN' | 'INTERVIEW_ENQ_TO_EN';
     question_text: string;
     question_audio_url: string;
+    question_audio_en?: string;
+    question_audio_source?: string;
 };
 
 // --- New Type for Materials (Global Library) ---
@@ -163,7 +165,9 @@ export async function getItems(): Promise<TrainingItem[]> {
                 cloze_target: row.get('cloze_target') || '',
                 challenge_type: (row.get('challenge_type') as any) || 'FOOTBALL_KO_TO_EN',
                 question_text: row.get('question_text') || '',
-                question_audio_url: row.get('question_audio') || '' // Note: column name 'question_audio' maps to property 'question_audio_url'
+                question_audio_url: row.get('question_audio') || '', // Note: column name 'question_audio' maps to property 'question_audio_url'
+                question_audio_en: row.get('question_audio_en') || '',
+                question_audio_source: row.get('question_audio_source') || ''
             };
         })
         .filter(item => item.active === true);
@@ -729,6 +733,8 @@ export async function updateItem(itemId: string, updates: Partial<TrainingItem>)
     if (updates.challenge_type !== undefined) row.set('challenge_type', updates.challenge_type);
     if (updates.question_text !== undefined) row.set('question_text', updates.question_text);
     if (updates.question_audio_url !== undefined) row.set('question_audio', updates.question_audio_url); // map back to col name
+    if (updates.question_audio_en !== undefined) row.set('question_audio_en', updates.question_audio_en);
+    if (updates.question_audio_source !== undefined) row.set('question_audio_source', updates.question_audio_source);
 
     await row.save();
 }
