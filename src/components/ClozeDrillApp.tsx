@@ -194,14 +194,7 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
                 {/* Status Indicator */}
                 {!result && <div className={styles.questionText}>{msg}</div>}
 
-                {/* Result Area Top */}
-                {result && mode === 'challenge' && (
-                    <div className={styles.resultBox}>
-                        <div className={styles.score}>
-                            {result.score >= 80 ? '✅' : '⚠️'} {result.score}점
-                        </div>
-                    </div>
-                )}
+                {/* Result Area Top - Removed AI Score for both Practice and Challenge modes as requested */}
 
                 {/* Speaking Box for Step 1 */}
                 {!result && !isSubmitting && mode === 'practice' &&
@@ -293,7 +286,7 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
                 <div className={styles.footerArea}>
 
                     {/* Audio Buttons in Result */}
-                    {result && mode === 'practice' && (
+                    {result && (
                         <div className={styles.audioButtons}>
                             {item.model_audio_url && (
                                 <button onClick={playModelAudio} className={styles.audioBtn}>
