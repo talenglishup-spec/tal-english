@@ -87,7 +87,7 @@ function PracticeContent() {
 
     // Navigation State
     const [activeSituation, setActiveSituation] = useState<SituationGroup | null>(null);
-    const [isDrilling, setIsDrilling] = useState(false);
+    const [drillingItems, setDrillingItems] = useState<TrainingItem[] | null>(null);
 
     // 1. Fetch Lessons (if no lessonId)
     useEffect(() => {
@@ -131,7 +131,7 @@ function PracticeContent() {
             return;
         }
         setActiveSituation(group);
-        setIsDrilling(false);
+        setDrillingItems(null);
     };
 
     // Grouping Logic for Active Situation
@@ -159,11 +159,11 @@ function PracticeContent() {
 
 
     // RENDER: Drill Mode
-    if (activeSituation && isDrilling) {
+    if (activeSituation && drillingItems) {
         return (
             <DrillSession
-                items={activeSituation.items}
-                onClose={() => { setIsDrilling(false); setActiveSituation(null); }}
+                items={drillingItems}
+                onClose={() => { setDrillingItems(null); }}
             />
         );
     }
@@ -180,8 +180,8 @@ function PracticeContent() {
                 <div className={styles.content}>
                     <div className={styles.introCard}>
                         <p>{activeSituation.situation.note}</p>
-                        <button className={styles.startDrillBtn} onClick={() => setIsDrilling(true)}>
-                            Start Series Drill ({activeSituation.items.length} items) ▶
+                        <button className={styles.startDrillBtn} onClick={() => setDrillingItems(activeSituation.items)}>
+                            전체 표현 학습하기 ({activeSituation.items.length}개) ▶
                         </button>
                     </div>
 
@@ -194,8 +194,16 @@ function PracticeContent() {
                                         <h4 className={styles.subTitle}>{sub.title}</h4>
                                         {sub.items.map(item => (
                                             <div key={item.id} className={styles.itemRow}>
-                                                <div className={styles.itemPrompt}>{item.prompt_kr}</div>
-                                                <div className={styles.itemTarget}>{item.target_en}</div>
+                                                <div className={styles.itemContent}>
+                                                    <div className={styles.itemPrompt}>{item.prompt_kr}</div>
+                                                    <div className={styles.itemTarget}>{item.target_en}</div>
+                                                </div>
+                                                <button
+                                                    className={styles.itemDrillBtn}
+                                                    onClick={() => setDrillingItems([item])}
+                                                >
+                                                    학습하기
+                                                </button>
                                             </div>
                                         ))}
                                     </div>
