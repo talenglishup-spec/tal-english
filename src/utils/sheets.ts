@@ -69,7 +69,7 @@ export type TrainingItem = {
     question_text: string;
     question_audio_url: string;
     question_audio_en?: string;
-    question_audio_source?: string;
+    question_audio_source?: 'tts' | 'manual' | 'external';
 };
 
 // --- New Type for Materials (Global Library) ---

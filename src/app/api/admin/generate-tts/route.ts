@@ -34,8 +34,8 @@ export async function POST(req: NextRequest) {
                         results.push({ itemId, status: 'skipped', reason: 'no_question_text' });
                         continue;
                     }
-                    if (item.question_audio_source === 'manual') {
-                        results.push({ itemId, status: 'skipped', reason: 'manual_source' });
+                    if (item.question_audio_source === 'manual' || item.question_audio_source === 'external') {
+                        results.push({ itemId, status: 'skipped', reason: `${item.question_audio_source}_source` });
                         continue;
                     }
                     if (item.question_audio_en && !force) {

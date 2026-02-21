@@ -180,7 +180,7 @@ export default function ItemsManagerPage() {
 
     const generateAllMissing = async () => {
         const missingAnswers = items.filter(i => !i.model_audio_url && i.target_en).map(i => i.id);
-        const missingQuestions = items.filter(i => !i.question_audio_en && i.question_text && i.question_audio_source !== 'manual').map(i => i.id);
+        const missingQuestions = items.filter(i => !i.question_audio_en && i.question_text && i.question_audio_source !== 'manual' && i.question_audio_source !== 'external').map(i => i.id);
 
         if (missingAnswers.length > 0) {
             await handleGenerate(missingAnswers, 'answer', false);
