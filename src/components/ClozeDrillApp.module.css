@@ -115,6 +115,18 @@
     line-height: 1.4;
 }
 
+.stepBadge {
+    background: #e2e8f0;
+    color: #475569;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: inline-block;
+}
+
 .speakingBox {
     background: #2563eb;
     color: white;

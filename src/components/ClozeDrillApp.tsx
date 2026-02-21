@@ -205,17 +205,22 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
 
                 {/* Speaking Box for Step 1 */}
                 {!result && !isSubmitting && mode === 'practice' &&
-                    (item.practice_type === 'A' || item.practice_type === '3-STEP' || !item.practice_type) &&
-                    subStep === 1 && (
-                        <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
-                            <div className={styles.speakingBox}>이제 스피킹 하세요...</div>
+                    (() => {
+                        const rawType = (item.practice_type || 'A').trim().toUpperCase();
+                        const type = rawType === 'A' ? '3-STEP' : rawType === 'B' ? '1-STEP-CLOZE' : rawType;
+                        return type === '3-STEP';
+                    })() && (
+                        <div style={{ textAlign: 'center', marginBottom: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                            <div className={styles.stepBadge}>Step {subStep} / 3</div>
+                            {subStep === 1 && <div className={styles.speakingBox}>이제 스피킹 하세요...</div>}
                         </div>
                     )}
 
                 {/* Target or Blank Text */}
                 <div className={styles.targetText}>
                     {(() => {
-                        const type = item.practice_type === 'A' ? '3-STEP' : item.practice_type === 'B' ? '1-STEP-CLOZE' : (item.practice_type || '3-STEP');
+                        const rawType = (item.practice_type || 'A').trim().toUpperCase();
+                        const type = rawType === 'A' ? '3-STEP' : rawType === 'B' ? '1-STEP-CLOZE' : rawType;
                         const isClozeStep = (type === '3-STEP' && subStep === 2) || type === '1-STEP-CLOZE';
                         const isBlankStep = (type === '3-STEP' && subStep === 3) || type === '1-STEP-BLANK' || mode === 'challenge';
 

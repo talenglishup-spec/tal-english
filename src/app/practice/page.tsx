@@ -46,7 +46,8 @@ function DrillSession({ items, onClose }: { items: TrainingItem[], onClose: () =
     if (!currentItem) return null;
 
     const handleNext = () => {
-        const type = currentItem.practice_type === 'A' ? '3-STEP' : currentItem.practice_type === 'B' ? '1-STEP-CLOZE' : (currentItem.practice_type || '3-STEP');
+        const rawType = (currentItem.practice_type || 'A').trim().toUpperCase();
+        const type = rawType === 'A' ? '3-STEP' : rawType === 'B' ? '1-STEP-CLOZE' : rawType;
         const maxSteps = type === '3-STEP' ? 3 : 1;
 
         if (subStep < maxSteps) {
