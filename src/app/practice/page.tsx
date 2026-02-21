@@ -24,6 +24,8 @@ interface TrainingItem {
     target_en: string;
     lesson_no?: number;
     model_audio_url?: string; // v4
+    practice_type?: '3-STEP' | '1-STEP-CLOZE' | '1-STEP-BLANK' | 'A' | 'B' | string;
+    cloze_target?: string;
 }
 
 interface SituationGroup {
@@ -37,27 +39,38 @@ interface SituationGroup {
 
 function DrillSession({ items, onClose }: { items: TrainingItem[], onClose: () => void }) {
     const [index, setIndex] = useState(0);
+    const [subStep, setSubStep] = useState(1);
     const currentItem = items[index];
     const sessionId = React.useRef(uuidv4()).current;
 
     if (!currentItem) return null;
 
     const handleNext = () => {
-        if (index < items.length - 1) {
-            setIndex(index + 1);
+        const type = currentItem.practice_type === 'A' ? '3-STEP' : currentItem.practice_type === 'B' ? '1-STEP-CLOZE' : (currentItem.practice_type || '3-STEP');
+        const maxSteps = type === '3-STEP' ? 3 : 1;
+
+        if (subStep < maxSteps) {
+            setSubStep(subStep + 1);
         } else {
-            alert("Situation Complete!");
-            onClose();
+            if (index < items.length - 1) {
+                setIndex(index + 1);
+                setSubStep(1);
+            } else {
+                alert("Situation Complete!");
+                onClose();
+            }
         }
     };
 
     return (
         <ClozeDrillApp
+            key={`${currentItem.id}-${subStep}`}
             item={currentItem}
             onNext={handleNext}
             onClose={onClose}
             mode="practice"
             sessionId={sessionId}
+            subStep={subStep}
         />
     );
 }

@@ -13,6 +13,8 @@ interface TrainingItem {
     level: string;
     lesson_no?: number;
     model_audio_url?: string;
+    practice_type?: '3-STEP' | '1-STEP-CLOZE' | '1-STEP-BLANK' | 'A' | 'B' | string;
+    cloze_target?: string;
     challenge_type?: 'FOOTBALL_KO_TO_EN' | 'FOOTBALL_ENQ_TO_EN' | 'INTERVIEW_ENQ_TO_EN';
     question_text?: string;
     question_audio_url?: string;
@@ -25,9 +27,10 @@ interface ClozeDrillProps {
     onClose: () => void;
     mode?: 'practice' | 'challenge';
     sessionId: string;
+    subStep?: number; // 1, 2, or 3 for 3-STEP
 }
 
-export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice', sessionId }: ClozeDrillProps) {
+export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice', sessionId, subStep = 1 }: ClozeDrillProps) {
     const { user } = useAuth();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [result, setResult] = useState<{ score: number; feedback: string; audio_url: string; stt_text: string } | null>(null);
@@ -205,13 +208,36 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
 
                 {/* Target or Blank Text */}
                 <div className={styles.targetText}>
-                    {result ? (
-                        <span>{item.target_en}</span>
-                    ) : answerRevealed || mode !== 'practice' ? (
-                        <span>{mode === 'practice' ? item.target_en : '...'}</span>
-                    ) : (
-                        <span className={styles.targetTextBlank}>I'm _______ an echo _______ .</span>
-                    )}
+                    {(() => {
+                        const type = item.practice_type === 'A' ? '3-STEP' : item.practice_type === 'B' ? '1-STEP-CLOZE' : (item.practice_type || '3-STEP');
+                        const isClozeStep = (type === '3-STEP' && subStep === 2) || type === '1-STEP-CLOZE';
+                        const isBlankStep = (type === '3-STEP' && subStep === 3) || type === '1-STEP-BLANK' || mode === 'challenge';
+
+                        if (result || answerRevealed) {
+                            return <span>{item.target_en}</span>;
+                        }
+
+                        if (isBlankStep) {
+                            return <span className={styles.targetTextBlank}>...</span>;
+                        }
+
+                        if (isClozeStep && item.cloze_target) {
+                            // Split by case-insensitive cloze_target and render blanks
+                            const parts = item.target_en.split(new RegExp(`(${item.cloze_target})`, 'gi'));
+                            return (
+                                <span>
+                                    {parts.map((p, i) =>
+                                        p.toLowerCase() === item.cloze_target?.toLowerCase()
+                                            ? <span key={i} className={styles.targetTextBlank}>_______</span>
+                                            : p
+                                    )}
+                                </span>
+                            );
+                        }
+
+                        // Fallback (Step 1 or no cloze target)
+                        return <span>{item.target_en}</span>;
+                    })()}
                 </div>
 
                 {mode === 'challenge' && (challengeType === 'INTERVIEW_ENQ_TO_EN' || challengeType === 'FOOTBALL_ENQ_TO_EN') ? (
