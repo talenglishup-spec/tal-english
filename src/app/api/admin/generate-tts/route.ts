@@ -10,7 +10,8 @@ const rateLimitMap = new Map<string, number[]>();
 
 export async function POST(req: NextRequest) {
     // 클라이언트 IP 추출 (Next.js App 라우터 호환)
-    const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
+    const rawIp = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
+    const ip = rawIp.split(',')[0].trim();
 
     const now = Date.now();
     const windowMs = 60 * 1000; // 1분
@@ -21,7 +22,15 @@ export async function POST(req: NextRequest) {
     timestamps = timestamps.filter(ts => now - ts < windowMs);
 
     if (timestamps.length >= maxRequests) {
-        return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
+        return NextResponse.json(
+            { error: 'Too many requests. Please try again later.' },
+            {
+                status: 429,
+                headers: {
+                    'Retry-After': '60'
+                }
+            }
+        );
     }
 
     // 현재 요청 시간 기록
