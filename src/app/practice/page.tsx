@@ -37,48 +37,7 @@ interface SituationGroup {
     items: TrainingItem[];
 }
 
-function DrillSession({ items, onClose }: { items: TrainingItem[], onClose: () => void }) {
-    const [index, setIndex] = useState(0);
-    const [subStep, setSubStep] = useState(1);
-    const currentItem = items[index];
-    const sessionId = React.useRef(uuidv4()).current;
-
-    if (!currentItem) return null;
-
-    const handleNext = () => {
-        const rawType = (currentItem?.practice_type || 'A').toString().trim().toUpperCase();
-        let type = rawType;
-        if (rawType === 'A' || rawType.includes('3')) type = '3-STEP';
-        else if (rawType === 'B' || rawType.includes('CLOZE')) type = '1-STEP-CLOZE';
-        else if (rawType === 'C' || rawType.includes('BLANK')) type = '1-STEP-BLANK';
-        else type = '3-STEP';
-        const maxSteps = type === '3-STEP' ? 3 : 1;
-
-        if (subStep < maxSteps) {
-            setSubStep(prev => prev + 1);
-        } else {
-            if (index < items.length - 1) {
-                setIndex(prev => prev + 1);
-                setSubStep(1);
-            } else {
-                alert("Situation Complete!");
-                onClose();
-            }
-        }
-    };
-
-    return (
-        <ClozeDrillApp
-            key={`${currentItem.id}-${subStep}`}
-            item={currentItem}
-            onNext={handleNext}
-            onClose={onClose}
-            mode="practice"
-            sessionId={sessionId}
-            subStep={subStep}
-        />
-    );
-}
+// DrillSession component removed to lift state to PracticeContent
 
 function PracticeContent() {
     const { user, logout } = useAuth();
@@ -92,7 +51,12 @@ function PracticeContent() {
 
     // Navigation State
     const [activeSituation, setActiveSituation] = useState<SituationGroup | null>(null);
-    const [drillingItems, setDrillingItems] = useState<TrainingItem[] | null>(null);
+    const [drillingState, setDrillingState] = useState<{
+        items: TrainingItem[];
+        index: number;
+        subStep: number;
+        sessionId: string;
+    } | null>(null);
 
     // 1. Fetch Lessons (if no lessonId)
     useEffect(() => {
@@ -136,7 +100,32 @@ function PracticeContent() {
             return;
         }
         setActiveSituation(group);
-        setDrillingItems(null);
+        setDrillingState(null);
+    };
+
+    const handleNextDrill = () => {
+        if (!drillingState) return;
+        const { items, index, subStep, sessionId } = drillingState;
+        const currentItem = items[index];
+
+        const rawType = (currentItem?.practice_type || 'A').toString().trim().toUpperCase();
+        let type = rawType;
+        if (rawType === 'A' || rawType.includes('3')) type = '3-STEP';
+        else if (rawType === 'B' || rawType.includes('CLOZE')) type = '1-STEP-CLOZE';
+        else if (rawType === 'C' || rawType.includes('BLANK')) type = '1-STEP-BLANK';
+        else type = '3-STEP';
+        const maxSteps = type === '3-STEP' ? 3 : 1;
+
+        if (subStep < maxSteps) {
+            setDrillingState({ ...drillingState, subStep: subStep + 1 });
+        } else {
+            if (index < items.length - 1) {
+                setDrillingState({ ...drillingState, index: index + 1, subStep: 1 });
+            } else {
+                alert("Situation Complete!");
+                setDrillingState(null);
+            }
+        }
     };
 
     // Grouping Logic for Active Situation
@@ -164,11 +153,19 @@ function PracticeContent() {
 
 
     // RENDER: Drill Mode
-    if (activeSituation && drillingItems) {
+    if (activeSituation && drillingState) {
+        const currentItem = drillingState.items[drillingState.index];
+        if (!currentItem) return <p>Error loading item</p>;
+
         return (
-            <DrillSession
-                items={drillingItems}
-                onClose={() => { setDrillingItems(null); }}
+            <ClozeDrillApp
+                key={`${currentItem.id}-${drillingState.index}-${drillingState.subStep}`}
+                item={currentItem}
+                onNext={handleNextDrill}
+                onClose={() => setDrillingState(null)}
+                mode="practice"
+                sessionId={drillingState.sessionId}
+                subStep={drillingState.subStep}
             />
         );
     }
@@ -185,7 +182,7 @@ function PracticeContent() {
                 <div className={styles.content}>
                     <div className={styles.introCard}>
                         <p>{activeSituation.situation.note}</p>
-                        <button className={styles.startDrillBtn} onClick={() => setDrillingItems(activeSituation.items)}>
+                        <button className={styles.startDrillBtn} onClick={() => setDrillingState({ items: activeSituation.items, index: 0, subStep: 1, sessionId: uuidv4() })}>
                             전체 표현 학습하기 ({activeSituation.items.length}개) ▶
                         </button>
                     </div>
@@ -205,7 +202,7 @@ function PracticeContent() {
                                                 </div>
                                                 <button
                                                     className={styles.itemDrillBtn}
-                                                    onClick={() => setDrillingItems([item])}
+                                                    onClick={() => setDrillingState({ items: [item], index: 0, subStep: 1, sessionId: uuidv4() })}
                                                 >
                                                     학습하기
                                                 </button>
