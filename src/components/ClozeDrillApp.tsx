@@ -199,8 +199,12 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
                 {/* Speaking Box for Step 1 */}
                 {!result && !isSubmitting && mode === 'practice' &&
                     (() => {
-                        const rawType = (item.practice_type || 'A').trim().toUpperCase();
-                        const type = rawType === 'A' ? '3-STEP' : rawType === 'B' ? '1-STEP-CLOZE' : rawType;
+                        const rawType = (item.practice_type || 'A').toString().trim().toUpperCase();
+                        let type = rawType;
+                        if (rawType === 'A' || rawType.includes('3')) type = '3-STEP';
+                        else if (rawType === 'B' || rawType.includes('CLOZE')) type = '1-STEP-CLOZE';
+                        else if (rawType === 'C' || rawType.includes('BLANK')) type = '1-STEP-BLANK';
+                        else type = '3-STEP';
                         return type === '3-STEP';
                     })() && (
                         <div style={{ textAlign: 'center', marginBottom: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
@@ -212,8 +216,13 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
                 {/* Target or Blank Text */}
                 <div className={styles.targetText}>
                     {(() => {
-                        const rawType = (item.practice_type || 'A').trim().toUpperCase();
-                        const type = rawType === 'A' ? '3-STEP' : rawType === 'B' ? '1-STEP-CLOZE' : rawType;
+                        const rawType = (item.practice_type || 'A').toString().trim().toUpperCase();
+                        let type: string = rawType;
+                        if (rawType === 'A' || rawType.includes('3')) type = '3-STEP';
+                        else if (rawType === 'B' || rawType.includes('CLOZE')) type = '1-STEP-CLOZE';
+                        else if (rawType === 'C' || rawType.includes('BLANK')) type = '1-STEP-BLANK';
+                        else type = '3-STEP';
+
                         const isClozeStep = (type === '3-STEP' && subStep === 2) || type === '1-STEP-CLOZE';
                         const isBlankStep = (type === '3-STEP' && subStep === 3) || type === '1-STEP-BLANK' || mode === 'challenge';
 
@@ -235,25 +244,29 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
                             );
                         }
 
-                        if (isClozeStep && item.cloze_target) {
-                            const targets = item.cloze_target.split(',').map(t => t.trim()).filter(t => t.length > 0);
+                        if (isClozeStep) {
+                            if (item.cloze_target) {
+                                const targets = item.cloze_target.split(',').map(t => t.trim()).filter(t => t.length > 0);
 
-                            if (targets.length > 0) {
-                                const escapedTargets = targets.map(t => t.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'));
-                                const pattern = new RegExp(`(${escapedTargets.join('|')})`, 'gi');
+                                if (targets.length > 0) {
+                                    const escapedTargets = targets.map(t => t.replace(/[-\\/\\\\^$*+?.()|[\\]{}]/g, '\\\\$&'));
+                                    const pattern = new RegExp(`(${escapedTargets.join('|')})`, 'gi');
 
-                                const parts = item.target_en.split(pattern);
-                                return (
-                                    <span className={styles.targetTextNormal}>
-                                        {parts.map((p, i) => {
-                                            const isMatch = targets.some(t => t.toLowerCase() === p.toLowerCase());
-                                            return isMatch
-                                                ? <span key={i} className={styles.targetTextBlank}>{p}</span>
-                                                : <span key={i}>{p}</span>;
-                                        })}
-                                    </span>
-                                );
+                                    const parts = item.target_en.split(pattern);
+                                    return (
+                                        <span className={styles.targetTextNormal}>
+                                            {parts.map((p, i) => {
+                                                const isMatch = targets.some(t => t.toLowerCase() === p.toLowerCase());
+                                                return isMatch
+                                                    ? <span key={i} className={styles.targetTextBlank}>{p}</span>
+                                                    : <span key={i}>{p}</span>;
+                                            })}
+                                        </span>
+                                    );
+                                }
                             }
+                            // Fallback if missing cloze_target or empty: just show normal text so it looks different from Step 1
+                            return <span className={styles.targetTextNormal}>{item.target_en}</span>;
                         }
 
                         // Step 1: Faded gray text
