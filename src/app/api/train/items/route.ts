@@ -3,6 +3,7 @@ import { getItems, getPlayerItemsWithContext } from '@/utils/sheets';
 
 // Prevent caching to ensure fresh data from Sheets
 export const dynamic = 'force-dynamic';
+export const fetchCache = 'force-no-store';
 
 export async function GET(request: Request) {
     try {

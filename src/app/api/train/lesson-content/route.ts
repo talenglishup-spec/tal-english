@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getStructuredLessonContent } from '@/utils/sheets';
 
 export const dynamic = 'force-dynamic';
+export const fetchCache = 'force-no-store';
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
