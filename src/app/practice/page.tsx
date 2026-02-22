@@ -100,7 +100,7 @@ function PracticeContent() {
         async function fetchLessons() {
             setLoading(true);
             try {
-                const res = await fetch(`/api/train/lessons?playerId=${user?.id}`);
+                const res = await fetch(`/api/train/lessons?playerId=${user?.id}&t=${Date.now()}`);
                 const data = await res.json();
                 if (data.lessons) setLessons(data.lessons);
             } catch (e) {
@@ -118,7 +118,7 @@ function PracticeContent() {
         async function fetchContent() {
             setLoading(true);
             try {
-                const res = await fetch(`/api/train/lesson-content?lessonId=${lessonId}`);
+                const res = await fetch(`/api/train/lesson-content?lessonId=${lessonId}&t=${Date.now()}`);
                 const data = await res.json();
                 if (data.content) setLessonContent(data.content);
             } catch (e) {

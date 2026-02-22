@@ -34,7 +34,7 @@ export default function ChallengePage() {
         async function fetchItems() {
             if (!user) return;
             try {
-                const query = user.role === 'player' ? `?playerId=${user.id}` : '';
+                const query = user.role === 'player' ? `?playerId=${user.id}&t=${Date.now()}` : `?t=${Date.now()}`;
                 const res = await fetch(`/api/train/items${query}`);
                 const data = await res.json();
                 if (data.items) {

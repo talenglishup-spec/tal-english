@@ -13,7 +13,7 @@ doc.loadInfo().then(() => {
     sheet.getRows().then(rows => {
         console.log("Total rows:", rows.length);
         rows.slice(0, 10).forEach(r => {
-            console.log(r.get('item_id'), '| practice_type:', r.get('practice_type'), '| active:', r.get('active'));
+            console.log(r.get('item_id'), '| practice_type:', r.get('practice_type'), '| cloze:', r.get('cloze_target'));
         });
     });
 }).catch(console.error);
