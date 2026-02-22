@@ -8,12 +8,10 @@ const doc = new GoogleSpreadsheet(process.env.GOOGLE_SHEET_ID, new JWT({
     scopes: ['https://www.googleapis.com/auth/spreadsheets']
 }));
 
-doc.loadInfo().then(() => {
+doc.loadInfo().then(async () => {
     const sheet = doc.sheetsByTitle['Items'];
-    sheet.getRows().then(rows => {
-        console.log("Total rows:", rows.length);
-        rows.slice(0, 10).forEach(r => {
-            console.log(r.get('item_id'), '| practice_type:', r.get('practice_type'), '| cloze:', r.get('cloze_target'));
-        });
+    const rows = await sheet.getRows();
+    rows.slice(0, 15).forEach(r => {
+        console.log(r.get('item_id'), " | type:", r.get('practice_type'), " | cloze:", r.get('cloze_target'), " | target_en:", r.get('target_en'));
     });
 }).catch(console.error);

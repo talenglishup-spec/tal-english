@@ -245,6 +245,9 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
                         }
 
                         if (isClozeStep) {
+                            let hasAnyBlank = false;
+                            let partsToRender: React.ReactNode[] = [];
+
                             if (item.cloze_target) {
                                 const targets = item.cloze_target.split(',').map(t => t.trim()).filter(t => t.length > 0);
 
@@ -253,20 +256,41 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
                                     const pattern = new RegExp(`(${escapedTargets.join('|')})`, 'gi');
 
                                     const parts = item.target_en.split(pattern);
+                                    partsToRender = parts.map((p, i) => {
+                                        const isMatch = targets.some(t => t.toLowerCase() === p.toLowerCase());
+                                        if (isMatch) hasAnyBlank = true;
+                                        return isMatch
+                                            ? <span key={i} className={styles.targetTextBlank}>{p}</span>
+                                            : <span key={i}>{p}</span>;
+                                    });
+                                }
+                            }
+
+                            if (hasAnyBlank) {
+                                return <span className={styles.targetTextNormal}>{partsToRender}</span>;
+                            } else {
+                                // Fallback: auto-blank the longest word if user forgot cloze_target or misspelled it
+                                const words = item.target_en.split(' ');
+                                if (words.length > 0) {
+                                    let longestIdx = 0;
+                                    for (let i = 1; i < words.length; i++) {
+                                        if (words[i].replace(/[^A-Za-z0-9]/g, '').length > words[longestIdx].replace(/[^A-Za-z0-9]/g, '').length) {
+                                            longestIdx = i;
+                                        }
+                                    }
                                     return (
                                         <span className={styles.targetTextNormal}>
-                                            {parts.map((p, i) => {
-                                                const isMatch = targets.some(t => t.toLowerCase() === p.toLowerCase());
-                                                return isMatch
-                                                    ? <span key={i} className={styles.targetTextBlank}>{p}</span>
-                                                    : <span key={i}>{p}</span>;
-                                            })}
+                                            {words.map((w, i) => (
+                                                <React.Fragment key={i}>
+                                                    {i === longestIdx ? <span className={styles.targetTextBlank}>{w}</span> : <span>{w}</span>}
+                                                    {' '}
+                                                </React.Fragment>
+                                            ))}
                                         </span>
                                     );
                                 }
+                                return <span className={styles.targetTextNormal}>{item.target_en}</span>;
                             }
-                            // Fallback if missing cloze_target or empty: just show normal text so it looks different from Step 1
-                            return <span className={styles.targetTextNormal}>{item.target_en}</span>;
                         }
 
                         // Step 1: Faded gray text
