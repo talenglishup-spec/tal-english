@@ -351,19 +351,23 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
                     {/* Footer Controls */}
                     {result && (
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '1rem', width: '100%' }}>
-                            {mode === 'practice' && (
-                                <button type="button" onClick={(e) => { e.preventDefault(); handleRetry(); }} className={styles.iconBtn}>
-                                    ↻
-                                </button>
-                            )}
                             {mode === 'challenge' && (
                                 <div className={styles.challengeFinishedText}>
                                     답안이 저장되었습니다.
                                 </div>
                             )}
+
                             <button type="button" onClick={(e) => { e.preventDefault(); onNext(); }} className={styles.nextButton}>
                                 다음으로 넘어가기
                             </button>
+
+                            {mode === 'practice' && (
+                                <div className={styles.retryBtnContainer} style={{ marginTop: '15px' }}>
+                                    <button type="button" onClick={(e) => { e.preventDefault(); handleRetry(); }} className={styles.iconBtn} aria-label="다시 말하기">
+                                        ↻
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
