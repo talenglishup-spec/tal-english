@@ -176,7 +176,7 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
     return (
         <div className={styles.container}>
             <div className={styles.topBar}>
-                <button className={styles.closeBtn} onClick={onClose}>✕</button>
+                <button type="button" className={styles.closeBtn} onClick={onClose}>✕</button>
                 <div className={styles.progressBar}>
                     <div className={`${styles.progressDot} ${styles.active}`}></div>
                     <div className={styles.progressDot}></div>
@@ -326,12 +326,12 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
                     {result && (
                         <div className={styles.audioButtons}>
                             {item.model_audio_url && (
-                                <button onClick={playModelAudio} className={styles.audioBtn}>
+                                <button type="button" onClick={playModelAudio} className={styles.audioBtn}>
                                     🔊 모범 발음
                                 </button>
                             )}
                             {result.audio_url && (
-                                <button onClick={() => new Audio(result.audio_url).play()} className={styles.audioBtn}>
+                                <button type="button" onClick={() => new Audio(result.audio_url).play()} className={styles.audioBtn}>
                                     ▶️ 내 발음
                                 </button>
                             )}
@@ -352,7 +352,7 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
                     {result && (
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '1rem', width: '100%' }}>
                             {mode === 'practice' && (
-                                <button onClick={handleRetry} className={styles.iconBtn}>
+                                <button type="button" onClick={(e) => { e.preventDefault(); handleRetry(); }} className={styles.iconBtn}>
                                     ↻
                                 </button>
                             )}
@@ -361,7 +361,7 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
                                     답안이 저장되었습니다.
                                 </div>
                             )}
-                            <button onClick={onNext} className={styles.nextButton}>
+                            <button type="button" onClick={(e) => { e.preventDefault(); onNext(); }} className={styles.nextButton}>
                                 다음으로 넘어가기
                             </button>
                         </div>
