@@ -319,7 +319,7 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
                         <AudioRecorder
                             key={item.id}
                             onRecordingComplete={handleRecordingComplete}
-                            silenceDuration={1000}
+                            silenceDuration={600}
                             autoStop={true}
                         />
                     )}
