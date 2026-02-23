@@ -267,7 +267,7 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
                             }
 
                             if (hasAnyBlank) {
-                                return <span className={styles.targetTextNormal}>{partsToRender}</span>;
+                                return <span className={styles.targetTextStep1}>{partsToRender}</span>;
                             } else {
                                 // Fallback: auto-blank the longest word if user forgot cloze_target or misspelled it
                                 const words = item.target_en.split(' ');
@@ -279,7 +279,7 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
                                         }
                                     }
                                     return (
-                                        <span className={styles.targetTextNormal}>
+                                        <span className={styles.targetTextStep1}>
                                             {words.map((w, i) => (
                                                 <React.Fragment key={i}>
                                                     {i === longestIdx ? <span className={styles.targetTextBlank}>{w}</span> : <span>{w}</span>}
@@ -289,7 +289,7 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
                                         </span>
                                     );
                                 }
-                                return <span className={styles.targetTextNormal}>{item.target_en}</span>;
+                                return <span className={styles.targetTextStep1}>{item.target_en}</span>;
                             }
                         }
 
