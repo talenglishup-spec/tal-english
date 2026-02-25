@@ -48,6 +48,19 @@ export type AttemptRow = {
     model_play_count: number;
     translation_toggle_count: number;
     answer_revealed: boolean;
+
+    // v2.0 Fields
+    latency_ms?: number;
+    sentence_count?: number;
+    repetition_score?: number;
+    pattern_selected?: string;
+    structure_score?: number;
+
+    // 2-Phase fields
+    status?: 'pending' | 'finalized' | 'failed';
+    error_message?: string;
+    created_at?: string;
+    finalized_at?: string;
 };
 
 export type TrainingItem = {
@@ -70,6 +83,18 @@ export type TrainingItem = {
     question_audio_url: string;
     question_audio_en?: string;
     question_audio_source?: 'tts' | 'manual' | 'external';
+
+    // v2.0 Fields
+    subtype?: string; // situation | dialogue | build | assemble
+    pattern_type?: string;
+    intent_tags?: string;
+    answer_role?: string;
+    variation_examples?: string;
+    followup_group_id?: string;
+    expected_phrases?: string;
+    max_latency_ms?: number;
+    trigger_audio_url?: string;
+    difficulty_level?: string;
 };
 
 // --- New Type for Materials (Global Library) ---
@@ -148,10 +173,16 @@ export async function getItems(): Promise<TrainingItem[]> {
             const activeVal = row.get('active');
             const isActive = activeVal === 'TRUE' || activeVal === true || activeVal === 'true';
 
+            let categoryInput = (row.get('category') || '').trim().toLowerCase();
+            if (!['onpitch', 'interview', 'practice'].includes(categoryInput)) {
+                if (categoryInput) console.warn(`[Schema Warning] Invalid category '${categoryInput}' for item_id ${row.get('item_id')}. Fallback to 'practice'.`);
+                categoryInput = 'practice';
+            }
+
             return {
-                id: row.get('item_id'), // Mapped from item_id
+                id: row.get('item_id') || `temp_${Math.random().toString(36).substr(2, 9)}`, // Mapped from item_id
                 level: row.get('level') || '',
-                category: row.get('category') || '',
+                category: categoryInput,
                 sub_category: row.get('sub_category') || '',
                 prompt_kr: row.get('prompt_kr') || '',
                 target_en: row.get('target_en') || '',
@@ -167,7 +198,19 @@ export async function getItems(): Promise<TrainingItem[]> {
                 question_text: row.get('question_text') || '',
                 question_audio_url: row.get('question_audio') || '', // Note: column name 'question_audio' maps to property 'question_audio_url'
                 question_audio_en: row.get('question_audio_en') || '',
-                question_audio_source: row.get('question_audio_source') || ''
+                question_audio_source: row.get('question_audio_source') || '',
+
+                // v2.0 Fields
+                subtype: row.get('subtype') || '',
+                pattern_type: row.get('pattern_type') || null,
+                intent_tags: row.get('intent_tags') || '',
+                answer_role: row.get('answer_role') || '',
+                variation_examples: row.get('variation_examples') || '',
+                followup_group_id: row.get('followup_group_id') || '',
+                expected_phrases: row.get('expected_phrases') || '',
+                max_latency_ms: Number(row.get('max_latency_ms')) || 1500,
+                trigger_audio_url: row.get('trigger_audio_url') || '',
+                difficulty_level: row.get('difficulty_level') || '1',
             };
         })
         .filter(item => item.active === true);
@@ -184,12 +227,12 @@ export async function appendAttempt(data: AttemptRow) {
         item_id: data.item_id,
         challenge_type: data.challenge_type,
 
-        stt_text: data.stt_text,
-        audio_url: data.audio_url,
-        duration_sec: data.duration_sec,
-        time_to_first_response_ms: data.time_to_first_response_ms,
+        stt_text: data.stt_text || '',
+        audio_url: data.audio_url || '',
+        duration_sec: data.duration_sec || 0,
+        time_to_first_response_ms: data.time_to_first_response_ms || 0,
 
-        ai_score: data.ai_score,
+        ai_score: data.ai_score || 0,
         coach_score: data.coach_score || '',
         coach_feedback: data.coach_feedback || '',
         measurement_type: data.measurement_type || '',
@@ -197,7 +240,20 @@ export async function appendAttempt(data: AttemptRow) {
         question_play_count: data.question_play_count || 0,
         model_play_count: data.model_play_count || 0,
         translation_toggle_count: data.translation_toggle_count || 0,
-        answer_revealed: data.answer_revealed || false
+        answer_revealed: data.answer_revealed || false,
+
+        // v2.0 Fields
+        latency_ms: data.latency_ms || 0,
+        sentence_count: data.sentence_count || 0,
+        repetition_score: data.repetition_score || 0,
+        pattern_selected: data.pattern_selected || '',
+        structure_score: data.structure_score || 0,
+
+        // 2-Phase
+        status: data.status || 'finalized',
+        error_message: data.error_message || '',
+        created_at: data.created_at || new Date().toISOString(),
+        finalized_at: data.finalized_at || '',
     });
 }
 
@@ -226,7 +282,14 @@ export async function getAttempts(): Promise<AttemptRow[]> {
         question_play_count: Number(row.get('question_play_count') || 0),
         model_play_count: Number(row.get('model_play_count') || 0),
         translation_toggle_count: Number(row.get('translation_toggle_count') || 0),
-        answer_revealed: row.get('answer_revealed') === 'TRUE' || row.get('answer_revealed') === 'true' || row.get('answer_revealed') === true
+        answer_revealed: row.get('answer_revealed') === 'TRUE' || row.get('answer_revealed') === 'true' || row.get('answer_revealed') === true,
+
+        // v2.0 Fields
+        latency_ms: Number(row.get('latency_ms') || 0),
+        sentence_count: Number(row.get('sentence_count') || 0),
+        repetition_score: Number(row.get('repetition_score') || 0),
+        pattern_selected: row.get('pattern_selected') || '',
+        structure_score: Number(row.get('structure_score') || 0),
     })).reverse();
 }
 
@@ -239,9 +302,11 @@ export async function updateAttempt(attemptId: string, updates: Partial<AttemptR
         return false;
     }
 
-    if (updates.coach_score !== undefined) row.set('coach_score', updates.coach_score);
-    if (updates.coach_feedback !== undefined) row.set('coach_feedback', updates.coach_feedback);
-    if (updates.ai_score !== undefined) row.set('ai_score', updates.ai_score.toString());
+    for (const [key, value] of Object.entries(updates)) {
+        if (value !== undefined) {
+            row.set(key, value.toString());
+        }
+    }
 
     await row.save();
     return true;

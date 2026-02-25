@@ -3,6 +3,7 @@
 import React, { useState, useEffect, Suspense, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import ClozeDrillApp from '../../components/ClozeDrillApp';
+import OnPitchReactor from '../../components/OnPitchReactor';
 import styles from './PracticePage.module.css';
 import { useAuth } from '@/context/AuthContext';
 import { v4 as uuidv4 } from 'uuid';
@@ -156,6 +157,19 @@ function PracticeContent() {
     if (activeSituation && drillingState) {
         const currentItem = drillingState.items[drillingState.index];
         if (!currentItem) return <p>Error loading item</p>;
+
+        if (currentItem.category === 'onpitch') {
+            return (
+                <OnPitchReactor
+                    key={`${currentItem.id}-${drillingState.index}`}
+                    item={currentItem}
+                    onNext={handleNextDrill}
+                    onClose={() => setDrillingState(null)}
+                    sessionId={drillingState.sessionId}
+                    mode="practice"
+                />
+            );
+        }
 
         return (
             <ClozeDrillApp

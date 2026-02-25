@@ -19,6 +19,9 @@ interface TrainingItem {
     question_text?: string;
     question_audio_url?: string;
     question_audio_en?: string;
+    // v2.0 additional properties
+    max_latency_ms?: number;
+    expected_phrases?: string;
 }
 
 interface ClozeDrillProps {
@@ -137,6 +140,11 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
         formData.append('model_play_count', modelPlayCount.toString());
         formData.append('translation_toggle_count', translationToggleCount.toString());
         formData.append('answer_revealed', answerRevealed ? 'true' : 'false');
+
+        // v2.0 Fields
+        formData.append('category', item.category || '');
+        formData.append('max_latency_ms', item.max_latency_ms?.toString() || '1500');
+        formData.append('expected_phrases', item.expected_phrases || '');
 
         if (user) {
             formData.append('player_id', user.id);
