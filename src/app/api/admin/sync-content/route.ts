@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSheet } from '../../../../utils/sheets';
+import crypto from 'crypto';
 
 // Function to safely pad numbers
 const pad2 = (num: number) => num.toString().padStart(2, '0');
@@ -61,7 +62,18 @@ export async function POST(req: Request) {
                 // Auto ID generation rules
                 const lessonId = row.get('lesson_id_override') || `LSN_${playerId}_${lessonNo}`;
                 const situationId = row.get('situation_id_override') || `SIT_${lessonId}_${pad2(situationOrder)}`;
-                const itemId = row.get('item_id_override') || `ITM_${situationId}_${pad2(itemOrder)}`;
+
+                const targetEn = row.get('target_en') || '';
+
+                let itemId = row.get('item_id_override');
+                if (!itemId) {
+                    if (targetEn && targetEn.trim().length > 0) {
+                        const hash = crypto.createHash('sha256').update(targetEn.trim().toLowerCase()).digest('hex').substring(0, 6);
+                        itemId = `I_${hash}`;
+                    } else {
+                        itemId = `ITM_${situationId}_${pad2(itemOrder)}`;
+                    }
+                }
 
                 // Validation rules
                 let category = (row.get('category') || 'practice').toLowerCase();
@@ -80,7 +92,7 @@ export async function POST(req: Request) {
                         subtype: row.get('subtype') || '',
                         practice_type: practiceType,
                         prompt_kr: row.get('prompt_kr') || '',
-                        target_en: row.get('target_en') || '',
+                        target_en: targetEn,
                         cloze_target: row.get('cloze_target') || '',
                         expected_phrases: row.get('expected_phrases') || '',
                         max_latency_ms: maxLatency,
