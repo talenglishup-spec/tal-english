@@ -42,26 +42,52 @@ export async function POST(req: NextRequest) {
         const fileExt = file.name.split('.').pop();
         const fileName = `${player_id}/${attempt_id}.${fileExt}`;
 
-        // 1. 2-Phase Save (Pending state & Idempotency Check)
-        const attemptExists = await updateAttempt(attempt_id, { status: 'pending' });
-        if (!attemptExists) {
-            await appendAttempt({
-                attempt_id,
-                date_time: new Date().toISOString(),
-                player_id,
-                session_id,
-                session_mode,
-                item_id,
-                challenge_type,
-                status: 'pending',
-                created_at: new Date().toISOString()
-            } as any);
-        }
+        // 1. Parallelize Initial DB Save, Supabase Upload, and OpenAI Whisper Transcription
+        let attemptExists = false;
+        let stt_text = "";
+        let audio_url = "";
+        let uploadError: any = null;
 
-        // 2. Upload to Supabase
-        const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('tal-audio')
-            .upload(fileName, file);
+        await Promise.all([
+            // Task A: Initial DB pending state
+            (async () => {
+                attemptExists = await updateAttempt(attempt_id, { status: 'pending' });
+                if (!attemptExists) {
+                    await appendAttempt({
+                        attempt_id,
+                        date_time: new Date().toISOString(),
+                        player_id,
+                        session_id,
+                        session_mode,
+                        item_id,
+                        challenge_type,
+                        status: 'pending',
+                        created_at: new Date().toISOString()
+                    } as any);
+                }
+            })(),
+
+            // Task B: Upload to Supabase and get Public URL
+            (async () => {
+                const { error: sError } = await supabase.storage.from('tal-audio').upload(fileName, file);
+                if (sError) {
+                    uploadError = sError;
+                } else {
+                    const { data: pUrlData } = supabase.storage.from('tal-audio').getPublicUrl(fileName);
+                    audio_url = pUrlData.publicUrl;
+                }
+            })(),
+
+            // Task C: Transcribe with OpenAI Whisper
+            (async () => {
+                const transcription = await openai.audio.transcriptions.create({
+                    file: file,
+                    model: 'whisper-1',
+                    language: 'en',
+                });
+                stt_text = transcription.text;
+            })()
+        ]);
 
         if (uploadError) {
             console.error('Supabase Upload Error:', uploadError);
@@ -70,21 +96,6 @@ export async function POST(req: NextRequest) {
                 details: uploadError
             }, { status: 500 });
         }
-
-        const { data: publicUrlData } = supabase.storage
-            .from('tal-audio')
-            .getPublicUrl(fileName);
-
-        const audio_url = publicUrlData.publicUrl;
-
-        // 2. Transcribe with OpenAI Whisper
-        const transcription = await openai.audio.transcriptions.create({
-            file: file,
-            model: 'whisper-1',
-            language: 'en',
-        });
-
-        const stt_text = transcription.text;
 
         // 3. V2.0 Evaluation Logic
         let score = 0;

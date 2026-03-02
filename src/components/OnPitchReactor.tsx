@@ -171,7 +171,12 @@ export default function OnPitchReactor({ item, onNext, onClose, sessionId, mode 
                 )}
 
                 {/* Result Processing Indicator */}
-                {isSubmitting && <div className={styles.msgText}>상황 인지능력 및 속도 판정 중...</div>}
+                {isSubmitting && (
+                    <div className={styles.loadingContainer}>
+                        <div className={styles.spinner}></div>
+                        <div className={styles.loadingText}>빠르게 분석 중입니다...</div>
+                    </div>
+                )}
 
                 {/* Failed Submission State */}
                 {strobeState === 'failed' && (

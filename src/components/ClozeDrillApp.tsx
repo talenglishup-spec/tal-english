@@ -200,7 +200,15 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
             <div className={styles.content}>
 
                 {/* Status Indicator */}
-                {!result && <div className={styles.questionText}>{msg}</div>}
+                {!result && !isSubmitting && <div className={styles.questionText}>{msg}</div>}
+
+                {/* Loading State */}
+                {isSubmitting && (
+                    <div className={styles.loadingContainer}>
+                        <div className={styles.spinner}></div>
+                        <div className={styles.loadingText}>빠르게 분석 중입니다...</div>
+                    </div>
+                )}
 
                 {/* Result Area Top - Removed AI Score for both Practice and Challenge modes as requested */}
 
