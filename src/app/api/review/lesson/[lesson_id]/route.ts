@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getLessons, getLessonSituations, getAllSituationItems, getItems, getAttempts, TrainingItem, SituationItemRow } from '@/utils/sheets';
 
-export async function GET(request: Request, { params }: { params: { lesson_id: string } }) {
+export async function GET(request: Request, { params }: { params: Promise<{ lesson_id: string }> }) {
     try {
         const { searchParams } = new URL(request.url);
         const playerId = searchParams.get('playerId');
@@ -10,7 +10,7 @@ export async function GET(request: Request, { params }: { params: { lesson_id: s
             return NextResponse.json({ success: false, error: 'playerId is required' }, { status: 400 });
         }
 
-        const lessonId = params.lesson_id;
+        const { lesson_id: lessonId } = await params;
 
         // 1. Fetch Lesson Meta
         const lessons = await getLessons(playerId);

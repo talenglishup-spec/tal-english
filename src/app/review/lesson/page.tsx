@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
-import styles from './LessonReview.module.css';
+import styles from '../LessonReview.module.css';
 
 interface LessonProgress {
     lesson_id: string;

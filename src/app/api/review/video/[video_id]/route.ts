@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getSheet, ReviewVideoRow, InterviewQuestionRow } from '@/utils/sheets';
 
-export async function GET(req: Request, { params }: { params: { video_id: string } }) {
+export async function GET(req: Request, { params }: { params: Promise<{ video_id: string }> }) {
     try {
-        const videoId = params.video_id;
+        const { video_id: videoId } = await params;
 
         const videoSheet = await getSheet('ReviewVideos');
         const qSheet = await getSheet('InterviewQuestions');

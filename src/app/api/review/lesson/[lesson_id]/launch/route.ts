@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getLessonSituations, getAllSituationItems, getItems, getAttempts, TrainingItem } from '@/utils/sheets';
 
-export async function POST(request: Request, { params }: { params: { lesson_id: string } }) {
+export async function POST(request: Request, { params }: { params: Promise<{ lesson_id: string }> }) {
     try {
         const body = await request.json();
         const { playerId, mode } = body; // mode = 'rerun' | 'weak_only' | 'quick5'
@@ -10,7 +10,7 @@ export async function POST(request: Request, { params }: { params: { lesson_id: 
             return NextResponse.json({ success: false, error: 'playerId and mode are required' }, { status: 400 });
         }
 
-        const lessonId = params.lesson_id;
+        const { lesson_id: lessonId } = await params;
 
         // 1. Fetch Items for this lesson
         const situations = await getLessonSituations(lessonId);
