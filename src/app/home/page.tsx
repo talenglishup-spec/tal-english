@@ -68,6 +68,31 @@ export default function HomePage() {
             </header>
 
             <div className={styles.content}>
+                {/* 1. Daily 10-Min Routine Banner */}
+                <section className={styles.dailySection} style={{ marginBottom: '1rem' }}>
+                    <div className={styles.dailyCard} onClick={() => router.push('/daily')}>
+                        <div className={styles.dailyIcon}>⏱️</div>
+                        <div className={styles.dailyInfo}>
+                            <h2>Daily 10-Min Routine</h2>
+                            <p>Complete 4 steps and build your streak!</p>
+                        </div>
+                        <div className={styles.dailyArrow}>→</div>
+                    </div>
+                </section>
+
+                {/* 1.5. Review by Lesson Banner */}
+                <section className={styles.dailySection}>
+                    <div className={styles.dailyCard} onClick={() => router.push('/review/lesson')} style={{ background: 'linear-gradient(135deg, #0f172a 0%, #334155 100%)' }}>
+                        <div className={styles.dailyIcon}>📚</div>
+                        <div className={styles.dailyInfo}>
+                            <h2>Review by Lesson</h2>
+                            <p>Revisit past lessons and tackle weak points.</p>
+                        </div>
+                        <div className={styles.dailyArrow}>→</div>
+                    </div>
+                </section>
+
+                {/* 2. Today's Focus */}
                 <section className={styles.focusSection}>
                     <h3 className={styles.sectionTitle}>Today's Focus</h3>
 

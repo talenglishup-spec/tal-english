@@ -169,3 +169,65 @@
     color: #64748b;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
+
+/* Daily Routine overrides for Home Page */
+.dailySection {
+    margin-bottom: 2rem;
+}
+
+.dailyCard {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+    color: white;
+    padding: 1.5rem;
+    border-radius: 20px;
+    cursor: pointer;
+    box-shadow: 0 10px 25px -5px rgba(49, 46, 129, 0.4);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dailyCard:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 15px 30px -5px rgba(49, 46, 129, 0.5);
+}
+
+.dailyCard:active {
+    transform: scale(0.98);
+}
+
+.dailyIcon {
+    font-size: 2.2rem;
+    margin-right: 1.2rem;
+    background: rgba(255, 255, 255, 0.1);
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.dailyInfo {
+    flex: 1;
+}
+
+.dailyInfo h2 {
+    margin: 0 0 0.3rem 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.dailyInfo p {
+    margin: 0;
+    font-size: 0.85rem;
+    opacity: 0.8;
+}
+
+.dailyArrow {
+    font-size: 1.5rem;
+    font-weight: 700;
+    opacity: 0.7;
+    margin-left: 1rem;
+}

@@ -1,0 +1,347 @@
+.page {
+    min-height: 100vh;
+    background-color: var(--background, #0f172a);
+    color: var(--foreground, #ffffff);
+    display: flex;
+    flex-direction: column;
+    font-family: -apple-system, sans-serif;
+}
+
+.header {
+    background-color: var(--card-bg, #1e293b);
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border-color, #334155);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--primary, #6366f1);
+}
+
+.homeBtn {
+    background: transparent;
+    border: 1px solid var(--border-color, #334155);
+    color: var(--foreground);
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.homeBtn:hover {
+    background-color: var(--hover-bg, #334155);
+}
+
+.content {
+    flex: 1;
+    padding: 2rem 1.5rem;
+    max-width: 800px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.filters {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+}
+
+.filterBtn {
+    background: var(--card-bg, #1e293b);
+    border: 1px solid var(--border-color, #334155);
+    color: var(--text-secondary, #94a3b8);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.activeFilter {
+    background: var(--primary, #6366f1);
+    color: white;
+    border-color: var(--primary, #6366f1);
+}
+
+.lessonList {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.lessonCard {
+    background: var(--card-bg, #1e293b);
+    border-radius: 16px;
+    padding: 1.5rem;
+    border: 1px solid var(--border-color, #334155);
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    position: relative;
+    overflow: hidden;
+}
+
+.lessonCard:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    border-color: var(--primary, #6366f1);
+}
+
+.cardHeader {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+
+.lessonTypeBadge {
+    font-size: 0.7rem;
+    font-weight: 800;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: rgba(99, 102, 241, 0.2);
+    color: #818cf8;
+}
+
+.lessonDate {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.lessonCard h3 {
+    margin: 0 0 1rem 0;
+    font-size: 1.25rem;
+}
+
+.progressWrap {
+    margin-bottom: 1rem;
+}
+
+.progressMeta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: #cbd5e1;
+    margin-bottom: 0.3rem;
+}
+
+.progressBar {
+    height: 8px;
+    background: #334155;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progressFill {
+    height: 100%;
+    background: linear-gradient(90deg, #3b82f6, #6366f1);
+    transition: width 0.3s ease;
+}
+
+.lastAttempt {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+/* Detail Page */
+.backBtn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 1.1rem;
+    cursor: pointer;
+}
+
+.lessonOverview {
+    background: var(--card-bg);
+    padding: 2rem;
+    border-radius: 16px;
+    margin-bottom: 2rem;
+    border: 1px solid var(--border-color);
+}
+
+.lessonOverview h2 {
+    margin: 0.5rem 0 1.5rem 0;
+    font-size: 1.8rem;
+}
+
+.actionPanel {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.actionBtn {
+    flex: 1;
+    min-width: 150px;
+    padding: 1rem;
+    border-radius: 12px;
+    border: none;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    background: #334155;
+    color: white;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.1s, filter 0.2s;
+}
+
+.actionBtn:hover {
+    filter: brightness(1.2);
+    transform: translateY(-2px);
+}
+
+.actionBtnWeak {
+    background: #b91c1c;
+}
+
+.actionBtnQuick {
+    background: #d97706;
+}
+
+.actionBtn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+    filter: none;
+}
+
+.situationsList h3 {
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+}
+
+.situationCard {
+    background: var(--card-bg);
+    border-radius: 12px;
+    margin-bottom: 1rem;
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+}
+
+.sitHeader {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.sitHeader h4 {
+    margin: 0;
+    font-size: 1.05rem;
+}
+
+.sitCount {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.itemsBlock {
+    padding: 0.5rem 1rem;
+}
+
+.itemRow {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    padding: 0.8rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.itemRow:last-child {
+    border-bottom: none;
+}
+
+.itemTags {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+    min-width: 50px;
+}
+
+.statusDot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.dot_finalized {
+    background: #22c55e;
+    box-shadow: 0 0 5px rgba(34, 197, 94, 0.5);
+}
+
+.dot_failed {
+    background: #ef4444;
+}
+
+.dot_unattempted {
+    background: #64748b;
+}
+
+.itemCat {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    color: #94a3b8;
+}
+
+.itemText {
+    flex: 1;
+    font-size: 0.95rem;
+}
+
+.itemEn {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin-top: 0.2rem;
+}
+
+.weakBadge {
+    background: rgba(239, 68, 68, 0.2);
+    color: #fca5a5;
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 700;
+}
+
+/* Drill Header (Full screen mode component) */
+.drillHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background-color: var(--card-bg);
+    border-bottom: 1px solid var(--border-color);
+    z-index: 100;
+}
+
+.drillBadge {
+    background-color: var(--primary);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.drillProgress {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}

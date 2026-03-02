@@ -117,6 +117,73 @@ export type PlayerRow = {
     created_at?: string;
 };
 
+// --- v2.0+ CMS & Review Types ---
+export type ContentIntakeRow = {
+    active: boolean;
+    player_id: string;
+    lesson_no: number;
+    lesson_title_ko: string;
+    situation_order: number;
+    situation_title_ko: string;
+    item_order: number;
+    category: string;
+    subtype: string;
+    practice_type: string;
+    prompt_kr: string;
+    target_en: string;
+    cloze_target: string;
+    expected_phrases: string;
+    max_latency_ms: number;
+    pattern_type: string;
+    hint_guide: string;
+    notes: string;
+    item_id_override?: string;
+    lesson_id_override?: string;
+    situation_id_override?: string;
+};
+
+export type ReviewVideoRow = {
+    active: boolean;
+    video_id: string;
+    title_ko: string;
+    title_en: string;
+    result_context: 'win' | 'loss' | 'draw' | 'any' | string;
+    team_context: string;
+    speaker_role: string;
+    level: string;
+    primary_tags: string;
+    youtube_url: string;
+    source_notes: string;
+    linked_question_ids: string;
+};
+
+export type InterviewQuestionRow = {
+    active: boolean;
+    question_id: string;
+    question_en: string;
+    question_ko: string;
+    pattern_type: 'emotional' | 'positive' | 'tactical' | 'defensive' | string;
+    primary_tags: string;
+    difficulty: string;
+    followup_group_id: string;
+};
+
+export type InterviewFollowupRow = {
+    active: boolean;
+    followup_id: string;
+    followup_group_id: string;
+    followup_en: string;
+    followup_ko: string;
+    difficulty: string;
+};
+
+export type SyncLogRow = {
+    timestamp: string;
+    status: 'success' | 'warning' | 'error';
+    message: string;
+    details: string;
+};
+
 // --- Helper ---
 export async function getSheet(title: string) {
     try {
@@ -400,9 +467,13 @@ export type LessonRow = {
     lesson_id: string;
     player_id: string;
     lesson_no: number;
+    lesson_title_ko: string;
+    lesson_type: string;
     lesson_date: string;
     note: string;
     active: boolean;
+    visibility_order?: number;
+    created_at?: string;
 };
 
 export type LessonItemRow = {
@@ -450,9 +521,13 @@ export async function getLessons(playerId?: string): Promise<LessonRow[]> {
                 lesson_id: row.get('lesson_id'),
                 player_id: row.get('player_id'),
                 lesson_no: Number(row.get('lesson_no')),
-                lesson_date: row.get('lesson_date'),
+                lesson_title_ko: row.get('lesson_title_ko') || '',
+                lesson_type: row.get('lesson_type') || 'mixed',
+                lesson_date: row.get('lesson_date') || '',
                 note: row.get('note') || '',
-                active: isActive
+                active: isActive,
+                visibility_order: Number(row.get('visibility_order') || 0),
+                created_at: row.get('created_at') || ''
             };
         })
         .filter(lesson => {

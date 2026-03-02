@@ -2,84 +2,93 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'next/navigation';
 import styles from './ReviewPage.module.css';
 
-// Types
-interface Lesson {
-    lesson_id: string;
-    lesson_no: number;
-    lesson_date: string;
-    note: string;
-}
-
-interface TrainingItem {
-    id: string;
-    situation: string;
-    category: string;
+interface ReviewVideo {
+    video_id: string;
+    title_ko: string;
+    title_en: string;
+    result_context: string;
+    team_context: string;
+    speaker_role: string;
     level: string;
-    target_en: string;
+    primary_tags: string;
+    youtube_url: string;
+    source_notes: string;
+    linked_question_ids: string;
 }
 
-interface Material {
-    material_id: string;
-    title: string;
-    url: string;
-    type: 'video' | 'doc' | 'link';
-    note: string;
+interface InterviewQuestion {
+    question_id: string;
+    question_en: string;
+    question_ko: string;
+    pattern_type: string;
+    primary_tags: string;
+    difficulty: string;
+    followup_group_id: string;
 }
 
 export default function ReviewPage() {
     const { user, logout } = useAuth();
+    const router = useRouter();
 
-    // Lessons State
-    const [lessons, setLessons] = useState<Lesson[]>([]);
-    const [loadingLessons, setLoadingLessons] = useState(true);
-    const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
+    const [videos, setVideos] = useState<ReviewVideo[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    // Detail State
-    const [lessonMaterials, setLessonMaterials] = useState<Material[]>([]);
-    const [loadingDetails, setLoadingDetails] = useState(false);
+    // Filters
+    const [filterResult, setFilterResult] = useState<string>('');
+    const [filterRole, setFilterRole] = useState<string>('');
 
-    // Fetch Lessons on mount
+    // Detail View
+    const [selectedVideo, setSelectedVideo] = useState<ReviewVideo | null>(null);
+    const [recommendedQuestions, setRecommendedQuestions] = useState<InterviewQuestion[]>([]);
+    const [loadingDetail, setLoadingDetail] = useState(false);
+    const [includeFollowup, setIncludeFollowup] = useState(true);
+
+    // Fetch initial list
     useEffect(() => {
         if (!user) return;
+        fetchVideos();
+    }, [user, filterResult, filterRole]);
 
-        async function fetchLessons() {
-            try {
-                const res = await fetch(`/api/train/lessons?playerId=${user?.id}`);
-                const data = await res.json();
-                if (data.lessons) setLessons(data.lessons);
-            } catch (e) {
-                console.error(e);
-            } finally {
-                setLoadingLessons(false);
+    const fetchVideos = async () => {
+        setLoading(true);
+        try {
+            const params = new URLSearchParams();
+            if (filterResult) params.set('result_context', filterResult);
+            if (filterRole) params.set('speaker_role', filterRole);
+
+            const res = await fetch(`/api/review/videos?${params.toString()}`);
+            const data = await res.json();
+            if (data.success) {
+                setVideos(data.data);
             }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setLoading(false);
         }
-        fetchLessons();
-    }, [user]);
+    };
 
-    // Fetch Details when a lesson is selected
-    useEffect(() => {
-        if (!selectedLesson) return;
+    const handleSelectVideo = async (videoId: string) => {
+        const video = videos.find(v => v.video_id === videoId);
+        if (video) setSelectedVideo(video);
 
-        async function fetchDetails() {
-            setLoadingDetails(true);
-            try {
-                // Fetch Materials (Content)
-                const materialsRes = await fetch(`/api/train/materials?lessonId=${selectedLesson?.lesson_id}`);
-                const materialsData = await materialsRes.json();
-                if (materialsData.materials) setLessonMaterials(materialsData.materials);
-
-            } catch (e) {
-                console.error(e);
-            } finally {
-                setLoadingDetails(false);
+        setLoadingDetail(true);
+        try {
+            const res = await fetch(`/api/review/video/${videoId}`);
+            const data = await res.json();
+            if (data.success) {
+                setRecommendedQuestions(data.data.recommended_questions || []);
             }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setLoadingDetail(false);
         }
-        fetchDetails();
-    }, [selectedLesson]);
+    };
 
-    // Helper to get YouTube ID
     const getYouTubeId = (url: string) => {
         try {
             const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
@@ -88,104 +97,188 @@ export default function ReviewPage() {
         } catch (e) { return null; }
     };
 
-    const handleBack = () => {
-        setSelectedLesson(null);
-        setLessonMaterials([]);
+    const handleSessionLaunch = async (mode: 'assemble' | 'challenge') => {
+        if (!selectedVideo) return;
+
+        try {
+            const qIds = recommendedQuestions.map(q => q.question_id);
+            if (qIds.length === 0) {
+                alert("No questions available for this video.");
+                return;
+            }
+
+            const res = await fetch('/api/session/launch', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    mode,
+                    source: 'review_video',
+                    video_id: selectedVideo.video_id,
+                    question_ids: qIds,
+                    include_followup: includeFollowup
+                })
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                router.push(data.data.redirect_url);
+            } else {
+                alert("Failed to launch session");
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Error launching session");
+        }
     };
 
     if (!user) return null;
 
     return (
         <div className={styles.page}>
-            <header className={styles.header} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div className={styles.title}>수업리뷰</div>
-                <button onClick={logout} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' }}>
-                    🚪
-                </button>
+            <header className={styles.header}>
+                <div className={styles.title}>Review Library</div>
+                <button onClick={() => router.push('/home')} className={styles.homeBtn}>🏠 Home</button>
             </header>
 
             <div className={styles.content}>
-                {selectedLesson ? (
-                    // Detail View
+                {selectedVideo ? (
+                    // ---------------- DETAIL VIEW ----------------
                     <div className={styles.detailView}>
-                        <button onClick={handleBack} className={styles.backBtn}>← 목록으로 돌아가기</button>
+                        <button onClick={() => setSelectedVideo(null)} className={styles.backBtn}>← Back to Library</button>
 
-                        <div className={styles.lessonInfo}>
-                            <h2>Lesson {selectedLesson.lesson_no} – {selectedLesson.note}</h2>
-                            <p className={styles.date}>{selectedLesson.lesson_date}</p>
+                        <div className={styles.videoHeader}>
+                            <h2>{selectedVideo.title_ko}</h2>
+                            <p className={styles.subtitle}>{selectedVideo.title_en}</p>
+                            <div className={styles.tags}>
+                                {selectedVideo.result_context && <span className={styles.tagContext}>{selectedVideo.result_context.toUpperCase()}</span>}
+                                {selectedVideo.speaker_role && <span className={styles.tagRole}>{selectedVideo.speaker_role}</span>}
+                            </div>
                         </div>
 
-                        {loadingDetails ? (
-                            <p>Loading details...</p>
-                        ) : (
-                            <>
-                                {/* SECTION 1: MATERIALS */}
-                                {lessonMaterials.length > 0 ? (
-                                    <div className={styles.section}>
-                                        <h3>Class Materials</h3>
-                                        <div className={styles.grid}>
-                                            {lessonMaterials.map(m => (
-                                                <div key={m.material_id} className={styles.materialCard}>
-                                                    <div className={styles.materialHeader}>
-                                                        <span className={styles.materialType}>{m.type.toUpperCase()}</span>
-                                                        <span className={styles.materialDate}>{m.title}</span>
-                                                    </div>
-                                                    <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '4px' }}>
-                                                        Lesson {selectedLesson.lesson_no}
-                                                    </div>
-                                                    {m.note && <p className={styles.materialNote}>{m.note}</p>}
-
-                                                    {m.type === 'video' && getYouTubeId(m.url) ? (
-                                                        <div className={styles.videoWrapper}>
-                                                            <iframe
-                                                                width="100%" height="200"
-                                                                src={`https://www.youtube.com/embed/${getYouTubeId(m.url)}`}
-                                                                frameBorder="0"
-                                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                                                allowFullScreen
-                                                            />
-                                                        </div>
-                                                    ) : (
-                                                        <a href={m.url} target="_blank" className={styles.linkBtn}>
-                                                            Open Link ↗
-                                                        </a>
-                                                    )}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <p style={{ textAlign: 'center', color: '#999', marginTop: '2rem' }}>
-                                        수업 자료가 없습니다.
-                                    </p>
-                                )}
-                            </>
+                        {getYouTubeId(selectedVideo.youtube_url) && (
+                            <div className={styles.videoPlayer}>
+                                <iframe
+                                    width="100%" height="100%"
+                                    src={`https://www.youtube.com/embed/${getYouTubeId(selectedVideo.youtube_url)}`}
+                                    frameBorder="0"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                    allowFullScreen
+                                />
+                            </div>
                         )}
+
+                        <div className={styles.analysisSection}>
+                            <h3>Recommended Questions</h3>
+
+                            {loadingDetail ? (
+                                <p className={styles.loadingText}>Loading questions...</p>
+                            ) : (
+                                <div className={styles.questionList}>
+                                    {recommendedQuestions.length > 0 ? recommendedQuestions.map((q, idx) => (
+                                        <div key={q.question_id} className={styles.questionItem}>
+                                            <div className={styles.qNum}>Q{idx + 1}</div>
+                                            <div className={styles.qText}>
+                                                <div className={styles.qEn}>{q.question_en}</div>
+                                                <div className={styles.qKo}>{q.question_ko}</div>
+                                                <div className={styles.qMeta}>
+                                                    <span className={styles.qType}>{q.pattern_type}</span>
+                                                    {q.followup_group_id && <span className={styles.qFollow}>+ Follow-up</span>}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )) : (
+                                        <p className={styles.loadingText}>No recommended questions found.</p>
+                                    )}
+                                </div>
+                            )}
+
+                            <div className={styles.actionPanel}>
+                                <div className={styles.actionHeader}>
+                                    <h3>Start Training</h3>
+                                    <label className={styles.toggleWrap}>
+                                        <input
+                                            type="checkbox"
+                                            checked={includeFollowup}
+                                            onChange={(e) => setIncludeFollowup(e.target.checked)}
+                                        />
+                                        Include Follow-up Questions
+                                    </label>
+                                </div>
+
+                                <div className={styles.btnGroup}>
+                                    <button
+                                        className={styles.assembleBtn}
+                                        onClick={() => handleSessionLaunch('assemble')}
+                                        disabled={recommendedQuestions.length === 0}
+                                    >
+                                        <div className={styles.btnIcon}>🧩</div>
+                                        <div className={styles.btnText}>
+                                            <strong>Assemble</strong>
+                                            <span>Practice structure (2 Qs)</span>
+                                        </div>
+                                    </button>
+
+                                    <button
+                                        className={styles.challengeBtn}
+                                        onClick={() => handleSessionLaunch('challenge')}
+                                        disabled={recommendedQuestions.length === 0}
+                                    >
+                                        <div className={styles.btnIcon}>🔥</div>
+                                        <div className={styles.btnText}>
+                                            <strong>Challenge</strong>
+                                            <span>Random Q + Pressure</span>
+                                        </div>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 ) : (
-                    // List View
-                    <div className={styles.lessonList}>
-                        {loadingLessons ? (
-                            <p style={{ textAlign: 'center', color: '#666' }}>수업 목록을 불러오는 중...</p>
-                        ) : lessons.length > 0 ? (
-                            lessons.map(lesson => (
-                                <div
-                                    key={lesson.lesson_id}
-                                    className={styles.lessonRow}
-                                    onClick={() => setSelectedLesson(lesson)}
-                                >
-                                    <div className={styles.lessonIcon}>📅</div>
-                                    <div className={styles.lessonDetails}>
-                                        <h3>Lesson {lesson.lesson_no} – {lesson.note}</h3>
-                                        <p>{lesson.lesson_date}</p>
-                                    </div>
-                                    <div className={styles.arrow}>›</div>
-                                </div>
-                            ))
+                    // ---------------- LIST VIEW ----------------
+                    <div className={styles.listView}>
+                        <div className={styles.filters}>
+                            <div className={styles.filterGroup}>
+                                <label>Result:</label>
+                                <select value={filterResult} onChange={(e) => setFilterResult(e.target.value)}>
+                                    <option value="">All Contexts</option>
+                                    <option value="win">Win / Victory</option>
+                                    <option value="loss">Loss / Defeat</option>
+                                    <option value="draw">Draw</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        {loading ? (
+                            <div className={styles.loadingText}>Loading library...</div>
+                        ) : videos.length > 0 ? (
+                            <div className={styles.videoGrid}>
+                                {videos.map(v => {
+                                    const ytid = getYouTubeId(v.youtube_url);
+                                    const thumbUrl = ytid ? `https://img.youtube.com/vi/${ytid}/mqdefault.jpg` : '/placeholder-video.jpg';
+
+                                    return (
+                                        <div key={v.video_id} className={styles.videoCard} onClick={() => handleSelectVideo(v.video_id)}>
+                                            <div className={styles.thumbWrap}>
+                                                <img src={thumbUrl} alt="Thumbnail" className={styles.thumbnail} />
+                                                <div className={styles.playIcon}>▶</div>
+                                                {v.result_context && (
+                                                    <div className={`${styles.badge} ${styles['badge_' + v.result_context.toLowerCase()]}`}>
+                                                        {v.result_context.toUpperCase()}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className={styles.cardInfo}>
+                                                <h4>{v.title_ko}</h4>
+                                                <p className={styles.cardExt}>{v.team_context} • {v.speaker_role}</p>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         ) : (
-                            <p style={{ textAlign: 'center', color: '#999', marginTop: '2rem' }}>
-                                완료된 수업이 없습니다.
-                            </p>
+                            <div className={styles.emptyState}>
+                                <p>No videos found matching filters.</p>
+                            </div>
                         )}
                     </div>
                 )}
