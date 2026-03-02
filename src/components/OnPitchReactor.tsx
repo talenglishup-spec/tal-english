@@ -164,7 +164,7 @@ export default function OnPitchReactor({ item, onNext, onClose, sessionId, mode 
                         <AudioRecorder
                             onRecordingComplete={handleRecordingComplete}
                             silenceDuration={500}
-                            autoStop={true}
+                            autoStop={false}
                             minVolume={4}
                         />
                     </div>

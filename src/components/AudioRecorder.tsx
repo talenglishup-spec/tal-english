@@ -15,7 +15,7 @@ export default function AudioRecorder({
     onRecordingComplete,
     disabled,
     silenceDuration = 1500,
-    autoStop = true,
+    autoStop = false, // Changed to false to disable hands-free by default
     minVolume = 5
 }: AudioRecorderProps) {
     const [isRecording, setIsRecording] = useState(false);
@@ -218,21 +218,16 @@ export default function AudioRecorder({
                     </button>
                 ) : (
                     <button
-                        className={`${styles.recordButton} ${styles.stopButton}`}
+                        className={`${styles.recordButton} ${styles.completeButton}`}
                         onClick={stopRecording}
                     >
-                        <div className={styles.stopIconWrapper}>
-                            <div className={styles.stopIcon} />
-                            <div className={styles.stopIcon} />
-                        </div>
+                        <span>✅ Complete</span>
                     </button>
                 )}
             </div>
             {isRecording && (
                 <div className={styles.statusText}>
-                    {isListeningForSilence
-                        ? (speechDetectedRef.current ? "Listening..." : "Speak now...")
-                        : "Recording..."}
+                    Recording... Click Complete when finished.
                 </div>
             )}
         </div>

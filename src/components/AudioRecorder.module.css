@@ -47,6 +47,24 @@
     color: #0070f3;
 }
 
+.completeButton {
+    width: 100%;
+    max-width: 250px;
+    height: 60px;
+    border-radius: 30px;
+    background-color: #10b981;
+    /* Default to a positive green for complete */
+    flex-direction: row;
+    gap: 8px;
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.completeButton span {
+    font-size: 1.1rem;
+    margin-top: 0;
+}
+
 .stopIcon {
     width: 6px;
     height: 20px;
