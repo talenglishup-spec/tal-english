@@ -42,6 +42,24 @@ export default function AdminPage() {
         fetchAttempts();
     }, []);
 
+    const handleSync = async () => {
+        setLoading(true);
+        try {
+            const res = await fetch('/api/admin/sync-content', { method: 'POST' });
+            const data = await res.json();
+            if (res.ok) {
+                alert('Sync complete: ' + data.message);
+            } else {
+                alert('Sync failed: ' + data.error);
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Error triggering sync.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handlePlayAudio = (url: string) => {
         const audio = new Audio(url);
         audio.play();
@@ -96,7 +114,12 @@ export default function AdminPage() {
         <div className={styles.page}>
             <header className={styles.header}>
                 <h1 className={styles.title}>Admin Dashboard</h1>
-                <button onClick={fetchAttempts} className={styles.refreshButton}>Refresh</button>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                    <button onClick={handleSync} className={styles.refreshButton} style={{ background: '#6366f1' }}>
+                        🔄 Sync Content Intakes
+                    </button>
+                    <button onClick={fetchAttempts} className={styles.refreshButton}>Refresh</button>
+                </div>
             </header>
 
             <div className={styles.tableContainer}>
