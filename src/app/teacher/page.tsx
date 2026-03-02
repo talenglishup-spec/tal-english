@@ -143,6 +143,24 @@ export default function TeacherPage() {
         }
     }, [user]);
 
+    const handleSync = async () => {
+        setLoadingData(true);
+        try {
+            const res = await fetch('/api/admin/sync-content', { method: 'POST' });
+            const data = await res.json();
+            if (res.ok) {
+                alert('Sync complete: ' + data.message);
+            } else {
+                alert('Sync failed: ' + data.error);
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Error triggering sync.');
+        } finally {
+            setLoadingData(false);
+        }
+    };
+
     if (isLoading || loadingData) return <div style={{ padding: '2rem' }}>Loading Dashboard...</div>;
 
     return (
@@ -152,15 +170,26 @@ export default function TeacherPage() {
                     <h1>Teacher Dashboard 👨‍🏫</h1>
                     <p>Overview of all players</p>
                 </div>
-                <button
-                    onClick={() => router.push('/teacher/materials')}
-                    style={{
-                        background: '#0070f3', color: 'white', padding: '10px 16px', borderRadius: '8px',
-                        border: 'none', cursor: 'pointer', fontWeight: 'bold'
-                    }}
-                >
-                    📚 Manage Materials
-                </button>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                    <button
+                        onClick={handleSync}
+                        style={{
+                            background: '#6366f1', color: 'white', padding: '10px 16px', borderRadius: '8px',
+                            border: 'none', cursor: 'pointer', fontWeight: 'bold'
+                        }}
+                    >
+                        🔄 Sync Content Intakes
+                    </button>
+                    <button
+                        onClick={() => router.push('/teacher/materials')}
+                        style={{
+                            background: '#0070f3', color: 'white', padding: '10px 16px', borderRadius: '8px',
+                            border: 'none', cursor: 'pointer', fontWeight: 'bold'
+                        }}
+                    >
+                        📚 Manage Materials
+                    </button>
+                </div>
             </header>
 
             <div className={styles.kpiDashboard}>
