@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/utils/supabase';
+import { supabase, supabaseAdmin } from '@/utils/supabase';
 import { openai } from '@/utils/openai';
 import { calculateScore } from '@/utils/score';
 import { appendAttempt, updateAttempt } from '@/utils/sheets';
@@ -7,6 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(req: NextRequest) {
     let attempt_id = '';
+    let session_mode: 'challenge' | 'practice' | 'daily' = 'practice';
     try {
         const formData = await req.formData();
         const file = formData.get('file') as File;
@@ -16,7 +17,7 @@ export async function POST(req: NextRequest) {
         const player_id = formData.get('player_id') as string || 'anon';
         const player_name = formData.get('player_name') as string || 'Anonymous';
         const session_id = formData.get('session_id') as string || uuidv4();
-        const session_mode = (formData.get('session_mode') as 'challenge' | 'practice') || 'practice';
+        session_mode = (formData.get('session_mode') as 'challenge' | 'practice' | 'daily') || 'practice';
         const challenge_type = formData.get('challenge_type') as any || 'FOOTBALL_KO_TO_EN';
 
         const measurement_type = formData.get('measurement_type') as string || 'baseline';
@@ -38,62 +39,103 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
         }
 
-        attempt_id = formData.get('attempt_id') as string || uuidv4();
+        attempt_id = formData.get('attempt_id') as string || '';
+        const isNewAttempt = !attempt_id;
+        if (isNewAttempt) {
+            attempt_id = uuidv4();
+        }
+
         const fileExt = file.name.split('.').pop();
         const fileName = `${player_id}/${attempt_id}.${fileExt}`;
 
         // 1. Parallelize Initial DB Save, Supabase Upload, and OpenAI Whisper Transcription
-        let attemptExists = false;
         let stt_text = "";
         let audio_url = "";
         let uploadError: any = null;
+        let transcriptionError: any = null;
+        let dbError: any = null;
 
         await Promise.all([
-            // Task A: Initial DB pending state
+            // Task A: Initial DB pending state (Only if not Daily)
             (async () => {
-                attemptExists = await updateAttempt(attempt_id, { status: 'pending' });
-                if (!attemptExists) {
-                    await appendAttempt({
-                        attempt_id,
-                        date_time: new Date().toISOString(),
-                        player_id,
-                        session_id,
-                        session_mode,
-                        item_id,
-                        challenge_type,
-                        status: 'pending',
-                        created_at: new Date().toISOString()
-                    } as any);
+                if (session_mode !== 'daily') {
+                    try {
+                        let attemptExists = false;
+                        if (!isNewAttempt) {
+                            attemptExists = await updateAttempt(attempt_id, { status: 'pending' });
+                        }
+                        
+                        if (!attemptExists) {
+                            await appendAttempt({
+                                attempt_id,
+                                date_time: new Date().toISOString(),
+                                player_id,
+                                session_id,
+                                session_mode,
+                                item_id,
+                                challenge_type,
+                                status: 'pending',
+                                created_at: new Date().toISOString()
+                            } as any);
+                        }
+                    } catch (e: any) {
+                        console.error('Initial DB task failed:', e);
+                        dbError = e;
+                    }
                 }
             })(),
 
-            // Task B: Upload to Supabase and get Public URL
+            // Task B: Upload to Supabase and get Public URL - USE supabaseAdmin to avoid RLS issues
             (async () => {
-                const { error: sError } = await supabase.storage.from('tal-audio').upload(fileName, file);
-                if (sError) {
-                    uploadError = sError;
-                } else {
-                    const { data: pUrlData } = supabase.storage.from('tal-audio').getPublicUrl(fileName);
-                    audio_url = pUrlData.publicUrl;
+                try {
+                    const { error: sError } = await supabaseAdmin.storage.from('tal-audio').upload(fileName, file);
+                    if (sError) {
+                        uploadError = sError;
+                    } else {
+                        const { data: pUrlData } = supabaseAdmin.storage.from('tal-audio').getPublicUrl(fileName);
+                        audio_url = pUrlData.publicUrl;
+                    }
+                } catch (e: any) {
+                    uploadError = e;
                 }
             })(),
 
             // Task C: Transcribe with OpenAI Whisper
             (async () => {
-                const transcription = await openai.audio.transcriptions.create({
-                    file: file,
-                    model: 'whisper-1',
-                    language: 'en',
-                });
-                stt_text = transcription.text;
+                try {
+                    const transcription = await openai.audio.transcriptions.create({
+                        file: file,
+                        model: 'whisper-1',
+                        language: 'en',
+                    });
+                    stt_text = transcription.text;
+                } catch (e: any) {
+                    console.error('Whisper Transcription Error:', e);
+                    transcriptionError = e;
+                }
             })()
         ]);
+
+        if (dbError) {
+            console.error('Initial DB Error:', dbError);
+            return NextResponse.json({
+                error: `Initial DB Entry Failed: ${dbError.message || 'Unknown database error'}`,
+                step: 'db_initial'
+            }, { status: 500 });
+        }
 
         if (uploadError) {
             console.error('Supabase Upload Error:', uploadError);
             return NextResponse.json({
-                error: `Supabase Upload Failed: ${uploadError.message}`,
-                details: uploadError
+                error: `Supabase Upload Failed: ${uploadError.message || uploadError.error_description || 'Unknown error'}`,
+                step: 'supabase_upload'
+            }, { status: 500 });
+        }
+
+        if (transcriptionError) {
+            return NextResponse.json({
+                error: `Transcription Failed: ${transcriptionError.message || 'Unknown OpenAI error'}`,
+                step: 'whisper_transcription'
             }, { status: 500 });
         }
 
@@ -116,7 +158,8 @@ export async function POST(req: NextRequest) {
                 ? expected_phrases.split(',').map(p => p.trim().toLowerCase())
                 : [target_en.toLowerCase()];
 
-            const normalizedStt = stt_text.replace(/[^\w\s]/gi, '').toLowerCase();
+            const safeSttText = stt_text || '';
+            const normalizedStt = safeSttText.replace(/[^\w\s]/gi, '').toLowerCase();
 
             // Check if any expected phrase is in the STT
             const matchedPhrase = validPhrases.find(p => {
@@ -140,7 +183,8 @@ export async function POST(req: NextRequest) {
 
         } else if (category === 'interview') {
             // Priority: Structure and Sentence Count
-            const sentences = stt_text.split(/[.!?]+/).filter(s => s.trim().length > 3);
+            const safeSttText = stt_text || '';
+            const sentences = safeSttText.split(/[.!?]+/).filter(s => s.trim().length > 3);
             sentence_count = sentences.length;
 
             if (sentence_count >= 2) {
@@ -182,7 +226,9 @@ export async function POST(req: NextRequest) {
             finalized_at: new Date().toISOString()
         };
 
-        await updateAttempt(attempt_id, finalizedData as any);
+        if (session_mode !== 'daily') {
+            await updateAttempt(attempt_id, finalizedData as any);
+        }
 
         return NextResponse.json({
             success: true,
@@ -207,7 +253,7 @@ export async function POST(req: NextRequest) {
             errorMessage = 'Supabase Storage Error (Check Bucket Name/Public Access)';
         }
 
-        if (attempt_id) {
+        if (attempt_id && session_mode !== 'daily') {
             try {
                 await updateAttempt(attempt_id, {
                     status: 'failed',

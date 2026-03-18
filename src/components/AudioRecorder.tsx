@@ -55,13 +55,23 @@ export default function AudioRecorder({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    const isUnmountingRef = useRef(false);
+
     // Cleanup Logic
     useEffect(() => {
         return () => {
+            isUnmountingRef.current = true;
             stopVAD();
-            if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-                mediaRecorderRef.current.stream.getTracks().forEach(t => t.stop());
-                mediaRecorderRef.current.stop();
+            if (mediaRecorderRef.current) {
+                // Prevent onstop from triggering onRecordingComplete during unmount
+                mediaRecorderRef.current.onstop = null;
+                if (mediaRecorderRef.current.state !== 'inactive') {
+                    mediaRecorderRef.current.stop();
+                }
+                const stream = mediaRecorderRef.current.stream;
+                if (stream) {
+                    stream.getTracks().forEach(t => t.stop());
+                }
             }
         };
     }, []);
@@ -214,20 +224,20 @@ export default function AudioRecorder({
                         disabled={disabled}
                     >
                         <div className={styles.micIcon}>🎤</div>
-                        <span>Tap to Record</span>
+                        <span>녹음 시작</span>
                     </button>
                 ) : (
                     <button
                         className={`${styles.recordButton} ${styles.completeButton}`}
                         onClick={stopRecording}
                     >
-                        <span>✅ Complete</span>
+                        <span>⏹️ 완료하기</span>
                     </button>
                 )}
             </div>
             {isRecording && (
                 <div className={styles.statusText}>
-                    Recording... Click Complete when finished.
+                    녹음 중입니다... ⏹️ 완료하기를 눌러주세요.
                 </div>
             )}
         </div>

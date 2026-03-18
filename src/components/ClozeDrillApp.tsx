@@ -28,7 +28,7 @@ interface ClozeDrillProps {
     item: TrainingItem;
     onNext: () => void;
     onClose: () => void;
-    mode?: 'practice' | 'challenge';
+    mode?: 'practice' | 'challenge' | 'daily';
     sessionId: string;
     subStep?: number; // 1, 2, or 3 for 3-STEP
 }
@@ -92,18 +92,42 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
     }, [item, mode, isEnType]);
 
     const playQuestionAudio = () => {
-        const audioUrl = item.question_audio_en || item.question_audio_url;
+        let audioUrl = item.question_audio_en || item.question_audio_url;
         if (!audioUrl) return;
+
+        // Auto-fix Google Drive "view" links for direct audio playing
+        if (audioUrl.includes('drive.google.com/file/d/')) {
+            const match = audioUrl.match(/file\/d\/([a-zA-Z0-9_-]+)/);
+            if (match && match[1]) {
+                audioUrl = `https://docs.google.com/uc?export=download&id=${match[1]}`;
+            }
+        }
+
         setQuestionPlayCount(prev => prev + 1);
         const audio = new Audio(audioUrl);
-        audio.play().catch(console.error);
+        audio.play().catch(err => {
+            console.error("Audio Play Error:", err);
+            alert("오디오 재생 실패: " + err.message + "\nURL을 확인해 주세요.");
+        });
     };
 
     const playModelAudio = () => {
-        if (!item.model_audio_url) return;
+        let audioUrl = item.model_audio_url;
+        if (!audioUrl) return;
+
+        if (audioUrl.includes('drive.google.com/file/d/')) {
+            const match = audioUrl.match(/file\/d\/([a-zA-Z0-9_-]+)/);
+            if (match && match[1]) {
+                audioUrl = `https://docs.google.com/uc?export=download&id=${match[1]}`;
+            }
+        }
+
         setModelPlayCount(prev => prev + 1);
-        const audio = new Audio(item.model_audio_url);
-        audio.play().catch(console.error);
+        const audio = new Audio(audioUrl);
+        audio.play().catch(err => {
+            console.error(err);
+            alert("모범 발음 재생 실패: " + err.message + "\nURL을 확인해 주세요.");
+        });
     };
 
     const toggleTranslation = () => {
@@ -165,11 +189,11 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
                     setMsg('Done!');
                 }
             } else {
-                setMsg('Error submitting.');
+                setMsg(data.error || data.message || ('Error submitting. Details: ' + JSON.stringify(data)));
             }
-        } catch (e) {
+        } catch (e: any) {
             console.error(e);
-            setMsg('Network Error');
+            setMsg('Network Error: ' + (e.message || 'Check connection'));
         } finally {
             setIsSubmitting(false);
         }
@@ -183,19 +207,21 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
 
     return (
         <div className={styles.container}>
-            <div className={styles.topBar}>
-                <button type="button" className={styles.closeBtn} onClick={onClose}>✕</button>
-                <div className={styles.progressBar}>
-                    <div className={`${styles.progressDot} ${styles.active}`}></div>
-                    <div className={styles.progressDot}></div>
-                    <div className={styles.progressDot}></div>
-                    <div className={styles.progressDot}></div>
-                    <div className={styles.progressDot}></div>
+            {mode !== 'daily' && (
+                <div className={styles.topBar}>
+                    <button type="button" className={styles.closeBtn} onClick={onClose}>✕</button>
+                    <div className={styles.progressBar}>
+                        <div className={`${styles.progressDot} ${styles.active}`}></div>
+                        <div className={styles.progressDot}></div>
+                        <div className={styles.progressDot}></div>
+                        <div className={styles.progressDot}></div>
+                        <div className={styles.progressDot}></div>
+                    </div>
+                    <div className={styles.modeIndicator}>
+                        {mode === 'practice' ? '연습' : '챌린지'}
+                    </div>
                 </div>
-                <div className={styles.modeIndicator}>
-                    {mode === 'practice' ? '연습' : '챌린지'}
-                </div>
-            </div>
+            )}
 
             <div className={styles.content}>
 
@@ -377,7 +403,7 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
                                 다음으로 넘어가기
                             </button>
 
-                            {mode === 'practice' && (
+                            {mode !== 'challenge' && (
                                 <div className={styles.retryBtnContainer} style={{ marginTop: '15px' }}>
                                     <button type="button" onClick={(e) => { e.preventDefault(); handleRetry(); }} className={styles.iconBtn} aria-label="다시 말하기">
                                         ↻
