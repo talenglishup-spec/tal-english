@@ -28,6 +28,7 @@ interface Item {
     pAvgDuration?: number;
 
     healthStatus?: 'Too Hard' | 'Too Easy' | 'Unclear' | 'Normal' | 'No Data';
+    playerInfo?: string;
 }
 
 interface Attempt {
@@ -59,7 +60,7 @@ export default function ItemsManagerPage() {
         setLoading(true);
         try {
             const [itemsRes, attemptsRes] = await Promise.all([
-                fetch('/api/train/items'),
+                fetch('/api/train/items?includeContext=true'),
                 fetch('/api/teacher/attempts')
             ]);
 
@@ -274,6 +275,7 @@ export default function ItemsManagerPage() {
                         <thead>
                             <tr>
                                 <th>ID</th>
+                                <th>Player</th>
                                 <th>Category</th>
                                 <th>Prompt (KR)</th>
                                 <th style={{ width: '20%' }}>Target (EN)</th>
@@ -287,6 +289,7 @@ export default function ItemsManagerPage() {
                             {filteredItems.map(item => (
                                 <tr key={item.id}>
                                     <td style={{ fontSize: '0.8rem' }}>{item.id}</td>
+                                    <td style={{ fontSize: '0.8rem', color: '#666' }}>{item.playerInfo || '-'}</td>
                                     <td style={{ fontSize: '0.85rem' }}><strong>{item.category}</strong><br />{item.sub_category}</td>
                                     <td style={{ fontSize: '0.85rem' }}>{item.prompt_kr}</td>
                                     <td style={{ fontSize: '0.85rem', color: '#0070f3' }}>{item.target_en}</td>

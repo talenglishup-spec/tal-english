@@ -95,7 +95,13 @@ export type TrainingItem = {
     max_latency_ms?: number;
     trigger_audio_url?: string;
     difficulty_level?: string;
+    // 자동 매칭 질문 정보
+    matched_question_id?: string;
+    matched_question_text?: string;
+    match_confidence?: number;
+    review_needed?: boolean;
 };
+
 
 // --- New Type for Materials (Global Library) ---
 export type ClassMaterial = {
@@ -140,7 +146,14 @@ export type ContentIntakeRow = {
     item_id_override?: string;
     lesson_id_override?: string;
     situation_id_override?: string;
+    // 자동 매칭 질문 정보
+    matched_question_id?: string;
+    matched_question_text?: string;
+    match_confidence?: number;
+    review_needed?: boolean;
+    match_source?: string;
 };
+
 
 export type ReviewVideoRow = {
     active: boolean;
@@ -292,6 +305,11 @@ export async function getItems(): Promise<TrainingItem[]> {
                 max_latency_ms: Number(row.get('max_latency_ms')) || 1500,
                 trigger_audio_url: row.get('trigger_audio_url') || '',
                 difficulty_level: row.get('difficulty_level') || '1',
+                // 자동 매칭 질문 정보
+                matched_question_id: row.get('matched_question_id') || '',
+                matched_question_text: row.get('matched_question_text') || '',
+                match_confidence: Number(row.get('match_confidence') || 0),
+                review_needed: row.get('review_needed') === 'TRUE',
             };
         })
         .filter(item => item.active === true);
@@ -631,6 +649,27 @@ export async function getLessonSituations(lessonId: string): Promise<LessonSitua
         })
         .filter(s => s.active && s.lesson_id === lessonId)
         .sort((a, b) => a.situation_order - b.situation_order);
+}
+
+export async function getAllLessonSituations(): Promise<LessonSituationRow[]> {
+    const sheet = await getSheet('LessonSituations');
+    if (!sheet) return [];
+
+    const rows = await sheet.getRows();
+    return rows
+        .map(row => {
+            const activeVal = row.get('active');
+            const isActive = activeVal === 'TRUE' || activeVal === true || activeVal === 'true';
+            return {
+                situation_id: row.get('situation_id'),
+                lesson_id: row.get('lesson_id'),
+                situation_title_ko: row.get('situation_title_ko'),
+                situation_order: Number(row.get('situation_order') || 0),
+                active: isActive,
+                note: row.get('note') || ''
+            };
+        })
+        .filter(s => s.active);
 }
 
 export async function getAllSituationItems(): Promise<SituationItemRow[]> {

@@ -20,7 +20,13 @@ interface IntakeRow {
   max_latency_ms: number;
   notes: string;
   active: boolean;
+  // 자동 매칭 질문
+  suggested_question_id?: string;
+  suggested_question_text?: string;
+  match_confidence?: number;
+  review_needed?: boolean;
 }
+
 
 export default function SmartIntakePage() {
   const router = useRouter();
@@ -98,7 +104,7 @@ export default function SmartIntakePage() {
     if (previewRows.length === 0) return;
     
     setLoading(true);
-    setStatus({ type: 'pending', message: 'Appending rows to Google Sheets...' });
+    setStatus({ type: 'pending', message: '질문 자동 매칭 중... 잠시만 기다려 주세요.' });
 
     try {
       const res = await fetch('/api/admin/intake', {
@@ -108,14 +114,20 @@ export default function SmartIntakePage() {
       });
 
       if (!res.ok) throw new Error('Failed to append rows');
+      const data = await res.json();
 
-      setStatus({ type: 'success', message: 'Successfully added to ContentIntake!' });
+      const reviewMsg = data.review_needed > 0 ? ` (⚠️ ${data.review_needed}개 검토 필요)` : '';
+      setStatus({ 
+        type: 'success', 
+        message: `✅ ${data.count}개 저장 완료! 질문 ${data.matched}개 자동 매칭${reviewMsg}` 
+      });
     } catch (err: any) {
       setStatus({ type: 'error', message: err.message });
     } finally {
       setLoading(false);
     }
   };
+
 
   const handleSyncNow = async () => {
     setLoading(true);
@@ -218,9 +230,10 @@ export default function SmartIntakePage() {
                   <th className={styles.th}>Prompt (KR)</th>
                   <th className={styles.th}>Target (EN)</th>
                   <th className={styles.th}>Cloze / Key</th>
-                  <th className={styles.th}>Latency</th>
+                  <th className={styles.th}>Suggested Q</th>
                 </tr>
               </thead>
+
               <tbody>
                 {previewRows.map((row) => (
                   <tr key={row.item_order}>
@@ -234,8 +247,18 @@ export default function SmartIntakePage() {
                     <td className={styles.td}>{row.prompt_kr}</td>
                     <td className={styles.td} style={{ fontWeight: 600 }}>{row.target_en}</td>
                     <td className={styles.td} style={{ color: '#10b981' }}>{row.cloze_target}</td>
-                    <td className={styles.td}>{row.max_latency_ms}ms</td>
+                    <td className={styles.td} style={{ fontSize: '0.78rem' }}>
+                      {row.suggested_question_id ? (
+                        <span style={{ color: row.review_needed ? '#f59e0b' : '#818cf8' }}>
+                          {row.suggested_question_id}
+                          {row.review_needed && ' ⚠️'}
+                        </span>
+                      ) : (
+                        <span style={{ color: '#555' }}>—</span>
+                      )}
+                    </td>
                   </tr>
+
                 ))}
               </tbody>
             </table>

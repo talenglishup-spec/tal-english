@@ -89,3 +89,1255 @@ Caused by:
     1: Unable to open static sorted file referenced from 00001154.meta
     2: Unable to open static sorted file 00001146.sst
     3: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (57108) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\operation\mod.rs:156:17:
+Failed to restore task data (corrupted database or bug): Meta for <DiskFileSystem as FileSystem>::read (TaskId 221123))
+
+Caused by:
+    0: Looking up data for TaskId 221123 from database failed
+    1: Unable to open static sorted file referenced from 00001154.meta
+    2: Unable to open static sorted file 00001146.sst
+    3: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+-----
+[1m[31mFATAL[39m[0m: An unexpected Turbopack error occurred. A panic log has been written to C:\Users\sangha.lee\AppData\Local\Temp\next-panic-2de9a99b32dbdf6936c07147c80fe004.log.
+
+To help make Turbopack better, report this error by ]8;;https://github.com/vercel/next.js/discussions/new?category=turbopack-error-report&title=Turbopack%20Error%3A%20Failed%20to%20restore%20task%20data%20%28corrupted%20database%20or%20bug%29%3A%20Meta%20for%20%3CDiskFileSystem%20as%20FileSystem%3E%3A%3Aread%20%28TaskId%20221123%29%29&body=Turbopack%20version%3A%20%6023c46498%60%0ANext.js%20version%3A%20%600.0.0%60%0A%0AError%20message%3A%0A%60%60%60%0AFailed%20to%20restore%20task%20data%20%28corrupted%20database%20or%20bug%29%3A%20Meta%20for%20%3CDiskFileSystem%20as%20FileSystem%3E%3A%3Aread%20%28TaskId%20221123%29%29%0A%0ADebug%20info%3A%0A-%20Failed%20to%20restore%20task%20data%20%28corrupted%20database%20or%20bug%29%3A%20Meta%20for%20%3CDiskFileSystem%20as%20FileSystem%3E%3A%3Aread%20%28TaskId%20221123%29%29%0A%20%20%0A%20%20Caused%20by%3A%0A%20%20%20%20%20%200%3A%20Looking%20up%20data%20for%20TaskId%20221123%20from%20database%20failed%0A%20%20%20%20%20%201%3A%20Unable%20to%20open%20static%20sorted%20file%20referenced%20from%2000001154.meta%0A%20%20%20%20%20%202%3A%20Unable%20to%20open%20static%20sorted%20file%2000001146.sst%0A%20%20%20%20%20%203%3A%20%EC%A7%80%EC%A0%95%EB%90%9C%20%EA%B2%BD%EB%A1%9C%EB%A5%BC%20%EC%B0%BE%EC%9D%84%20%EC%88%98%20%EC%97%86%EC%8A%B5%EB%8B%88%EB%8B%A4.%20%28os%20error%203%29%0A%60%60%60&labels=Turbopack,Turbopack%20Panic%20Backtrace\clicking here.]8;;\
+-----
+
+
+thread 'tokio-runtime-worker' (59680) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 155475 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (59680) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 82762 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000036.meta
+    1: Unable to open static sorted file 00000030.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (23968) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 162151 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (22444) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 159860 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (22444) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 165624 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (22444) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 157368 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 157846 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 160061 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (22444) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 165548 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 165120 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 157770 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 165724 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00001151.meta
+    1: Unable to open static sorted file 00001149.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 165321 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 106421 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000036.meta
+    1: Unable to open static sorted file 00000030.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (59680) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 160060 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 165547 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 156511 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 165723 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 166025 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 165018 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 155479 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 155478 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 165219 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 165093 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 165697 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 53208 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000341.meta
+    1: Unable to open static sorted file 00000336.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 165722 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 162953 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 156635 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 156937 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (59680) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 165243 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (59680) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 157641 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 155627 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (59680) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 160938 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 165242 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 83537 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000036.meta
+    1: Unable to open static sorted file 00000030.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 161164 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 166047 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 158395 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 105687 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000036.meta
+    1: Unable to open static sorted file 00000030.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (59680) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 155500 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (59680) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 164662 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 83561 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000036.meta
+    1: Unable to open static sorted file 00000030.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 53381 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000521.meta
+    1: Unable to open static sorted file 00000515.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 165593 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (59680) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 157588 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (59680) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 160784 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (59680) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 159022 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (59680) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 160054 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (59680) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 164710 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (59680) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 166044 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (59680) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 157662 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 160053 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 105684 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000036.meta
+    1: Unable to open static sorted file 00000030.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 83584 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000036.meta
+    1: Unable to open static sorted file 00000030.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (22444) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 98739 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000036.meta
+    1: Unable to open static sorted file 00000030.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 160154 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (22444) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 157813 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (22444) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 162268 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (22444) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 158744 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (22444) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 15370 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000568.meta
+    1: Unable to open static sorted file 00000563.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (59680) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 165237 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (59680) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 157283 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (59680) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 157333 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (59680) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 162392 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (59680) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 165790 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (59680) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 165815 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (22444) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 166268 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (22444) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 155671 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (22444) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 156375 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (22444) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 165663 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (22444) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 164354 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (23968) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 161887 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (22444) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 162919 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (59680) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 105680 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000036.meta
+    1: Unable to open static sorted file 00000030.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (22444) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 165586 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (22444) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 162918 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (22444) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 51914 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000644.meta
+    1: Unable to open static sorted file 00000639.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (22444) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 160753 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (22444) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 162389 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (22444) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 165510 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (23968) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 167423 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (23968) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 157430 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (59680) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 164377 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (23968) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 42113 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00001151.meta
+    1: Unable to open static sorted file 00001149.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (59680) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 165736 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00001151.meta
+    1: Unable to open static sorted file 00001149.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (59680) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 157782 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (59680) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 165912 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (59680) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 165484 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (59680) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 158713 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 156976 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (22444) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 160802 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (22444) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 155969 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (59680) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 144458 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000521.meta
+    1: Unable to open static sorted file 00000515.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (22444) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 157907 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (22444) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 165307 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (22444) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 155918 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (11440) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 157680 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (22444) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 157101 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (11440) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 165659 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (11440) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 157705 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (59680) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 144458 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000521.meta
+    1: Unable to open static sorted file 00000515.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (22444) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 165986 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (23968) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 42113 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00001151.meta
+    1: Unable to open static sorted file 00001149.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (23968) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 160851 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (22444) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 16873 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000644.meta
+    1: Unable to open static sorted file 00000639.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (22444) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 158535 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 166036 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 157830 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 105122 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000036.meta
+    1: Unable to open static sorted file 00000030.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 157704 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 165230 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 159013 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 159063 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (22444) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 157452 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (23968) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 164424 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (23968) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 155891 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (23968) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 165783 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 155614 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (23968) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 155941 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (23968) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 156268 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 164373 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 160119 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 165002 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 157350 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 156167 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (23968) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 157375 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (22444) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 159993 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (22444) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 165354 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (23968) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 158306 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (43876) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 165404 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00001151.meta
+    1: Unable to open static sorted file 00001149.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (23968) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 157601 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (23968) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 164422 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (23968) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 157525 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (23968) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 159010 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (59680) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 165554 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (59680) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 156291 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (59680) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 165201 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (23968) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 156517 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (22444) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 163011 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (22444) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 155485 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (23968) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 157297 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (59680) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 159814 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (59680) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 166031 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (22444) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 165452 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (22444) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 160166 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (22444) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 156164 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (59680) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 164445 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (59680) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 157774 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (23968) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 160744 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (22444) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 165652 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (22444) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 157421 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000660.meta
+    1: Unable to open static sorted file 00000655.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (57108) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\mod.rs:963:22:
+Failed to lookup task type: Looking up task type for TaskId 82764 from database failed
+
+Caused by:
+    0: Unable to open static sorted file referenced from 00000036.meta
+    1: Unable to open static sorted file 00000030.sst
+    2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+⨯ Error [TurbopackInternalError]: Failed to lookup task type: Looking up task type for TaskId 82764 from database failed
+
+Debug info:
+- Failed to lookup task type: Looking up task type for TaskId 82764 from database failed
+  
+  Caused by:
+      0: Unable to open static sorted file referenced from 00000036.meta
+      1: Unable to open static sorted file 00000030.sst
+      2: 지정된 경로를 찾을 수 없습니다. (os error 3)
+    at <unknown> (TurbopackInternalError: Failed to lookup task type: Looking up task type for TaskId 82764 from database failed) {
+  location: 'C:\\actions-runner\\_work\\next.js\\next.js\\turbopack\\crates\\turbo-tasks-backend\\src\\backend\\mod.rs:963:22'
+}

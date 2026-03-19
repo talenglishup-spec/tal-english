@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getItems, getPlayerItemsWithContext } from '@/utils/sheets';
+import { getItems, getPlayerItemsWithContext, getLessons, getAllLessonSituations, getAllSituationItems } from '@/utils/sheets';
 
 // Prevent caching to ensure fresh data from Sheets
 export const dynamic = 'force-dynamic';
@@ -9,9 +9,8 @@ export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
         const playerId = searchParams.get('playerId');
-        // lessonId param is mainly for specific lesson view (Review Page maybe? but Review Page uses Materials now)
-        // Practice/Challenge uses playerId to get ALL assigned items.
         const lessonId = searchParams.get('lessonId');
+        const includeContext = searchParams.get('includeContext') === 'true';
 
         if (playerId) {
             // New Logic: Return Enriched Items with Lesson Context
@@ -29,6 +28,44 @@ export async function GET(request: Request) {
             items = structured.flatMap(content => content.items);
         }
 
+        // Add context mapping if requested (used by Admin Dashboard)
+        if (includeContext) {
+            const [lessons, situations, sitItems] = await Promise.all([
+                getLessons(),
+                getAllLessonSituations(),
+                getAllSituationItems()
+            ]);
+
+            const lessonMap = new Map();
+            lessons.forEach(l => lessonMap.set(l.lesson_id, l));
+
+            const sitMap = new Map();
+            situations.forEach(s => sitMap.set(s.situation_id, s.lesson_id));
+
+            // item_id -> string of "P001-L37 / P002-L39"
+            const itemContextMap: Record<string, string[]> = {};
+            sitItems.forEach(si => {
+                const lessonId = sitMap.get(si.situation_id);
+                if (lessonId) {
+                    const lesson = lessonMap.get(lessonId);
+                    if (lesson) {
+                        const label = `${lesson.player_id}-L${lesson.lesson_no}`;
+                        if (!itemContextMap[si.item_id]) {
+                            itemContextMap[si.item_id] = [];
+                        }
+                        if (!itemContextMap[si.item_id].includes(label)) {
+                            itemContextMap[si.item_id].push(label);
+                        }
+                    }
+                }
+            });
+
+            // Enrich items with playerInfo
+            items = items.map(item => ({
+                ...item,
+                playerInfo: (itemContextMap[item.id] || []).join(' / ')
+            }));
+        }
 
         return NextResponse.json({ items });
     } catch (error: any) {
