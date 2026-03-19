@@ -24,6 +24,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
+    gap: 24px;
 }
 
 .recordButton {
@@ -93,6 +94,38 @@
 
 .recording {
     animation: pulse 2s infinite;
+}
+
+.iconCircleBtn {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: none;
+    background-color: #e2e8f0;
+    color: #374151;
+    font-size: 1.4rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.iconCircleBtn:hover {
+    background-color: #cbd5e1;
+}
+
+.pauseBtn {
+    background-color: #0070f3;
+    color: white;
+    width: 64px;
+    height: 64px;
+    font-size: 1.6rem;
+}
+
+.pauseBtn:hover {
+    background-color: #005ec4;
 }
 
 @keyframes pulse {

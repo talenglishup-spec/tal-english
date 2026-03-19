@@ -381,7 +381,7 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
                     {/* Recorder Area */}
                     {!result && !isSubmitting && (
                         <AudioRecorder
-                            key={item.id}
+                            key={`${item.id}-${subStep}`}
                             onRecordingComplete={handleRecordingComplete}
                             silenceDuration={600}
                             autoStop={false}

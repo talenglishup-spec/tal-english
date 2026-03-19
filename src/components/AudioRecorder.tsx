@@ -15,15 +15,17 @@ export default function AudioRecorder({
     onRecordingComplete,
     disabled,
     silenceDuration = 1500,
-    autoStop = false, // Changed to false to disable hands-free by default
+    autoStop = false,
     minVolume = 5
 }: AudioRecorderProps) {
     const [isRecording, setIsRecording] = useState(false);
     const [recordingTime, setRecordingTime] = useState(0);
     const [isListeningForSilence, setIsListeningForSilence] = useState(false);
+    const [hasRecordedOnce, setHasRecordedOnce] = useState(false);
 
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const chunksRef = useRef<Blob[]>([]);
+    const lastBlobRef = useRef<{ blob: Blob; duration: number } | null>(null);
 
     // VAD Refs
     const audioContextRef = useRef<AudioContext | null>(null);
@@ -47,23 +49,11 @@ export default function AudioRecorder({
         };
     }, [isRecording]);
 
-    // Auto-start logic
-    useEffect(() => {
-        if (!disabled && !isRecording) {
-            startRecording();
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
-    const isUnmountingRef = useRef(false);
-
     // Cleanup Logic
     useEffect(() => {
         return () => {
-            isUnmountingRef.current = true;
             stopVAD();
             if (mediaRecorderRef.current) {
-                // Prevent onstop from triggering onRecordingComplete during unmount
                 mediaRecorderRef.current.onstop = null;
                 if (mediaRecorderRef.current.state !== 'inactive') {
                     mediaRecorderRef.current.stop();
@@ -116,7 +106,10 @@ export default function AudioRecorder({
 
             mediaRecorder.onstop = () => {
                 const blob = new Blob(chunksRef.current, { type: mimeType });
-                onRecordingComplete(blob, recordingTime);
+                const duration = recordingTime;
+                lastBlobRef.current = { blob, duration };
+                setHasRecordedOnce(true);
+                onRecordingComplete(blob, duration);
                 stopVAD();
                 stream.getTracks().forEach(track => track.stop());
             };
@@ -169,26 +162,20 @@ export default function AudioRecorder({
         const dataArray = new Uint8Array(bufferLength);
         analyserRef.current.getByteFrequencyData(dataArray);
 
-        // Calculate average volume or max
         let maxVol = 0;
         for (let i = 0; i < bufferLength; i++) {
             if (dataArray[i] > maxVol) maxVol = dataArray[i];
         }
 
         if (maxVol > minVolume) {
-            // Speech active
             speechDetectedRef.current = true;
-            // Reset silence timer
             if (silenceTimerRef.current) {
                 clearTimeout(silenceTimerRef.current);
                 silenceTimerRef.current = null;
             }
         } else {
-            // Silence
             if (speechDetectedRef.current && !silenceTimerRef.current) {
-                // Start silence timer
                 silenceTimerRef.current = setTimeout(() => {
-                    // Stop recording!
                     stopRecording();
                 }, silenceDuration);
             }
@@ -204,6 +191,13 @@ export default function AudioRecorder({
         }
     };
 
+    const handleRetry = () => {
+        // Restart recording from scratch
+        setHasRecordedOnce(false);
+        lastBlobRef.current = null;
+        startRecording();
+    };
+
     const formatTime = (seconds: number) => {
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
@@ -212,33 +206,43 @@ export default function AudioRecorder({
 
     return (
         <div className={styles.container}>
-            <div className={styles.timerLarge}>
-                {formatTime(recordingTime)}
-            </div>
+            {isRecording ? (
+                <>
+                    <div className={styles.timerLarge}>
+                        {formatTime(recordingTime)}
+                    </div>
+                    <div className={styles.controls}>
+                        {/* Retry (↺) button */}
+                        <button
+                            className={styles.iconCircleBtn}
+                            onClick={handleRetry}
+                            title="다시 처음부터 녹음"
+                        >
+                            ↺
+                        </button>
 
-            <div className={styles.controls}>
-                {!isRecording ? (
-                    <button
-                        className={styles.recordButton}
-                        onClick={startRecording}
-                        disabled={disabled}
-                    >
-                        <div className={styles.micIcon}>🎤</div>
-                        <span>Tap to Record</span>
-                    </button>
-                ) : (
-                    <button
-                        className={`${styles.recordButton} ${styles.completeButton}`}
-                        onClick={stopRecording}
-                    >
-                        <span>✅ Complete</span>
-                    </button>
-                )}
-            </div>
-            {isRecording && (
-                <div className={styles.statusText}>
-                    Recording... Click Complete when finished.
-                </div>
+                        {/* Pause / Complete (⏸) button */}
+                        <button
+                            className={`${styles.iconCircleBtn} ${styles.pauseBtn}`}
+                            onClick={stopRecording}
+                            title="녹음 완료"
+                        >
+                            ⏸
+                        </button>
+                    </div>
+                    <div className={styles.statusText}>
+                        Recording... Click ⏸ when finished.
+                    </div>
+                </>
+            ) : (
+                <button
+                    className={styles.recordButton}
+                    onClick={startRecording}
+                    disabled={disabled}
+                >
+                    <div className={styles.micIcon}>🎤</div>
+                    <span>Tap to Record</span>
+                </button>
             )}
         </div>
     );

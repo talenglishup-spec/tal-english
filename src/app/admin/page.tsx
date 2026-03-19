@@ -115,6 +115,13 @@ export default function AdminPage() {
             <header className={styles.header}>
                 <h1 className={styles.title}>Admin Dashboard</h1>
                 <div style={{ display: 'flex', gap: '1rem' }}>
+                    <button 
+                        onClick={() => window.location.href = '/admin/intake'} 
+                        className={styles.refreshButton} 
+                        style={{ background: '#10b981' }}
+                    >
+                        🚀 Smart Intake Tool
+                    </button>
                     <button onClick={handleSync} className={styles.refreshButton} style={{ background: '#6366f1' }}>
                         🔄 Sync Content Intakes
                     </button>

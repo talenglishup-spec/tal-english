@@ -137,10 +137,10 @@ export async function POST(req: NextRequest) {
         }
 
         if (transcriptionError) {
-            return NextResponse.json({
-                error: `Transcription Failed: ${transcriptionError.message || 'Unknown OpenAI error'}`,
-                step: 'whisper_transcription'
-            }, { status: 500 });
+            console.error('OpenAI Transcription failed:', transcriptionError.message);
+            // Non-blocking: continue with empty STT text so the session isn't completely blocked.
+            // The real fix is to update the OPENAI_API_KEY in Vercel environment variables.
+            stt_text = '';
         }
 
         // 3. V2.0 Evaluation Logic

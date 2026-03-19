@@ -172,6 +172,15 @@ export default function TeacherPage() {
                 </div>
                 <div style={{ display: 'flex', gap: '1rem' }}>
                     <button
+                        onClick={() => router.push('/admin/intake')}
+                        style={{
+                            background: '#10b981', color: 'white', padding: '10px 16px', borderRadius: '8px',
+                            border: 'none', cursor: 'pointer', fontWeight: 'bold'
+                        }}
+                    >
+                        🚀 Smart Intake Tool
+                    </button>
+                    <button
                         onClick={handleSync}
                         style={{
                             background: '#6366f1', color: 'white', padding: '10px 16px', borderRadius: '8px',
