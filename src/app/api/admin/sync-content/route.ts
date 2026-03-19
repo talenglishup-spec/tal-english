@@ -98,6 +98,10 @@ export async function POST(req: Request) {
                         max_latency_ms: maxLatency,
                         pattern_type: row.get('pattern_type') || '',
                         coach_note: row.get('hint_guide') || '',
+                        matched_question_id: row.get('matched_question_id') || '',
+                        matched_question_text: row.get('matched_question_text') || '',
+                        match_confidence: Number(row.get('match_confidence')) || 0,
+                        review_needed: row.get('review_needed') === 'TRUE' || row.get('review_needed') === 'true',
                         active: true
                     });
                 }
