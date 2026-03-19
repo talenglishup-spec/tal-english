@@ -1,0 +1,91 @@
+⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of C:\Users\sangha.lee\Desktop\TAL\package-lock.json as the root directory.
+ To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+ Detected additional lockfiles: 
+   * C:\Users\sangha.lee\Desktop\TAL\football-trainer\package-lock.json
+
+Whisper Transcription Error: Error: 401 Incorrect API key provided: sk-proj-********************************************************************************************************************************************************sgYA. You can find your API key at https://platform.openai.com/account/api-keys.
+    at async (src\app\api\process-attempt\route.ts:106:43)
+    at async POST (src\app\api\process-attempt\route.ts:58:9)
+  104 |             (async () => {
+  105 |                 try {
+> 106 |                     const transcription = await openai.audio.transcriptions.create({
+      |                                           ^
+  107 |                         file: file,
+  108 |                         model: 'whisper-1',
+  109 |                         language: 'en', {
+  status: 401,
+  headers: Headers {
+    date: 'Wed, 18 Mar 2026 14:39:22 GMT',
+    'content-type': 'text/plain',
+    'content-length': '410',
+    connection: 'keep-alive',
+    'x-openai-ide-error-code': 'invalid_api_key',
+    'x-openai-authorization-error': '401',
+    'x-error-json': 'ewogICJlcnJvciI6IHsKICAgICJtZXNzYWdlIjogIkluY29ycmVjdCBBUEkga2V5IHByb3ZpZGVkOiBzay1wcm9qLSoqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqc2dZQS4gWW91IGNhbiBmaW5kIHlvdXIgQVBJIGtleSBhdCBodHRwczovL3BsYXRmb3JtLm9wZW5haS5jb20vYWNjb3VudC9hcGkta2V5cy4iLAogICAgInR5cGUiOiAiaW52YWxpZF9yZXF1ZXN0X2Vycm9yIiwKICAgICJjb2RlIjogImludmFsaWRfYXBpX2tleSIsCiAgICAicGFyYW0iOiBudWxsCiAgfSwKICAic3RhdHVzIjogNDAxCn0=',
+    'x-datadog-trace-id': '785275087245488931',
+    'x-datadog-parent-id': '18049092754991703396',
+    'x-datadog-sampling-priority': '0',
+    'x-request-id': 'req_6c09ec129bb24898b00f4895d61fe092',
+    'x-openai-internal-caller': 'unknown_through_ide',
+    'x-openai-proxy-wasm': 'v0.1',
+    server: 'cloudflare',
+    'cf-cache-status': 'DYNAMIC',
+    'set-cookie': '__cf_bm=82DgbBPmxpc9P.3h1QR9u83m2fb6wsUktXnrut3Yi6Y-1773844762.0042505-1.0.1.1-fVdPSBITBT2.qqBKr154ALctoyu8ArLF1nZ1_Im9ib3.U7Wz059zlu_KeqBNdX6co0geru_tFpchMcZKGRK52AJjyYqRg4TFj6EJxE4pwHfNp77KRyFRq5_QYeqYqX9f; HttpOnly; Secure; Path=/; Domain=api.openai.com; Expires=Wed, 18 Mar 2026 15:09:22 GMT, _cfuvid=8Cy18q7UmKjLkdt_AWQMw.f2GOunSlmds3yL2XcIWAs-1773844762.0042505-1.0.1.1-TSK50DEN9zdSBc6ypgm4XFNU0U6hCtUr0Ez9WFXPimM; HttpOnly; SameSite=None; Secure; Path=/; Domain=api.openai.com',
+    'strict-transport-security': 'max-age=31536000; includeSubDomains; preload',
+    'x-content-type-options': 'nosniff',
+    'cf-ray': '9de4fc8289373d69-ICN',
+    'alt-svc': 'h3=":443"; ma=86400'
+  },
+  requestID: 'req_6c09ec129bb24898b00f4895d61fe092',
+  error: [Object],
+  code: 'invalid_api_key',
+  param: null,
+  type: 'invalid_request_error'
+}
+Supabase Upload Error: Error [StorageUnknownError]: fetch failed
+    at ignore-listed frames {
+  __isStorageError: true,
+  namespace: 'storage',
+  status: undefined,
+  statusCode: undefined,
+  originalError: TypeError: fetch failed
+      at ignore-listed frames {
+    [cause]: Error: getaddrinfo ENOTFOUND rbqhmfqekawrcbwyfmxn.supabase.co
+        at ignore-listed frames {
+      errno: -3008,
+      code: 'ENOTFOUND',
+      syscall: 'getaddrinfo',
+      hostname: 'rbqhmfqekawrcbwyfmxn.supabase.co'
+    }
+  }
+}
+
+thread 'tokio-runtime-worker' (55556) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\operation\mod.rs:156:17:
+Failed to restore task data (corrupted database or bug): Meta for read_matches (TaskId 347956))
+
+Caused by:
+    0: Looking up data for TaskId 347956 from database failed
+    1: Unable to open static sorted file referenced from 00001154.meta
+    2: Unable to open static sorted file 00001146.sst
+    3: 지정된 경로를 찾을 수 없습니다. (os error 3)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'tokio-runtime-worker' (55556) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\operation\mod.rs:156:17:
+Failed to restore task data (corrupted database or bug): Meta for read_matches (TaskId 347956))
+
+Caused by:
+    0: Looking up data for TaskId 347956 from database failed
+    1: Unable to open static sorted file referenced from 00001154.meta
+    2: Unable to open static sorted file 00001146.sst
+    3: 지정된 경로를 찾을 수 없습니다. (os error 3)
+
+thread 'tokio-runtime-worker' (55556) panicked at C:\actions-runner\_work\next.js\next.js\turbopack\crates\turbo-tasks-backend\src\backend\operation\mod.rs:156:17:
+Failed to restore task data (corrupted database or bug): Meta for read_matches (TaskId 347956))
+
+Caused by:
+    0: Looking up data for TaskId 347956 from database failed
+    1: Unable to open static sorted file referenced from 00001154.meta
+    2: Unable to open static sorted file 00001146.sst
+    3: 지정된 경로를 찾을 수 없습니다. (os error 3)

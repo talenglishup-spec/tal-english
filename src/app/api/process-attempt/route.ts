@@ -88,7 +88,11 @@ export async function POST(req: NextRequest) {
             // Task B: Upload to Supabase and get Public URL - USE supabaseAdmin to avoid RLS issues
             (async () => {
                 try {
-                    const { error: sError } = await supabaseAdmin.storage.from('tal-audio').upload(fileName, file);
+                    const arrayBuffer = await file.arrayBuffer();
+                    const { error: sError } = await supabaseAdmin.storage.from('tal-audio').upload(fileName, arrayBuffer, {
+                        contentType: file.type || 'audio/webm',
+                        upsert: true
+                    });
                     if (sError) {
                         uploadError = sError;
                     } else {

@@ -107,7 +107,6 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
         const audio = new Audio(audioUrl);
         audio.play().catch(err => {
             console.error("Audio Play Error:", err);
-            alert("오디오 재생 실패: " + err.message + "\nURL을 확인해 주세요.");
         });
     };
 
@@ -126,7 +125,6 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
         const audio = new Audio(audioUrl);
         audio.play().catch(err => {
             console.error(err);
-            alert("모범 발음 재생 실패: " + err.message + "\nURL을 확인해 주세요.");
         });
     };
 
@@ -189,7 +187,7 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
                     setMsg('Done!');
                 }
             } else {
-                setMsg(data.error || data.message || ('Error submitting. Details: ' + JSON.stringify(data)));
+                setMsg(data.error || 'Error submitting.');
             }
         } catch (e: any) {
             console.error(e);

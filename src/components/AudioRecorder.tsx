@@ -224,20 +224,20 @@ export default function AudioRecorder({
                         disabled={disabled}
                     >
                         <div className={styles.micIcon}>🎤</div>
-                        <span>녹음 시작</span>
+                        <span>Tap to Record</span>
                     </button>
                 ) : (
                     <button
                         className={`${styles.recordButton} ${styles.completeButton}`}
                         onClick={stopRecording}
                     >
-                        <span>⏹️ 완료하기</span>
+                        <span>✅ Complete</span>
                     </button>
                 )}
             </div>
             {isRecording && (
                 <div className={styles.statusText}>
-                    녹음 중입니다... ⏹️ 완료하기를 눌러주세요.
+                    Recording... Click Complete when finished.
                 </div>
             )}
         </div>
