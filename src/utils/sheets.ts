@@ -168,6 +168,20 @@ export type InterviewQuestionRow = {
     followup_group_id: string;
 };
 
+export type ClipRow = {
+    active: boolean;
+    clip_id: string;
+    title_ko: string;
+    title_en: string;
+    context_tag: string;
+    player_name: string;
+    start_sec: number;
+    end_sec: number;
+    video_url: string;
+    tags: string;
+    notes: string;
+};
+
 export type InterviewFollowupRow = {
     active: boolean;
     followup_id: string;
@@ -877,4 +891,24 @@ export async function updateItem(itemId: string, updates: Partial<TrainingItem>)
     if (updates.question_audio_source !== undefined) row.set('question_audio_source', updates.question_audio_source);
 
     await row.save();
+}
+
+export async function getClips() {
+    const sheet = await getSheet('Clips');
+    if (!sheet) return [];
+
+    const rows = await sheet.getRows();
+    return rows.map(r => ({
+        active: r.get('active') === 'TRUE' || r.get('active') === 'true' || r.get('active') === true,
+        clip_id: r.get('clip_id') || '',
+        title_ko: r.get('title_ko') || '',
+        title_en: r.get('title_en') || '',
+        context_tag: r.get('context_tag') || '',
+        player_name: r.get('player_name') || '',
+        start_sec: parseFloat(r.get('start_sec') || '0'),
+        end_sec: parseFloat(r.get('end_sec') || '0'),
+        video_url: r.get('video_url') || '',
+        tags: r.get('tags') || '',
+        notes: r.get('notes') || ''
+    })).filter(c => c.active);
 }
