@@ -249,6 +249,16 @@ export default function ItemsManagerPage() {
                         Gen Missing All TTS
                     </button>
                     <button
+                        onClick={() => {
+                            sessionStorage.removeItem('admin_secret');
+                            alert('Admin Secret이 초기화되었습니다. 다음 생성 시 다시 입력창이 뜹니다.');
+                        }}
+                        className={styles.refreshBtn}
+                        style={{ border: '1px solid #ddd', color: '#666' }}
+                    >
+                        Reset Secret
+                    </button>
+                    <button
                         onClick={() => fetchItems()}
                         className={styles.refreshBtn}
                         disabled={loading}
