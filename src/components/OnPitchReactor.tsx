@@ -66,13 +66,6 @@ export default function OnPitchReactor({ item, onNext, onClose, sessionId, mode 
             utterance.lang = 'en-US';
             utterance.rate = 1.0;
             window.speechSynthesis.speak(utterance);
-        } else if (item.prompt_kr) {
-            console.log(`[OnPitch] Playing KO Fallback: ${item.prompt_kr}`);
-            window.speechSynthesis.cancel();
-            const utterance = new SpeechSynthesisUtterance(item.prompt_kr);
-            utterance.lang = 'ko-KR';
-            utterance.rate = 1.1; // Slightly faster for On-Pitch urgency
-            window.speechSynthesis.speak(utterance);
         }
     }, [item]);
 
@@ -149,11 +142,6 @@ export default function OnPitchReactor({ item, onNext, onClose, sessionId, mode 
             utterance.lang = 'en-US';
             utterance.rate = 1.0;
             window.speechSynthesis.speak(utterance);
-        } else if (item.prompt_kr) {
-            const utterance = new SpeechSynthesisUtterance(item.prompt_kr);
-            utterance.lang = 'ko-KR';
-            utterance.rate = 1.1;
-            window.speechSynthesis.speak(utterance);
         }
     };
 
@@ -171,12 +159,6 @@ export default function OnPitchReactor({ item, onNext, onClose, sessionId, mode 
             const utterance = new SpeechSynthesisUtterance(englishQuestionText);
             utterance.lang = 'en-US';
             utterance.rate = 1.0;
-            window.speechSynthesis.speak(utterance);
-        } else if (item.prompt_kr) {
-            window.speechSynthesis.cancel();
-            const utterance = new SpeechSynthesisUtterance(item.prompt_kr);
-            utterance.lang = 'ko-KR';
-            utterance.rate = 1.1;
             window.speechSynthesis.speak(utterance);
         }
     };
@@ -198,7 +180,7 @@ export default function OnPitchReactor({ item, onNext, onClose, sessionId, mode 
             <main className={styles.mainCard}>
                 <div className={`${styles.strobeBox} ${styles[strobeState]}`}>
                     <div className={styles.promptKo}>{item.prompt_kr}</div>
-                    {!result && (
+                    {!result && (item.question_text || item.matched_question_text) && (
                         <button 
                             type="button" 
                             className={styles.replayBtn} 
