@@ -66,16 +66,43 @@
 
 .strobeBox {
     width: 100%;
-    padding: 2rem;
+    padding: 2.5rem 2rem;
     border-radius: 16px;
     background: #f8fafc;
     border: 2px dashed #cbd5e1;
     margin-bottom: 2rem;
     min-height: 150px;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     transition: all 0.2s ease;
+    position: relative;
+}
+
+.replayBtn {
+    margin-top: 1rem;
+    background: #e0f2fe;
+    color: #0369a1;
+    border: none;
+    padding: 0.4rem 1rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.replayBtn:hover {
+    background: #bae6fd;
+    transform: scale(1.05);
+}
+
+.replayBtn:active {
+    transform: scale(0.95);
 }
 
 /* State changes for StrobeBox */

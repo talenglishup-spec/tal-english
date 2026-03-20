@@ -141,6 +141,22 @@ export default function OnPitchReactor({ item, onNext, onClose, sessionId, mode 
         return () => window.speechSynthesis.cancel();
     }, []);
 
+    const playPromptAudio = () => {
+        const englishQuestionText = item.question_text || item.matched_question_text;
+        window.speechSynthesis.cancel();
+        if (englishQuestionText) {
+            const utterance = new SpeechSynthesisUtterance(englishQuestionText);
+            utterance.lang = 'en-US';
+            utterance.rate = 1.0;
+            window.speechSynthesis.speak(utterance);
+        } else if (item.prompt_kr) {
+            const utterance = new SpeechSynthesisUtterance(item.prompt_kr);
+            utterance.lang = 'ko-KR';
+            utterance.rate = 1.1;
+            window.speechSynthesis.speak(utterance);
+        }
+    };
+
     const handleRetry = () => {
         setStrobeState('active');
         setResult(null);
@@ -182,6 +198,16 @@ export default function OnPitchReactor({ item, onNext, onClose, sessionId, mode 
             <main className={styles.mainCard}>
                 <div className={`${styles.strobeBox} ${styles[strobeState]}`}>
                     <div className={styles.promptKo}>{item.prompt_kr}</div>
+                    {!result && (
+                        <button 
+                            type="button" 
+                            className={styles.replayBtn} 
+                            onClick={playPromptAudio}
+                            title="질문 다시 듣기"
+                        >
+                            🔊 다시 듣기
+                        </button>
+                    )}
                 </div>
 
                 <div className={styles.msgText}>{msg}</div>

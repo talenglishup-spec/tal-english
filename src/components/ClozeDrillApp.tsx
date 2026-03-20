@@ -148,6 +148,13 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
             utterance.rate = 0.95;
             window.speechSynthesis.speak(utterance);
             setQuestionPlayCount(prev => prev + 1);
+        } else if (item.prompt_kr) {
+            console.log("[ClozeDrill] Playing KO Fallback TTS:", item.prompt_kr);
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(item.prompt_kr);
+            utterance.lang = 'ko-KR';
+            utterance.rate = 1.0;
+            window.speechSynthesis.speak(utterance);
         }
     };
 
@@ -389,13 +396,11 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
                     </div>
                 )}
 
-                {isEnType && (
+                {!result && (
                     <div className={styles.promptControls}>
-                        {(item.question_audio_en || item.question_audio_url) && (
-                            <button className={styles.actionBtn} onClick={playQuestionAudio}>
-                                🔊 질문 듣기
-                            </button>
-                        )}
+                        <button className={styles.actionBtn} onClick={playQuestionAudio}>
+                            🔊 질문 듣기
+                        </button>
                     </div>
                 )}
 
