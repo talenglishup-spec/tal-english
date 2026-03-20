@@ -5,6 +5,15 @@ import { getItems, getPlayerItemsWithContext, getLessons, getAllLessonSituations
 export const dynamic = 'force-dynamic';
 export const fetchCache = 'force-no-store';
 
+function formatPlayerId(id: string): string {
+    if (!id) return '';
+    const upperId = id.toUpperCase();
+    if (upperId.startsWith('STU_')) {
+        return 'P' + upperId.substring(4);
+    }
+    return id; // Return as is for ADMIN_001 or other patterns
+}
+ 
 export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
@@ -42,29 +51,45 @@ export async function GET(request: Request) {
             const sitMap = new Map();
             situations.forEach(s => sitMap.set(s.situation_id, s.lesson_id));
 
-            // item_id -> string of "P001-L37 / P002-L39"
-            const itemContextMap: Record<string, string[]> = {};
+            // item_id -> list of { playerId, lessonNo, label }
+            const itemContextMap: Record<string, { pId: string; lNo: number; label: string }[]> = {};
             sitItems.forEach(si => {
                 const lessonId = sitMap.get(si.situation_id);
                 if (lessonId) {
                     const lesson = lessonMap.get(lessonId);
                     if (lesson) {
-                        const label = `${lesson.player_id}-L${lesson.lesson_no}`;
+                        const pId = formatPlayerId(lesson.player_id);
+                        const lNo = lesson.lesson_no;
+                        const label = `${pId}-L${lNo}`;
+                        
                         if (!itemContextMap[si.item_id]) {
                             itemContextMap[si.item_id] = [];
                         }
-                        if (!itemContextMap[si.item_id].includes(label)) {
-                            itemContextMap[si.item_id].push(label);
+                        
+                        // Avoid duplicates if same item in same lesson (unlikely but safe)
+                        if (!itemContextMap[si.item_id].some(m => m.label === label)) {
+                            itemContextMap[si.item_id].push({ pId, lNo, label });
                         }
                     }
                 }
             });
-
+ 
             // Enrich items with playerInfo
-            items = items.map(item => ({
-                ...item,
-                playerInfo: (itemContextMap[item.id] || []).join(' / ')
-            }));
+            items = items.map(item => {
+                const mappings = itemContextMap[item.id] || [];
+                // Sort by Player ID ASC, then Lesson No ASC
+                const sortedLabels = mappings
+                    .sort((a, b) => {
+                        if (a.pId !== b.pId) return a.pId.localeCompare(b.pId);
+                        return a.lNo - b.lNo;
+                    })
+                    .map(m => m.label);
+ 
+                return {
+                    ...item,
+                    playerInfo: sortedLabels.length > 0 ? sortedLabels.join(' / ') : '-'
+                };
+            });
         }
 
         return NextResponse.json({ items });

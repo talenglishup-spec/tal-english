@@ -31,7 +31,30 @@
 }
 
 .table th {
-    background-color: #f2f2f2;
+    background-color: #f8fafc;
+    color: #475569;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.025em;
+}
+
+.idCell {
+    font-family: monospace;
+    color: #64748b;
+    font-size: 0.75rem;
+    width: 60px;
+}
+
+.playerCell {
+    font-size: 0.75rem;
+    color: #0f172a;
+    font-weight: 500;
+    min-width: 140px;
+}
+
+.categoryCell {
+    font-size: 0.85rem;
 }
 
 .actionBtn {

@@ -14,6 +14,9 @@ interface TrainingItem {
     expected_phrases?: string;
     max_latency_ms?: number;
     challenge_type?: 'FOOTBALL_KO_TO_EN' | 'FOOTBALL_ENQ_TO_EN' | 'INTERVIEW_ENQ_TO_EN';
+    // v5 matching fields
+    question_text?: string;
+    matched_question_text?: string;
 }
 
 interface OnPitchReactorProps {
@@ -47,7 +50,24 @@ export default function OnPitchReactor({ item, onNext, onClose, sessionId, mode 
         setAttemptId(uuidv4());
         setSavedBlob(null);
 
-        if (item.prompt_kr) {
+        const englishQuestionText = item.question_text || item.matched_question_text;
+
+        console.log(`[OnPitch] Item: ${item.id}`, { 
+            englishQuestionText, 
+            matched: item.matched_question_text,
+            manual: item.question_text,
+            prompt_kr: item.prompt_kr 
+        });
+
+        if (englishQuestionText) {
+            console.log(`[OnPitch] Playing EN TTS: ${englishQuestionText}`);
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(englishQuestionText);
+            utterance.lang = 'en-US';
+            utterance.rate = 1.0;
+            window.speechSynthesis.speak(utterance);
+        } else if (item.prompt_kr) {
+            console.log(`[OnPitch] Playing KO Fallback: ${item.prompt_kr}`);
             window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(item.prompt_kr);
             utterance.lang = 'ko-KR';
@@ -128,7 +148,15 @@ export default function OnPitchReactor({ item, onNext, onClose, sessionId, mode 
         setSavedBlob(null);
         setMsg('다시 시도! 바로 말씀하세요!');
         initTime.current = Date.now();
-        if (item.prompt_kr) {
+        const englishQuestionText = item.question_text || item.matched_question_text;
+
+        if (englishQuestionText) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(englishQuestionText);
+            utterance.lang = 'en-US';
+            utterance.rate = 1.0;
+            window.speechSynthesis.speak(utterance);
+        } else if (item.prompt_kr) {
             window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(item.prompt_kr);
             utterance.lang = 'ko-KR';

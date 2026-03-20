@@ -27,6 +27,9 @@ interface TrainingItem {
     model_audio_url?: string; // v4
     practice_type?: '3-STEP' | '1-STEP-CLOZE' | '1-STEP-BLANK' | 'A' | 'B' | string;
     cloze_target?: string;
+    // v5
+    question_text?: string;
+    matched_question_text?: string;
 }
 
 interface SituationGroup {

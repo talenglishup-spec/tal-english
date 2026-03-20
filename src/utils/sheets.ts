@@ -211,10 +211,16 @@ export type SyncLogRow = {
     details: string;
 };
 
-// --- Helper ---
+// Cache for loadInfo to avoid quota limits
+let lastLoadTime = 0;
+const CACHE_TTL = 30000; // 30 seconds
+
 export async function getSheet(title: string) {
     try {
-        await doc.loadInfo();
+        if (Date.now() - lastLoadTime > CACHE_TTL) {
+            await doc.loadInfo();
+            lastLoadTime = Date.now();
+        }
         const sheet = doc.sheetsByTitle[title];
         return sheet;
     } catch (e) {

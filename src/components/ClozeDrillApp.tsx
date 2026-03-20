@@ -22,6 +22,8 @@ interface TrainingItem {
     // v2.0 additional properties
     max_latency_ms?: number;
     expected_phrases?: string;
+    // v5 matching fields
+    matched_question_text?: string;
 }
 
 interface ClozeDrillProps {
@@ -74,11 +76,34 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
             }
         }
 
-        // Auto-play question if it exists and is EN type
-        if (isEnType && (item.question_audio_en || item.question_audio_url)) {
-            playQuestionAudio();
-        } else if (!isEnType && item.prompt_kr) {
-            // Auto-play Korean TTS for KO_TO_EN
+        // Auto-play logic: Manual Question Audio -> Manual Question Text (EN TTS) -> Auto-Matched Question Text (EN TTS) -> Korean Fallback (KO TTS)
+        const englishQuestionText = item.question_text || item.matched_question_text;
+        const hasManualAudio = !!(item.question_audio_en || item.question_audio_url);
+
+        console.log(`[ClozeDrill] Item: ${item.id}`, { 
+            hasManualAudio, 
+            englishQuestionText, 
+            matched: item.matched_question_text,
+            manual: item.question_text,
+            prompt_kr: item.prompt_kr 
+        });
+
+        if (hasManualAudio || englishQuestionText) {
+            if (hasManualAudio) {
+                console.log("[ClozeDrill] Auto-playing manual audio");
+                playQuestionAudio();
+            } else if (englishQuestionText) {
+                console.log(`[ClozeDrill] Auto-playing EN TTS: ${englishQuestionText}`);
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(englishQuestionText);
+                utterance.lang = 'en-US';
+                utterance.rate = 0.95;
+                window.speechSynthesis.speak(utterance);
+                setQuestionPlayCount(prev => prev + 1);
+            }
+        } else if (item.prompt_kr) {
+            console.log(`[ClozeDrill] Auto-playing KO Fallback: ${item.prompt_kr}`);
+            // Fallback: Auto-play Korean TTS for KO_TO_EN
             window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(item.prompt_kr);
             utterance.lang = 'ko-KR';
@@ -93,21 +118,37 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
 
     const playQuestionAudio = () => {
         let audioUrl = item.question_audio_en || item.question_audio_url;
-        if (!audioUrl) return;
+        const englishQuestionText = item.question_text || item.matched_question_text;
 
-        // Auto-fix Google Drive "view" links for direct audio playing
-        if (audioUrl.includes('drive.google.com/file/d/')) {
-            const match = audioUrl.match(/file\/d\/([a-zA-Z0-9_-]+)/);
-            if (match && match[1]) {
-                audioUrl = `https://docs.google.com/uc?export=download&id=${match[1]}`;
+        if (audioUrl) {
+            // Auto-fix Google Drive "view" links for direct audio playing
+            if (audioUrl.includes('drive.google.com/file/d/')) {
+                const match = audioUrl.match(/file\/d\/([a-zA-Z0-9_-]+)/);
+                if (match && match[1]) {
+                    audioUrl = `https://docs.google.com/uc?export=download&id=${match[1]}`;
+                }
             }
-        }
 
-        setQuestionPlayCount(prev => prev + 1);
-        const audio = new Audio(audioUrl);
-        audio.play().catch(err => {
-            console.error("Audio Play Error:", err);
-        });
+            setQuestionPlayCount(prev => prev + 1);
+            const audio = new Audio(audioUrl);
+            audio.play().catch(err => {
+                console.error("Audio Play Error:", err);
+                if (englishQuestionText) {
+                    console.log("[ClozeDrill] Fallback to TTS after audio error");
+                    const utterance = new SpeechSynthesisUtterance(englishQuestionText);
+                    utterance.lang = 'en-US';
+                    window.speechSynthesis.speak(utterance);
+                }
+            });
+        } else if (englishQuestionText) {
+            console.log("[ClozeDrill] Playing EN TTS (no manual audio):", englishQuestionText);
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(englishQuestionText);
+            utterance.lang = 'en-US';
+            utterance.rate = 0.95;
+            window.speechSynthesis.speak(utterance);
+            setQuestionPlayCount(prev => prev + 1);
+        }
     };
 
     const playModelAudio = () => {

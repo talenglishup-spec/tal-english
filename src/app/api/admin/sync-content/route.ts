@@ -168,15 +168,29 @@ export async function POST(req: Request) {
                     // Update
                     let changed = false;
                     for (const [k, v] of Object.entries(record)) {
-                        if (existingRow.get(k) !== v?.toString()) {
-                            existingRow.set(k, v !== undefined ? v : '');
+                        const currentVal = existingRow.get(k);
+                        const newVal = (v !== undefined && v !== null) ? v.toString() : '';
+                        if (currentVal !== newVal) {
+                            existingRow.set(k, newVal);
                             changed = true;
                         }
                     }
-                    if (changed) await existingRow.save(); // Save only if dirty
+                    if (changed) {
+                        try {
+                            await existingRow.save(); // Save only if dirty
+                            await new Promise(r => setTimeout(r, 500)); // Respect quota
+                        } catch (e) {
+                            console.error(`Save failed for row ${key}`, e);
+                        }
+                    }
                 } else {
                     // Insert
-                    await sheet.addRow(record);
+                    try {
+                        await sheet.addRow(record);
+                        await new Promise(r => setTimeout(r, 500)); // Respect quota
+                    } catch (e) {
+                        console.error(`Add failed for row`, record, e);
+                    }
                 }
             }
         };

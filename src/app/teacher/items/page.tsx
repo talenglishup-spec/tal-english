@@ -288,8 +288,8 @@ export default function ItemsManagerPage() {
                         <tbody>
                             {filteredItems.map(item => (
                                 <tr key={item.id}>
-                                    <td style={{ fontSize: '0.8rem' }}>{item.id}</td>
-                                    <td style={{ fontSize: '0.8rem', color: '#666' }}>{item.playerInfo || '-'}</td>
+                                    <td className={styles.idCell}>{item.id}</td>
+                                    <td className={styles.playerCell}>{item.playerInfo || '-'}</td>
                                     <td style={{ fontSize: '0.85rem' }}><strong>{item.category}</strong><br />{item.sub_category}</td>
                                     <td style={{ fontSize: '0.85rem' }}>{item.prompt_kr}</td>
                                     <td style={{ fontSize: '0.85rem', color: '#0070f3' }}>{item.target_en}</td>
