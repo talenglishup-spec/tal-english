@@ -42,6 +42,7 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
     const [msg, setMsg] = useState('');
     const [isRecording, setIsRecording] = useState(false);
     const [recordingTime, setRecordingTime] = useState(0);
+    const [userAudioBlobUrl, setUserAudioBlobUrl] = useState<string | null>(null);
     const audioRecorderRef = useRef<any>(null);
 
     // Tracking variables
@@ -69,6 +70,7 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
         setAnswerRevealed(false);
         setShowTranslation(false);
         setRecordingTime(0);
+        setUserAudioBlobUrl(null);
 
         if (mode === 'practice') {
             setMsg('Practice: Ready to speak!');
@@ -182,13 +184,13 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
         setAnswerRevealed(true);
     };
 
-    const handleRecordingComplete = (blob: Blob, duration_sec: number) => {
-        handleSubmit(blob, duration_sec);
-    };
-
-    const handleSubmit = async (blob: Blob, duration_sec: number) => {
+    const handleRecordingComplete = async (blob: Blob, duration_sec: number) => {
         setIsSubmitting(true);
-        setMsg('Analyzing...');
+        setMsg('Processing...');
+        
+        // Save local blob URL for robust playback
+        const localUrl = URL.createObjectURL(blob);
+        setUserAudioBlobUrl(localUrl);
 
         const timeToFirstResponseMs = Date.now() - initTime.current;
 
@@ -347,16 +349,24 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
                     })()}
                 </div>
 
+                <div className={styles.smallKoreanTranslation}>
+                    {item.prompt_kr}
+                </div>
+
                 {(!result && !isSubmitting) && (
                     <>
-                        <button className={styles.actionBtn} onClick={() => setShowTranslation(!showTranslation)}>
-                            {showTranslation ? '질문 숨기기 ▲' : '질문 보기 ▼'}
-                        </button>
+                        {(item.question_text || item.matched_question_text) && (
+                            <>
+                                <button className={styles.actionBtn} onClick={() => setShowTranslation(!showTranslation)}>
+                                    {showTranslation ? '질문 숨기기 ▲' : '질문 보기 ▼'}
+                                </button>
 
-                        {showTranslation && (
-                            <div className={styles.koreanPrompt}>
-                                {isEnType ? (item.question_text || item.matched_question_text) : item.prompt_kr}
-                            </div>
+                                {showTranslation && (
+                                    <div className={styles.koreanPrompt}>
+                                        {item.question_text || item.matched_question_text}
+                                    </div>
+                                )}
+                            </>
                         )}
 
                         {(item.question_audio_en || item.question_audio_url || item.question_text || item.matched_question_text) && (
@@ -387,8 +397,8 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
                                     🔊 모범 발음
                                 </button>
                             )}
-                            {result.audio_url && (
-                                <button type="button" onClick={() => playAudio(result.audio_url)} className={styles.audioBtn} style={{ cursor: 'pointer', marginLeft: '8px' }}>
+                            {(userAudioBlobUrl || result?.audio_url) && (
+                                <button type="button" onClick={() => playAudio(userAudioBlobUrl || result?.audio_url)} className={styles.audioBtn} style={{ cursor: 'pointer', marginLeft: '8px' }}>
                                     ▶️ 내 발음
                                 </button>
                             )}

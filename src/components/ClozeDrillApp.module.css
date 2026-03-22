@@ -141,6 +141,16 @@
   line-height: 1.5;
 }
 
+.smallKoreanTranslation {
+  font-size: 16px;
+  color: #9ca3af;
+  margin-top: -12px;
+  margin-bottom: 32px;
+  font-weight: 500;
+  line-height: 1.4;
+  width: 100%;
+}
+
 .actionBtn {
   display: flex;
   align-items: center;
