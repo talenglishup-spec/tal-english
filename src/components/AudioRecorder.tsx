@@ -11,6 +11,7 @@ interface AudioRecorderProps {
     minVolume?: number; // 0-255 threshold
     minimal?: boolean; // If true, don't render internal UI
     onStateChange?: (isRecording: boolean) => void;
+    onTimeUpdate?: (seconds: number) => void;
 }
 
 export interface AudioRecorderHandle {
@@ -26,7 +27,8 @@ const AudioRecorder = forwardRef<AudioRecorderHandle, AudioRecorderProps>(({
     autoStop = false,
     minVolume = 5,
     minimal = false,
-    onStateChange
+    onStateChange,
+    onTimeUpdate
 }, ref) => {
     const [isRecording, setIsRecording] = useState(false);
     useEffect(() => {
@@ -36,6 +38,10 @@ const AudioRecorder = forwardRef<AudioRecorderHandle, AudioRecorderProps>(({
     const [recordingTime, setRecordingTime] = useState(0);
     const [isListeningForSilence, setIsListeningForSilence] = useState(false);
     const [hasRecordedOnce, setHasRecordedOnce] = useState(false);
+
+    useEffect(() => {
+        if (onTimeUpdate) onTimeUpdate(recordingTime);
+    }, [recordingTime, onTimeUpdate]);
 
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const chunksRef = useRef<Blob[]>([]);

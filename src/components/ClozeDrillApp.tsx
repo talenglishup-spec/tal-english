@@ -41,6 +41,7 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
     const [result, setResult] = useState<{ score: number; feedback: string; audio_url: string; stt_text: string } | null>(null);
     const [msg, setMsg] = useState('');
     const [isRecording, setIsRecording] = useState(false);
+    const [recordingTime, setRecordingTime] = useState(0);
     const audioRecorderRef = useRef<any>(null);
 
     // Tracking variables
@@ -66,7 +67,8 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
         setModelPlayCount(0);
         setTranslationToggleCount(0);
         setAnswerRevealed(false);
-        setShowTranslation(!isEnType); // If KO to EN, translation (KR) is always shown.
+        setShowTranslation(false);
+        setRecordingTime(0);
 
         if (mode === 'practice') {
             setMsg('Practice: Ready to speak!');
@@ -292,8 +294,7 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
                         }
 
                         if (isBlankStep) {
-                            const textWithNoSpaces = (item.target_en || '').replace(/ /g, '\u00A0');
-                            return <span className={styles.targetTextBlank} aria-hidden="true">{textWithNoSpaces}</span>;
+                            return <span className={styles.targetTextBlankFull} aria-hidden="true">{item.target_en}</span>;
                         }
 
                         if (isClozeStep) {
@@ -410,6 +411,7 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
                                 key={`${item.id}-${subStep}`}
                                 onRecordingComplete={handleRecordingComplete}
                                 onStateChange={setIsRecording}
+                                onTimeUpdate={setRecordingTime}
                                 silenceDuration={600}
                                 autoStop={false}
                             />
@@ -430,7 +432,13 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
                                     <line x1="8" y1="23" x2="16" y2="23"></line>
                                 </svg>
                             </button>
-                            <span className={styles.micLabel}>눌러서 말하기</span>
+                            {isRecording ? (
+                                <span className={styles.stopwatchText}>
+                                    {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}
+                                </span>
+                            ) : (
+                                <span className={styles.micLabel}>눌러서 말하기</span>
+                            )}
                         </>
                     )}
 
