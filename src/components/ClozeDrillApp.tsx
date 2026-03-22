@@ -43,6 +43,7 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
     const [isRecording, setIsRecording] = useState(false);
     const [recordingTime, setRecordingTime] = useState(0);
     const [userAudioBlobUrl, setUserAudioBlobUrl] = useState<string | null>(null);
+    const [isHintRevealed, setIsHintRevealed] = useState(false);
     const audioRecorderRef = useRef<any>(null);
 
     // Tracking variables
@@ -71,6 +72,7 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
         setShowTranslation(false);
         setRecordingTime(0);
         setUserAudioBlobUrl(null);
+        setIsHintRevealed(false);
 
         if (mode === 'practice') {
             setMsg('Practice: Ready to speak!');
@@ -296,7 +298,15 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
                         }
 
                         if (isBlankStep) {
-                            return <span className={styles.targetTextBlankFull} aria-hidden="true">{item.target_en}</span>;
+                            return (
+                                <span 
+                                    className={`${styles.targetTextBlankFull} ${isHintRevealed ? styles.revealed : ''}`} 
+                                    aria-hidden="true"
+                                    onClick={() => setIsHintRevealed(!isHintRevealed)}
+                                >
+                                    {item.target_en}
+                                </span>
+                            );
                         }
 
                         if (isClozeStep) {

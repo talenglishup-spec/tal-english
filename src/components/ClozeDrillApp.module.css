@@ -131,6 +131,14 @@
   min-height: 80px;
   user-select: none;
   border: 2px dashed #e5e7eb;
+  cursor: pointer;
+  transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.targetTextBlankFull.revealed {
+  color: #4b5563;
+  background-color: #f9fafb;
+  border-color: #d1d5db;
 }
 
 .koreanPrompt {
