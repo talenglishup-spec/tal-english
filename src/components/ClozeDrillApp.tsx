@@ -350,10 +350,7 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
                 {(!result && !isSubmitting) && (
                     <>
                         <button className={styles.actionBtn} onClick={() => setShowTranslation(!showTranslation)}>
-                            {showTranslation ? '- 질문 숨기기' : '+ 질문 보기'}
-                            <svg width="12" height="8" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ transform: showTranslation ? 'rotate(180deg)' : 'none' }}>
-                                <path d="M1 1L6 6L11 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                            </svg>
+                            {showTranslation ? '질문 숨기기 ▲' : '질문 보기 ▼'}
                         </button>
 
                         {showTranslation && (
@@ -364,11 +361,7 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
 
                         {(item.question_audio_en || item.question_audio_url || item.question_text || item.matched_question_text) && (
                             <button className={styles.listenBtnMinimal} onClick={playQuestionAudio}>
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-                                </svg>
-                                <span>질문 듣기</span>
+                                🔊 질문 듣기
                             </button>
                         )}
                     </>
