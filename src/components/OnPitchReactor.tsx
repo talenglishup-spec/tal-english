@@ -16,7 +16,10 @@ interface TrainingItem {
     challenge_type?: 'FOOTBALL_KO_TO_EN' | 'FOOTBALL_ENQ_TO_EN' | 'INTERVIEW_ENQ_TO_EN';
     // v5 matching fields
     question_text?: string;
+    question_audio_url?: string;
+    question_audio_en?: string;
     matched_question_text?: string;
+    model_audio_url?: string; // v4/v5
 }
 
 interface OnPitchReactorProps {
@@ -51,21 +54,20 @@ export default function OnPitchReactor({ item, onNext, onClose, sessionId, mode 
         setSavedBlob(null);
 
         const englishQuestionText = item.question_text || item.matched_question_text;
+        const hasManualAudio = !!(item.question_audio_url || item.question_audio_en);
 
-        console.log(`[OnPitch] Item: ${item.id}`, { 
-            englishQuestionText, 
-            matched: item.matched_question_text,
-            manual: item.question_text,
-            prompt_kr: item.prompt_kr 
-        });
-
-        if (englishQuestionText) {
-            console.log(`[OnPitch] Playing EN TTS: ${englishQuestionText}`);
-            window.speechSynthesis.cancel();
-            const utterance = new SpeechSynthesisUtterance(englishQuestionText);
-            utterance.lang = 'en-US';
-            utterance.rate = 1.0;
-            window.speechSynthesis.speak(utterance);
+        if (hasManualAudio || englishQuestionText) {
+            if (hasManualAudio) {
+                console.log("[OnPitch] Auto-playing manual audio");
+                playPromptAudio();
+            } else if (englishQuestionText) {
+                console.log(`[OnPitch] Auto-playing EN TTS: ${englishQuestionText}`);
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(englishQuestionText);
+                utterance.lang = 'en-US';
+                utterance.rate = 1.0;
+                window.speechSynthesis.speak(utterance);
+            }
         }
     }, [item]);
 
@@ -135,9 +137,21 @@ export default function OnPitchReactor({ item, onNext, onClose, sessionId, mode 
     }, []);
 
     const playPromptAudio = () => {
+        let audioUrl = item.question_audio_url || item.question_audio_en;
         const englishQuestionText = item.question_text || item.matched_question_text;
-        window.speechSynthesis.cancel();
-        if (englishQuestionText) {
+
+        if (audioUrl) {
+            const audio = new Audio(audioUrl);
+            audio.play().catch(err => {
+                console.error("Audio Play Error:", err);
+                if (englishQuestionText) {
+                    const utterance = new SpeechSynthesisUtterance(englishQuestionText);
+                    utterance.lang = 'en-US';
+                    window.speechSynthesis.speak(utterance);
+                }
+            });
+        } else if (englishQuestionText) {
+            window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(englishQuestionText);
             utterance.lang = 'en-US';
             utterance.rate = 1.0;
@@ -152,15 +166,17 @@ export default function OnPitchReactor({ item, onNext, onClose, sessionId, mode 
         setSavedBlob(null);
         setMsg('다시 시도! 바로 말씀하세요!');
         initTime.current = Date.now();
-        const englishQuestionText = item.question_text || item.matched_question_text;
+        
+        playPromptAudio(); // Use unified player
+    };
 
-        if (englishQuestionText) {
-            window.speechSynthesis.cancel();
-            const utterance = new SpeechSynthesisUtterance(englishQuestionText);
-            utterance.lang = 'en-US';
-            utterance.rate = 1.0;
-            window.speechSynthesis.speak(utterance);
-        }
+    const playAudio = (url?: string) => {
+        if (!url) return;
+        const audio = new Audio(url);
+        audio.play().catch(err => {
+            console.error("Audio playback failed:", err);
+            alert("오디오 재생에 실패했습니다. (Network or CORS issue)");
+        });
     };
 
     // Score Color Helper
@@ -246,7 +262,20 @@ export default function OnPitchReactor({ item, onNext, onClose, sessionId, mode 
                             </div>
                         )}
 
-                        <button type="button" className={styles.nextBtn} onClick={onNext}>
+                        <div style={{ display: 'flex', gap: '8px', marginTop: '1rem', width: '100%' }}>
+                            {item.model_audio_url && (
+                                <button type="button" className={styles.audioBtn} onClick={() => playAudio(item.model_audio_url)} style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #ddd', background: '#fff', fontSize: '0.9rem', cursor: 'pointer' }}>
+                                    🔊 모범 발음
+                                </button>
+                            )}
+                            {result.audio_url && (
+                                <button type="button" className={styles.audioBtn} onClick={() => playAudio(result.audio_url)} style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #ddd', background: '#fff', fontSize: '0.9rem', cursor: 'pointer' }}>
+                                    ▶️ 내 발음
+                                </button>
+                            )}
+                        </div>
+
+                        <button type="button" className={styles.nextBtn} onClick={onNext} style={{ marginTop: '1rem' }}>
                             다음 상황 ⚡
                         </button>
                         <button type="button" className={styles.retryBtn} onClick={handleRetry}>

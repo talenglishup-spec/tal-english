@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase, supabaseAdmin } from '@/utils/supabase';
-import { openai } from '@/utils/openai';
+export const dynamic = 'force-dynamic';
+import { getSupabase, getSupabaseAdmin } from '@/utils/supabase';
+import { getOpenAI } from '@/utils/openai';
 import { calculateScore } from '@/utils/score';
 import { appendAttempt, updateAttempt } from '@/utils/sheets';
 import { v4 as uuidv4 } from 'uuid';
@@ -8,6 +9,9 @@ import { v4 as uuidv4 } from 'uuid';
 export async function POST(req: NextRequest) {
     let attempt_id = '';
     let session_mode: 'challenge' | 'practice' | 'daily' = 'practice';
+    const supabase = getSupabase();
+    const supabaseAdmin = getSupabaseAdmin();
+    const openai = getOpenAI();
     try {
         const formData = await req.formData();
         const file = formData.get('file') as File;

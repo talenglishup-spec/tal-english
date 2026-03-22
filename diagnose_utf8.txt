@@ -1,0 +1,286 @@
+﻿[dotenv@17.2.3] injecting env (8) from .env.local -- tip: ?뫁 sync secrets across teammates & machines: https://dotenvx.com/ops
+Starting Full Sync Simulation...
+Found 96 intake rows
+Upserting [Items]...
+Processing 90 records for Items
+Updated row I_bfdc08
+Updated row I_3b73e4
+Updated row I_eaab08
+node : Save failed for 
+row I_448fb0 Google 
+API error - [429] 
+Quota exceeded for 
+quota metric 'Write 
+requests' and limit 
+'Write requests per 
+minute per user' of 
+service 'sheets.googlea
+pis.com' for consumer '
+project_number:90569236
+0710'.
+위치 줄:1 문자:1
++ node 
+diagnose-sync.js > 
+diagnose_out.txt 2>&1; 
+Get-Content diagnose_o 
+...
++ ~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~
+    + CategoryInfo     
+         : NotSpecifi  
+  ed: (Save failed f   
+ or...:905692360710    
+'.:String) [], Rem    
+oteException
+    + FullyQualifiedEr 
+   rorId : NativeComm  
+  andError
+ 
+SIMULATION FAILED: 
+HTTPError: Google API 
+error - [429] Quota 
+exceeded for quota 
+metric 'Write 
+requests' and limit 
+'Write requests per 
+minute per user' of 
+service 'sheets.googlea
+pis.com' for consumer '
+project_number:90569236
+0710'.
+    at function_ (file:
+///C:/Users/sangha.lee/
+Desktop/TAL/football-tr
+ainer/node_modules/ky/d
+istribution/core/Ky.js:
+61:29)
+    at process.processT
+icksAndRejections (node
+:internal/process/task_
+queues:105:5)
+    at async #retry (fi
+le:///C:/Users/sangha.l
+ee/Desktop/TAL/football
+-trainer/node_modules/k
+y/distribution/core/Ky.
+js:308:20)
+    at async GoogleSpre
+adsheetRow.save (C:\Use
+rs\sangha.lee\Desktop\T
+AL\football-trainer\nod
+e_modules\google-spread
+sheet\dist\index.cjs:12
+0:22)
+    at async 
+upsertSheet (C:\Users\s
+angha.lee\Desktop\TAL\f
+ootball-trainer\diagnos
+e-sync.js:170:29)
+    at async runSync (C
+:\Users\sangha.lee\Desk
+top\TAL\football-traine
+r\diagnose-sync.js:191:
+9) {
+  response: Response {
+    status: 429,
+    statusText: 'Too 
+Many Requests',
+    headers: Headers {
+      vary: 'Origin, 
+X-Origin, Referer',
+      'content-type': 
+'application/json; 
+charset=UTF-8',
+      
+'content-encoding': 
+'gzip',
+      date: 'Fri, 20 
+Mar 2026 17:17:31 GMT',
+      server: 'ESF',
+      
+'x-xss-protection': 
+'0',
+      
+'x-frame-options': 
+'SAMEORIGIN',
+      'x-content-type-o
+ptions': 'nosniff',
+      'alt-svc': 
+'h3=":443"; ma=2592000,
+h3-29=":443"; 
+ma=2592000',
+      
+'transfer-encoding': 
+'chunked'
+    },
+    body: 
+ReadableStream { 
+locked: true, state: 
+'closed', 
+supportsBYOB: true },
+    bodyUsed: true,
+    ok: false,
+    redirected: false,
+    type: 'basic',
+    url: "https://sheet
+s.googleapis.com/v4/spr
+eadsheets/1AaGTZjg37kjy
+n0ZJU3Se7eRQqsfYBi-sTyV
+5jU0ZaRo/values/'Items'
+!A43%3AAI43?valueInputO
+ption=USER_ENTERED&incl
+udeValuesInResponse=tru
+e"
+  },
+  request: Request {
+    method: 'PUT',
+    url: "https://sheet
+s.googleapis.com/v4/spr
+eadsheets/1AaGTZjg37kjy
+n0ZJU3Se7eRQqsfYBi-sTyV
+5jU0ZaRo/values/'Items'
+!A43%3AAI43?valueInputO
+ption=USER_ENTERED&incl
+udeValuesInResponse=tru
+e",
+    headers: Headers {
+      'content-type': 
+'application/json',
+      authorization: 
+'Bearer ya29.c.c0AZ4bNp
+bEkSIBuo7DXPPF0P-csKoMw
+qWhjIcu-914VjnZ2TgH3NfP
+Ea5y8l75rR4NleqHdtvuIWh
+2iIvmYYB7tj50pVEO2r2Spi
+NSV8jjRvVnytbM55SzjthsZ
+lBns9AdBBnNPueJujtIiwie
+_6p7VKaJDMlIErjnUVM42tV
+Pq6LQqhhTVzySTa3KEmlx9j
+y-vwn7nztqh2vnK57hJJcAX
+rGJPOnaOmZuiwKrEQfKhztM
+-bFpYWz9KOFcS2X1JDvwiuq
+uz_j0dlj4PBHC9oZguLCRBL
+BMW8hrzBw2NCyvUaS6Aw8If
+BX3tx_2s4m7dqIrq1q7l6kI
+e_O7ZhZJ6lOjfEgnVhYzh6H
+sRYYjKURGQW9kYaEyXXASO5
+oL384AeZ9Mph__Rydxt7lO2
+Vc-bcJV_b9yk94ovorQa6Si
+ZQaFtWtVBSmziv_XOahgIFV
+In6cdRVcIaVaVc9gWMQShv0
+8hFOh-1sFSvJuqed3uUO4IZ
+yYs16lvaUxrvgOlu-x23V3x
+Rh9Uj5g29UzJQes7wOo7-1l
+_Um4Z3p7hje853-ghO7m0dM
+mut90d1MkfmfWy_f-ea6uv5
+V_sIzb338M7sf25tnypZxaf
+V-fWxocebh-pXO2s3OdWfg-
+rSR_1qQps2-FlBndqr5w3gR
+swzgRyyFVh2QVrVgVVYVBtR
+svhnxhBpM47lVwRI4YgivpM
+VIXIrWVc1VMmBOs4cJngjek
+2QWh9vRyQ7kQ-6tyiQ9yq9-
+13Mlmz0XRVIR56uYd5bUnwc
+YVyaX8eeYzw16BjsiuIOx7a
+2x21aruorj7xzb8myZFpjo6
+_kiBIxlbhjxzFk03_Z2vbQM
+6Y__Bxn3yhbQXYnMr2Ozu0Q
+7gcxuzaXBBzhxrZcn-OUs4g
+Qivrgaf342qUtcers0B4wy3
+vvRQnZ16XaMMbvea9njctqX
+WyF-RY-a0I0myl34nSIR1Rd
+nRBvc2QM_QB6clIQVfnR04I
+vBcieZS-yS8-b8ppWfMhe5d
+2mFWQ5k3W25WtW4Iam8W'
+    },
+    destination: '',
+    referrer: 
+'about:client',
+    referrerPolicy: '',
+    mode: 'cors',
+    credentials: 
+'same-origin',
+    cache: 'default',
+    redirect: 'follow',
+    integrity: '',
+    keepalive: false,
+    
+isReloadNavigation: 
+false,
+    
+isHistoryNavigation: 
+false,
+    signal: 
+AbortSignal { aborted: 
+false }
+  },
+  options: {
+    prefixUrl: 'https:/
+/sheets.googleapis.com/
+v4/spreadsheets/1AaGTZj
+g37kjyn0ZJU3Se7eRQqsfYB
+i-sTyV5jU0ZaRo/',
+    json: {
+      range: 
+"'Items'!A43:AI43",
+      majorDimension: 
+'ROWS',
+      values: [Array]
+    },
+    method: 'PUT',
+    searchParams: { 
+valueInputOption: 
+'USER_ENTERED', include
+ValuesInResponse: true 
+},
+    headers: Headers { 
+'content-type': 
+'application/json' },
+    retry: {
+      limit: 2,
+      methods: [Array],
+      statusCodes: 
+[Array],
+      
+afterStatusCodes: 
+[Array],
+      maxRetryAfter: 
+Infinity,
+      backoffLimit: 
+Infinity,
+      delay: 
+[Function: delay],
+      jitter: 
+undefined,
+      retryOnTimeout: 
+false
+    },
+    throwHttpErrors: 
+true,
+    timeout: 10000,
+    fetch: [Function: 
+bound fetch],
+    context: {},
+    signal: 
+AbortSignal { aborted: 
+false },
+    duplex: 'half',
+    body: `{"range":"'I
+tems'!A43:AI43","majorD
+imension":"ROWS","value
+s":[["I_448fb0","","bui
+ld","","(?꾩옱) 洹몃뒗 留ㅼ씪 
+?덈젴?쒕떎","He trains 
+every day.","","","true
+","","","","","B","trai
+ns","","","","","","","
+","","","","","","2000"
+,"","","Q10","What did 
+you see as the big 
+differences between 
+the first half and the 
+second 
+half?","60","false"]]}`
+  }
+}

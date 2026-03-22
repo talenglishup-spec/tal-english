@@ -22,7 +22,8 @@ async function main() {
 
         const sheetsToUpdate = ['Items', 'ContentIntake'];
         const newHeaders = [
-            'matched_question_id', 'matched_question_text', 'match_confidence', 'review_needed', 'match_source'
+            'matched_question_id', 'matched_question_text', 'match_confidence', 'review_needed', 'match_source',
+            'question_audio', 'question_audio_source'
         ];
 
         for (const sheetName of sheetsToUpdate) {

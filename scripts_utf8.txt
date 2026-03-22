@@ -1,0 +1,344 @@
+﻿[dotenv@17.2.3] injecting env (8) from .env.local -- tip: ?숋툘  enable debug logging with { debug: true }
+Starting Bulk Question Audio Generation...
+Searching through 129 rows...
+[I009] Generating audio for:  How are you feeling about your current form?
+node : [I009] Failed: 
+401 Incorrect API key 
+provided: sk-proj-*****
+***********************
+***********************
+***********************
+***********************
+***********************
+***********************
+*********sgYA. You can 
+find your API key at ht
+tps://platform.openai.c
+om/account/api-keys.
+위치 줄:1 문자:1
++ node scripts/generate
+-question-audio.js > 
+scripts_out.txt 2>&1; 
+Get-C ...
++ ~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~
+    + CategoryInfo     
+         : NotSpecifi  
+  ed: ([I009] Failed   
+ : ...count/api-key    
+s.:String) [], Rem    
+oteException
+    + FullyQualifiedEr 
+   rorId : NativeComm  
+  andError
+ 
+[I010] Generating audio for: What is your main mindset during the game?
+[I010] Failed: 401 
+Incorrect API key 
+provided: sk-proj-*****
+***********************
+***********************
+***********************
+***********************
+***********************
+***********************
+*********sgYA. You can 
+find your API key at ht
+tps://platform.openai.c
+om/account/api-keys.
+[I011] Generating audio for: What is your main mindset during the game?
+[I011] Failed: 401 
+Incorrect API key 
+provided: sk-proj-*****
+***********************
+***********************
+***********************
+***********************
+***********************
+***********************
+*********sgYA. You can 
+find your API key at ht
+tps://platform.openai.c
+om/account/api-keys.
+[I012] Generating audio for: How is it working with the new manager?
+[I012] Failed: 401 
+Incorrect API key 
+provided: sk-proj-*****
+***********************
+***********************
+***********************
+***********************
+***********************
+***********************
+*********sgYA. You can 
+find your API key at ht
+tps://platform.openai.c
+om/account/api-keys.
+[I013] Generating audio for: Do you read the social media comments about you?
+[I013] Failed: 401 
+Incorrect API key 
+provided: sk-proj-*****
+***********************
+***********************
+***********************
+***********************
+***********************
+***********************
+*********sgYA. You can 
+find your API key at ht
+tps://platform.openai.c
+om/account/api-keys.
+[I014] Generating audio for: Are you thinking about the championship race?
+[I014] Failed: 401 
+Incorrect API key 
+provided: sk-proj-*****
+***********************
+***********************
+***********************
+***********************
+***********************
+***********************
+*********sgYA. You can 
+find your API key at ht
+tps://platform.openai.c
+om/account/api-keys.
+[I015] Generating audio for: Are you feeling pressured to score more goals?
+[I015] Failed: 401 
+Incorrect API key 
+provided: sk-proj-*****
+***********************
+***********************
+***********************
+***********************
+***********************
+***********************
+*********sgYA. You can 
+find your API key at ht
+tps://platform.openai.c
+om/account/api-keys.
+[I016] Generating audio for: How do you see your role as an experienced player?
+[I017] Generating audio for: What is your main mindset during the game?
+[I016] Failed: 401 
+Incorrect API key 
+provided: sk-proj-*****
+***********************
+***********************
+***********************
+***********************
+***********************
+***********************
+*********sgYA. You can 
+find your API key at ht
+tps://platform.openai.c
+om/account/api-keys.
+[I017] Failed: 401 
+Incorrect API key 
+provided: sk-proj-*****
+***********************
+***********************
+***********************
+***********************
+***********************
+***********************
+*********sgYA. You can 
+find your API key at ht
+tps://platform.openai.c
+om/account/api-keys.
+[I018] Generating audio for: What is your goal for this season?
+[I018] Failed: 401 
+Incorrect API key 
+provided: sk-proj-*****
+***********************
+***********************
+***********************
+***********************
+***********************
+***********************
+*********sgYA. You can 
+find your API key at ht
+tps://platform.openai.c
+om/account/api-keys.
+[I019] Generating audio for: How is the atmosphere in the dressing room?
+[I019] Failed: 401 
+Incorrect API key 
+provided: sk-proj-*****
+***********************
+***********************
+***********************
+***********************
+***********************
+***********************
+*********sgYA. You can 
+find your API key at ht
+tps://platform.openai.c
+om/account/api-keys.
+[I020] Generating audio for: How is the atmosphere in the dressing room?
+[I020] Failed: 401 
+Incorrect API key 
+provided: sk-proj-*****
+***********************
+***********************
+***********************
+***********************
+***********************
+***********************
+*********sgYA. You can 
+find your API key at ht
+tps://platform.openai.c
+om/account/api-keys.
+[I_f4ef2b] Generating audio for: What did you make of that game / performance? / How do you assess the game?
+[I_93604c] Generating audio for: What did you make of that game / performance? / How do you assess the game?
+[I_f4ef2b] Failed: 401 
+Incorrect API key 
+provided: sk-proj-*****
+***********************
+***********************
+***********************
+***********************
+***********************
+***********************
+*********sgYA. You can 
+find your API key at ht
+tps://platform.openai.c
+om/account/api-keys.
+[I_227049] Generating audio for: What did you make of that game / performance? / How do you assess the game?
+[I_93604c] Failed: 401 
+Incorrect API key 
+provided: sk-proj-*****
+***********************
+***********************
+***********************
+***********************
+***********************
+***********************
+*********sgYA. You can 
+find your API key at ht
+tps://platform.openai.c
+om/account/api-keys.
+[I_227049] Failed: 401 
+Incorrect API key 
+provided: sk-proj-*****
+***********************
+***********************
+***********************
+***********************
+***********************
+***********************
+*********sgYA. You can 
+find your API key at ht
+tps://platform.openai.c
+om/account/api-keys.
+[I_cf4e78] Generating audio for: What did you make of that game / performance? / How do you assess the game?
+[I_cf4e78] Failed: 401 
+Incorrect API key 
+provided: sk-proj-*****
+***********************
+***********************
+***********************
+***********************
+***********************
+***********************
+*********sgYA. You can 
+find your API key at ht
+tps://platform.openai.c
+om/account/api-keys.
+[I_6024e7] Generating audio for: What did you make of that game / performance? / How do you assess the game?
+[I_6024e7] Failed: 401 
+Incorrect API key 
+provided: sk-proj-*****
+***********************
+***********************
+***********************
+***********************
+***********************
+***********************
+*********sgYA. You can 
+find your API key at ht
+tps://platform.openai.c
+om/account/api-keys.
+[I_feb992] Generating audio for: What did you make of that game / performance? / How do you assess the game?
+[I_feb992] Failed: 401 
+Incorrect API key 
+provided: sk-proj-*****
+***********************
+***********************
+***********************
+***********************
+***********************
+***********************
+*********sgYA. You can 
+find your API key at ht
+tps://platform.openai.c
+om/account/api-keys.
+[I_5912c8] Generating audio for: What did you make of that game / performance? / How do you assess the game?
+[I_5912c8] Failed: 401 
+Incorrect API key 
+provided: sk-proj-*****
+***********************
+***********************
+***********************
+***********************
+***********************
+***********************
+*********sgYA. You can 
+find your API key at ht
+tps://platform.openai.c
+om/account/api-keys.
+[I_37d4f5] Generating audio for: What did you make of that game / performance? / How do you assess the game?
+[I_37d4f5] Failed: 401 
+Incorrect API key 
+provided: sk-proj-*****
+***********************
+***********************
+***********************
+***********************
+***********************
+***********************
+*********sgYA. You can 
+find your API key at ht
+tps://platform.openai.c
+om/account/api-keys.
+[I_2b4c0d] Generating audio for: What did you make of that game / performance? / How do you assess the game?
+[I_c0133c] Generating audio for: What did you make of that game / performance? / How do you assess the game?
+[I_2b4c0d] Failed: 401 
+Incorrect API key 
+provided: sk-proj-*****
+***********************
+***********************
+***********************
+***********************
+***********************
+***********************
+*********sgYA. You can 
+find your API key at ht
+tps://platform.openai.c
+om/account/api-keys.
+[I_e4689f] Generating audio for: What did you make of that game / performance? / How do you assess the game?
+[I_c0133c] Failed: 401 
+Incorrect API key 
+provided: sk-proj-*****
+***********************
+***********************
+***********************
+***********************
+***********************
+***********************
+*********sgYA. You can 
+find your API key at ht
+tps://platform.openai.c
+om/account/api-keys.
+[I_e4689f] Failed: 401 
+Incorrect API key 
+provided: sk-proj-*****
+***********************
+***********************
+***********************
+***********************
+***********************
+***********************
+*********sgYA. You can 
+find your API key at ht
+tps://platform.openai.c
+om/account/api-keys.
+Finished! Total generated: 0

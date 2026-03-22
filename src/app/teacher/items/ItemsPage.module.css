@@ -41,14 +41,14 @@
 
 .idCell {
     font-family: monospace;
-    color: #64748b;
+    color: #cbd5e1 !important;
     font-size: 0.75rem;
     width: 60px;
 }
 
 .playerCell {
     font-size: 0.75rem;
-    color: #0f172a;
+    color: white !important;
     font-weight: 500;
     min-width: 140px;
 }

@@ -29,6 +29,8 @@ interface TrainingItem {
     cloze_target?: string;
     // v5
     question_text?: string;
+    question_audio_url?: string;
+    question_audio_en?: string;
     matched_question_text?: string;
 }
 

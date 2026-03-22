@@ -151,7 +151,7 @@ export default function TeacherPage() {
             if (res.ok) {
                 alert('Sync complete: ' + data.message);
             } else {
-                alert('Sync failed: ' + data.error);
+                alert(`Sync failed: ${data.error}${data.details ? '\nDetails: ' + data.details : ''}`);
             }
         } catch (err) {
             console.error(err);

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useImperativeHandle, forwardRef } from 'react';
 import styles from './AudioRecorder.module.css';
 
 interface AudioRecorderProps {
@@ -9,16 +9,30 @@ interface AudioRecorderProps {
     silenceDuration?: number; // ms to wait after speech stops
     autoStop?: boolean; // enable VAD
     minVolume?: number; // 0-255 threshold
+    minimal?: boolean; // If true, don't render internal UI
+    onStateChange?: (isRecording: boolean) => void;
 }
 
-export default function AudioRecorder({
+export interface AudioRecorderHandle {
+    startRecording: () => void;
+    stopRecording: () => void;
+    isRecording: boolean;
+}
+
+const AudioRecorder = forwardRef<AudioRecorderHandle, AudioRecorderProps>(({
     onRecordingComplete,
     disabled,
     silenceDuration = 1500,
     autoStop = false,
-    minVolume = 5
-}: AudioRecorderProps) {
+    minVolume = 5,
+    minimal = false,
+    onStateChange
+}, ref) => {
     const [isRecording, setIsRecording] = useState(false);
+    useEffect(() => {
+        if (onStateChange) onStateChange(isRecording);
+    }, [isRecording, onStateChange]);
+
     const [recordingTime, setRecordingTime] = useState(0);
     const [isListeningForSilence, setIsListeningForSilence] = useState(false);
     const [hasRecordedOnce, setHasRecordedOnce] = useState(false);
@@ -34,6 +48,12 @@ export default function AudioRecorder({
     const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
     const speechDetectedRef = useRef(false);
     const animationFrameRef = useRef<number | null>(null);
+
+    useImperativeHandle(ref, () => ({
+        startRecording,
+        stopRecording,
+        isRecording
+    }));
 
     // Timer Logic
     useEffect(() => {
@@ -204,6 +224,8 @@ export default function AudioRecorder({
         return `${mins}:${secs.toString().padStart(2, '0')}`;
     };
 
+    if (minimal) return null;
+
     return (
         <div className={styles.container}>
             {isRecording ? (
@@ -246,4 +268,6 @@ export default function AudioRecorder({
             )}
         </div>
     );
-}
+});
+
+export default AudioRecorder;

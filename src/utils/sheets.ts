@@ -275,7 +275,6 @@ export async function getItems(): Promise<TrainingItem[]> {
 
             let categoryInput = (row.get('category') || '').trim().toLowerCase();
             if (!['onpitch', 'interview', 'practice'].includes(categoryInput)) {
-                if (categoryInput) console.warn(`[Schema Warning] Invalid category '${categoryInput}' for item_id ${row.get('item_id')}. Fallback to 'practice'.`);
                 categoryInput = 'practice';
             }
 

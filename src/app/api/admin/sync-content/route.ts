@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSheet } from '../../../../utils/sheets';
 import crypto from 'crypto';
+import { findBestMatch, recordCandidate } from '../../../../utils/question-matcher';
 
 // Function to safely pad numbers
 const pad2 = (num: number) => num.toString().padStart(2, '0');
@@ -54,6 +55,28 @@ export async function POST(req: Request) {
                 const situationOrder = Number(row.get('situation_order'));
                 const itemOrder = Number(row.get('item_order'));
 
+                // Perform Auto-Matching if missing
+                let matchedId = row.get('matched_question_id') || '';
+                let matchedText = row.get('matched_question_text') || '';
+                let matchConfidence = Number(row.get('match_confidence')) || 0;
+                let reviewNeeded = row.get('review_needed') === 'TRUE' || row.get('review_needed') === 'true';
+
+                // If we have a question text but no ID, try to match
+                const inputQuestion = row.get('question_text') || row.get('matched_question_text') || '';
+                if (!matchedId && inputQuestion) {
+                    const match = findBestMatch(inputQuestion);
+                    if (match.matched_id && match.confidence >= 85) {
+                        matchedId = match.matched_id;
+                        matchConfidence = match.confidence;
+                        // For auto-matches from engine, we can set review_needed if confidence is not perfect
+                        if (match.confidence < 95) reviewNeeded = true;
+                    } else {
+                        // Record as candidate for later review
+                        await recordCandidate(inputQuestion, match.suggested_id);
+                        reviewNeeded = true;
+                    }
+                }
+
                 if (!playerId || !lessonNo || !situationOrder || !itemOrder) {
                     await logSync('warning', `Skipped row ${i + 2} due to missing required relation fields (player_id, lesson_no, etc)`);
                     continue;
@@ -98,10 +121,11 @@ export async function POST(req: Request) {
                         max_latency_ms: maxLatency,
                         pattern_type: row.get('pattern_type') || '',
                         coach_note: row.get('hint_guide') || '',
-                        matched_question_id: row.get('matched_question_id') || '',
-                        matched_question_text: row.get('matched_question_text') || '',
-                        match_confidence: Number(row.get('match_confidence')) || 0,
-                        review_needed: row.get('review_needed') === 'TRUE' || row.get('review_needed') === 'true',
+                        matched_question_id: matchedId,
+                        matched_question_text: matchedText,
+                        question_text: row.get('question_text') || matchedText || '',
+                        match_confidence: matchConfidence,
+                        review_needed: reviewNeeded,
                         active: true
                     });
                 }
@@ -178,18 +202,20 @@ export async function POST(req: Request) {
                     if (changed) {
                         try {
                             await existingRow.save(); // Save only if dirty
-                            await new Promise(r => setTimeout(r, 500)); // Respect quota
-                        } catch (e) {
-                            console.error(`Save failed for row ${key}`, e);
+                            await new Promise(r => setTimeout(r, 1000)); // Respect quota (increased to 1000ms)
+                        } catch (e: any) {
+                            console.error(`Save failed for row ${key}`, e.message);
+                            throw new Error(`Save failed for ${sheetName} row ${key}: ${e.message}`);
                         }
                     }
                 } else {
                     // Insert
                     try {
                         await sheet.addRow(record);
-                        await new Promise(r => setTimeout(r, 500)); // Respect quota
-                    } catch (e) {
-                        console.error(`Add failed for row`, record, e);
+                        await new Promise(r => setTimeout(r, 800)); // Respect quota (increased from 500ms)
+                    } catch (e: any) {
+                        console.error(`Add failed for row`, record, e.message);
+                        throw new Error(`Add failed for ${sheetName}: ${e.message}`);
                     }
                 }
             }
@@ -207,7 +233,26 @@ export async function POST(req: Request) {
         return NextResponse.json({ success: true, message: 'Content intake synced successfully' });
 
     } catch (e: any) {
-        console.error('API Error:', e);
-        return NextResponse.json({ error: 'Internal Server Error', details: e.message }, { status: 500 });
+        console.error('API Error:', e.message || e);
+        // Attempt to log fatal error to sheet
+        try {
+            const logSheet = await getSheet('SyncLog');
+            if (logSheet) {
+                await logSheet.addRow({
+                    timestamp: new Date().toISOString(),
+                    status: 'error',
+                    message: 'FATAL API ERROR',
+                    details: e.message || 'Unknown'
+                });
+            }
+        } catch (logErr) {
+            console.error('Failed to log fatal error to sheet', logErr);
+        }
+
+        // Include detailed error if available (e.g. 429 Quota Exceeded)
+        return NextResponse.json({ 
+            error: 'Internal Server Error', 
+            details: e.message || 'Unknown error occurred during sync'
+        }, { status: 500 });
     }
 }

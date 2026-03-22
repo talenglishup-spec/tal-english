@@ -1,97 +1,67 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/utils/supabase';
-import { openai } from '@/utils/openai';
-import { getItems, updateItem } from '@/utils/sheets';
-import { v4 as uuidv4 } from 'uuid';
+export const dynamic = 'force-dynamic';
+import { getSupabaseAdmin } from '@/utils/supabase';
+import { getOpenAI } from '@/utils/openai';
+import { updateItem, getItems } from '@/utils/sheets';
+import { createHash } from 'crypto';
 import { TTS_CONFIG } from '@/utils/config';
 
-// 0. 간단한 In-memory IP Rate Limiter
-const rateLimitMap = new Map<string, number[]>();
-
 export async function POST(req: NextRequest) {
-    // 클라이언트 IP 추출 (Next.js App 라우터 호환)
-    const rawIp = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
-    const ip = rawIp.split(',')[0].trim();
-
-    const now = Date.now();
-    const windowMs = 60 * 1000; // 1분
-    const maxRequests = 10;
-
-    let timestamps = rateLimitMap.get(ip) || [];
-    // 1분 이내의 타임스탬프만 유지
-    timestamps = timestamps.filter(ts => now - ts < windowMs);
-
-    if (timestamps.length >= maxRequests) {
-        return NextResponse.json(
-            { error: 'Too many requests. Please try again later.' },
-            {
-                status: 429,
-                headers: {
-                    'Retry-After': '60'
-                }
-            }
-        );
-    }
-
-    // 현재 요청 시간 기록
-    timestamps.push(now);
-    rateLimitMap.set(ip, timestamps);
+    // Initialize clients inside handler to avoid build-time errors (missing env vars during static analysis)
+    const supabase = getSupabaseAdmin();
+    const openai = getOpenAI();
 
     try {
-        // 1. 보안: Admin Secret Header 검증
-        const adminSecret = process.env.ADMIN_SECRET;
-        const reqSecret = req.headers.get('x-admin-secret');
-        if (!adminSecret || reqSecret !== adminSecret) {
-            return NextResponse.json({ error: 'Unauthorized: Invalid or missing Admin Secret' }, { status: 401 });
+        const body = await req.json();
+        const { itemIds, type, force = false } = body as { itemIds: string[]; type: 'question' | 'answer'; force?: boolean };
+        console.log(`[TTS API] POST request incoming: type=${type}, items=${itemIds?.length}`);
+
+        if (!itemIds || !Array.isArray(itemIds) || itemIds.length === 0) {
+            return NextResponse.json({ success: false, error: 'itemIds is required' }, { status: 400 });
         }
 
-        const { itemIds, force, type = 'answer' } = await req.json();
-
-        if (!itemIds || !Array.isArray(itemIds)) {
-            return NextResponse.json({ error: 'itemIds array is required' }, { status: 400 });
-        }
-
-        // 2. 안정화: 요청(Rate/Bulk) 제한 - 최대 30개 동시 생성 허용
-        if (itemIds.length > 30) {
-            return NextResponse.json({ error: 'Too many items. Maximum 30 items allowed per request.' }, { status: 429 });
-        }
-
+        // Limit batch size
+        const batchItemIds = itemIds.slice(0, 30);
         const allItems = await getItems();
-        const results = [];
+        const items = allItems.filter(i => batchItemIds.includes(i.id));
 
-        for (const itemId of itemIds) {
-            const item = allItems.find(i => i.id === itemId);
+        const results: any[] = [];
+
+        for (const itemId of batchItemIds) {
+            const item = items.find(i => i.id === itemId);
             if (!item) {
-                results.push({ itemId, status: 'not_found' });
+                results.push({ itemId, status: 'error', error: 'Item not found' });
                 continue;
             }
 
             try {
                 let textToSpeak = '';
-                let fileName = '';
                 let isQuestion = type === 'question';
 
                 if (isQuestion) {
                     // Skip conditions for Question TTS
-                    if (!item.question_text || item.question_text.trim() === '') {
-                        results.push({ itemId, status: 'skipped', reason: 'no_question_text' });
+                    if (!item.question_text) {
+                        results.push({ itemId, status: 'skipped', reason: 'no_text' });
                         continue;
                     }
                     if (item.question_audio_source === 'manual' || item.question_audio_source === 'external') {
                         results.push({ itemId, status: 'skipped', reason: `${item.question_audio_source}_source` });
                         continue;
                     }
-                    if (item.question_audio_en && !force) {
-                        results.push({ itemId, status: 'skipped', url: item.question_audio_en });
+                    if (item.question_audio_url && !force) {
+                        results.push({ itemId, status: 'skipped', url: item.question_audio_url });
                         continue;
                     }
 
                     textToSpeak = item.question_text.trim();
-                    fileName = `tts/q/${itemId}.mp3`;
                 } else {
                     // Skip conditions for Answer TTS
                     if (!item.target_en) {
-                        results.push({ itemId, status: 'no_target_text' });
+                        results.push({ itemId, status: 'skipped', reason: 'no_text' });
+                        continue;
+                    }
+                    if (item.audio_source === 'manual' || item.audio_source === 'external') {
+                        results.push({ itemId, status: 'skipped', reason: `${item.audio_source}_source` });
                         continue;
                     }
                     if (item.model_audio_url && !force) {
@@ -99,41 +69,66 @@ export async function POST(req: NextRequest) {
                         continue;
                     }
 
-                    textToSpeak = item.target_en;
-                    fileName = `tts/en/${itemId}.mp3`;
+                    textToSpeak = item.target_en.trim();
                 }
 
-                // 1. Generate TTS
-                console.log(`Generating TTS for ${itemId}: ${textToSpeak} (Voice: ${TTS_CONFIG.voice}, Type: ${type})`);
-                const mp3Response = await openai.audio.speech.create({
-                    model: TTS_CONFIG.model,
-                    voice: TTS_CONFIG.voice,
-                    input: textToSpeak,
-                });
+                const textHash = createHash('md5').update(textToSpeak || '').digest('hex');
+                const fileName = isQuestion ? `tts/q/shared_${textHash}.mp3` : `tts/a/${itemId}.mp3`;
 
-                const buffer = Buffer.from(await mp3Response.arrayBuffer());
+                // 2. Check if shared audio already exists (for questions)
+                let audioUrl = '';
+                if (isQuestion) {
+                    const { data: existingFiles } = await supabase.storage
+                        .from('tal-audio')
+                        .list('tts/q', { search: `shared_${textHash}.mp3` });
 
-                // 2. Upload to Supabase
-                const { error: uploadError } = await supabaseAdmin.storage
-                    .from('tal-audio')
-                    .upload(fileName, buffer, {
-                        contentType: 'audio/mpeg',
-                        upsert: true
+                    if (existingFiles && existingFiles.length > 0) {
+                        const fileMatches = existingFiles.some(f => f.name === `shared_${textHash}.mp3`);
+                        if (fileMatches) {
+                            const { data: publicUrlData } = supabase.storage
+                                .from('tal-audio')
+                                .getPublicUrl(fileName);
+                            audioUrl = publicUrlData.publicUrl;
+                            console.log(`[${itemId}] Reusing existing shared audio for: ${textToSpeak}`);
+                        }
+                    }
+                }
+
+                if (!audioUrl) {
+                    // Generate TTS
+                    console.log(`Generating TTS for ${itemId}: ${textToSpeak} (Voice: ${TTS_CONFIG.voice}, Type: ${type})`);
+                    const mp3Response = await openai.audio.speech.create({
+                        model: TTS_CONFIG.model,
+                        voice: TTS_CONFIG.voice,
+                        input: textToSpeak,
                     });
 
-                if (uploadError) throw uploadError;
+                    const buffer = Buffer.from(await mp3Response.arrayBuffer());
 
-                const { data: publicUrlData } = supabaseAdmin.storage
-                    .from('tal-audio')
-                    .getPublicUrl(fileName);
+                    // Upload
+                    const { error: uploadError } = await supabase.storage
+                        .from('tal-audio')
+                        .upload(fileName, buffer, {
+                            contentType: 'audio/mpeg',
+                            upsert: true
+                        });
 
-                // Add cache-bust parameter ?v=timestamp to bypass caching in browsers
-                const audioUrl = `${publicUrlData.publicUrl}?v=${Date.now()}`;
+                    if (uploadError) throw uploadError;
+
+                    const { data: publicUrlData } = supabase.storage
+                        .from('tal-audio')
+                        .getPublicUrl(fileName);
+
+                    audioUrl = publicUrlData.publicUrl;
+                }
+
+                // Add cache-bust parameter ?v=timestamp
+                audioUrl = `${audioUrl}?v=${Date.now()}`;
 
                 // 3. Update Sheet
                 if (isQuestion) {
                     await updateItem(itemId, {
-                        question_audio_en: audioUrl,
+                        question_audio_url: audioUrl,
                         question_audio_source: 'tts'
                     });
                 } else {
@@ -145,16 +140,20 @@ export async function POST(req: NextRequest) {
 
                 results.push({ itemId, status: 'generated', url: audioUrl });
 
+                // Delay to respect Google Sheets quota
+                if (batchItemIds.length > 1) {
+                    await new Promise(r => setTimeout(r, 1100));
+                }
+
             } catch (err: any) {
-                console.error(`Error processing item ${itemId}:`, err);
+                console.error(`Error processing ${itemId}:`, err);
                 results.push({ itemId, status: 'error', error: err.message });
             }
         }
 
         return NextResponse.json({ success: true, results });
-
-    } catch (error: any) {
-        console.error('TTS Generation Error:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+    } catch (e: any) {
+        console.error('TTS API General Error:', e);
+        return NextResponse.json({ success: false, error: e.message }, { status: 500 });
     }
 }

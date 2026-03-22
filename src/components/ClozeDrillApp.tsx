@@ -40,6 +40,8 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [result, setResult] = useState<{ score: number; feedback: string; audio_url: string; stt_text: string } | null>(null);
     const [msg, setMsg] = useState('');
+    const [isRecording, setIsRecording] = useState(false);
+    const audioRecorderRef = useRef<any>(null);
 
     // Tracking variables
     const initTime = useRef<number>(Date.now());
@@ -108,8 +110,17 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
         };
     }, [item, mode, isEnType]);
 
+    const playAudio = (url?: string) => {
+        if (!url) return;
+        const audio = new Audio(url);
+        audio.play().catch(err => {
+            console.error("Audio playback failed:", err);
+            alert("오디오 재생에 실패했습니다. (Network or CORS issue)");
+        });
+    };
+
     const playQuestionAudio = () => {
-        let audioUrl = item.question_audio_en || item.question_audio_url;
+        let audioUrl = item.question_audio_url || item.question_audio_en;
         const englishQuestionText = item.question_text || item.matched_question_text;
 
         if (audioUrl) {
@@ -242,11 +253,13 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
                 <div className={styles.topBar}>
                     <button type="button" className={styles.closeBtn} onClick={onClose}>✕</button>
                     <div className={styles.progressBar}>
-                        <div className={`${styles.progressDot} ${styles.active}`}></div>
-                        <div className={styles.progressDot}></div>
-                        <div className={styles.progressDot}></div>
-                        <div className={styles.progressDot}></div>
-                        <div className={styles.progressDot}></div>
+                        {[1, 2, 3, 4, 5].map((i) => {
+                            // Map subStep (1, 2, 3) to progress (e.g., 3-STEP might be 1, 3, 5)
+                            // or just use subStep if simple. Let's assume subStep is the direct measure.
+                            return (
+                                <div key={i} className={`${styles.progressDot} ${i <= subStep ? styles.active : ''}`}></div>
+                            );
+                        })}
                     </div>
                     <div className={styles.modeIndicator}>
                         {mode === 'practice' ? '연습' : '챌린지'}
@@ -255,36 +268,11 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
             )}
 
             <div className={styles.content}>
+                <div className={styles.card}>
+                    <div className={styles.stepBadge}>STEP {subStep} / 3</div>
 
                 {/* Status Indicator */}
                 {!result && !isSubmitting && <div className={styles.questionText}>{msg}</div>}
-
-                {/* Loading State */}
-                {isSubmitting && (
-                    <div className={styles.loadingContainer}>
-                        <div className={styles.spinner}></div>
-                        <div className={styles.loadingText}>빠르게 분석 중입니다...</div>
-                    </div>
-                )}
-
-                {/* Result Area Top - Removed AI Score for both Practice and Challenge modes as requested */}
-
-                {/* Speaking Box for Step 1 */}
-                {!result && !isSubmitting && mode === 'practice' &&
-                    (() => {
-                        const rawType = (item.practice_type || 'A').toString().trim().toUpperCase();
-                        let type = rawType;
-                        if (rawType === 'A' || rawType.includes('3')) type = '3-STEP';
-                        else if (rawType === 'B' || rawType.includes('CLOZE')) type = '1-STEP-CLOZE';
-                        else if (rawType === 'C' || rawType.includes('BLANK')) type = '1-STEP-BLANK';
-                        else type = '3-STEP';
-                        return type === '3-STEP';
-                    })() && (
-                        <div style={{ textAlign: 'center', marginBottom: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                            <div className={styles.stepBadge}>Step {subStep} / 3</div>
-                            {subStep === 1 && <div className={styles.speakingBox}>이제 스피킹 하세요...</div>}
-                        </div>
-                    )}
 
                 {/* Target or Blank Text */}
                 <div className={styles.targetText}>
@@ -304,17 +292,8 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
                         }
 
                         if (isBlankStep) {
-                            // Split by words to create blank box for each word
-                            return (
-                                <span>
-                                    {item.target_en.split(' ').map((word, i) => (
-                                        <React.Fragment key={i}>
-                                            <span className={styles.targetTextBlank}>{word}</span>
-                                            {' '}
-                                        </React.Fragment>
-                                    ))}
-                                </span>
-                            );
+                            const textWithNoSpaces = (item.target_en || '').replace(/ /g, '\u00A0');
+                            return <span className={styles.targetTextBlank} aria-hidden="true">{textWithNoSpaces}</span>;
                         }
 
                         if (isClozeStep) {
@@ -323,11 +302,9 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
 
                             if (item.cloze_target) {
                                 const targets = item.cloze_target.split(',').map(t => t.trim()).filter(t => t.length > 0);
-
                                 if (targets.length > 0) {
                                     const escapedTargets = targets.map(t => t.replace(/[-\\/\\\\^$*+?.()|[\\]{}]/g, '\\\\$&'));
                                     const pattern = new RegExp(`(${escapedTargets.join('|')})`, 'gi');
-
                                     const parts = item.target_en.split(pattern);
                                     partsToRender = parts.map((p, i) => {
                                         const isMatch = targets.some(t => t.toLowerCase() === p.toLowerCase());
@@ -342,7 +319,6 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
                             if (hasAnyBlank) {
                                 return <span className={styles.targetTextStep1}>{partsToRender}</span>;
                             } else {
-                                // Fallback: auto-blank the longest word if user forgot cloze_target or misspelled it
                                 const words = item.target_en.split(' ');
                                 if (words.length > 0) {
                                     let longestIdx = 0;
@@ -366,26 +342,42 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
                             }
                         }
 
-                        // Step 1: Faded gray text
                         return <span className={styles.targetTextStep1}>{item.target_en}</span>;
                     })()}
                 </div>
 
-                {mode === 'challenge' && isEnType ? (
-                    <div className={styles.koreanPrompt}>
-                        {item.question_text}
-                    </div>
-                ) : (
-                    <div className={styles.koreanPrompt}>
-                        {item.prompt_kr}
-                    </div>
+                {(!result && !isSubmitting) && (
+                    <>
+                        <button className={styles.actionBtn} onClick={() => setShowTranslation(!showTranslation)}>
+                            {showTranslation ? '- 질문 숨기기' : '+ 질문 보기'}
+                            <svg width="12" height="8" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ transform: showTranslation ? 'rotate(180deg)' : 'none' }}>
+                                <path d="M1 1L6 6L11 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                        </button>
+
+                        {showTranslation && (
+                            <div className={styles.koreanPrompt}>
+                                {isEnType ? (item.question_text || item.matched_question_text) : item.prompt_kr}
+                            </div>
+                        )}
+
+                        {(item.question_audio_en || item.question_audio_url || item.question_text || item.matched_question_text) && (
+                            <button className={styles.listenBtnMinimal} onClick={playQuestionAudio}>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                                </svg>
+                                <span>질문 듣기</span>
+                            </button>
+                        )}
+                    </>
                 )}
 
-                {!result && (item.question_audio_en || item.question_audio_url || item.question_text || item.matched_question_text) && (
-                    <div className={styles.promptControls}>
-                        <button className={styles.actionBtn} onClick={playQuestionAudio}>
-                            🔊 질문 듣기
-                        </button>
+                {/* Loading State */}
+                {isSubmitting && (
+                    <div className={styles.loadingContainer}>
+                        <div className={styles.spinner}></div>
+                        <div className={styles.loadingText}>빠르게 분석 중입니다...</div>
                     </div>
                 )}
 
@@ -397,12 +389,12 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
                     {result && (
                         <div className={styles.audioButtons}>
                             {item.model_audio_url && (
-                                <button type="button" onClick={playModelAudio} className={styles.audioBtn}>
+                                <button type="button" onClick={() => playAudio(item.model_audio_url)} className={styles.audioBtn} style={{ cursor: 'pointer' }}>
                                     🔊 모범 발음
                                 </button>
                             )}
                             {result.audio_url && (
-                                <button type="button" onClick={() => new Audio(result.audio_url).play()} className={styles.audioBtn}>
+                                <button type="button" onClick={() => playAudio(result.audio_url)} className={styles.audioBtn} style={{ cursor: 'pointer', marginLeft: '8px' }}>
                                     ▶️ 내 발음
                                 </button>
                             )}
@@ -411,12 +403,35 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
 
                     {/* Recorder Area */}
                     {!result && !isSubmitting && (
-                        <AudioRecorder
-                            key={`${item.id}-${subStep}`}
-                            onRecordingComplete={handleRecordingComplete}
-                            silenceDuration={600}
-                            autoStop={false}
-                        />
+                        <>
+                            <AudioRecorder
+                                ref={audioRecorderRef}
+                                minimal={true}
+                                key={`${item.id}-${subStep}`}
+                                onRecordingComplete={handleRecordingComplete}
+                                onStateChange={setIsRecording}
+                                silenceDuration={600}
+                                autoStop={false}
+                            />
+                            <button 
+                                className={`${styles.micButtonLarge} ${isRecording ? styles.recording : ''}`}
+                                onClick={() => {
+                                    if (isRecording) {
+                                        audioRecorderRef.current?.stopRecording();
+                                    } else {
+                                        audioRecorderRef.current?.startRecording();
+                                    }
+                                }}
+                            >
+                                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                                    <line x1="12" y1="19" x2="12" y2="23"></line>
+                                    <line x1="8" y1="23" x2="16" y2="23"></line>
+                                </svg>
+                            </button>
+                            <span className={styles.micLabel}>눌러서 말하기</span>
+                        </>
                     )}
 
                     {/* Footer Controls */}
@@ -441,6 +456,7 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
                             )}
                         </div>
                     )}
+                </div>
                 </div>
             </div>
         </div>

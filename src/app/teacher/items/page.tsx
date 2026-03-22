@@ -14,6 +14,7 @@ interface Item {
     sub_category: string;
     active: boolean;
     question_text?: string;
+    question_audio_url?: string;
     question_audio_en?: string;
     question_audio_source?: string;
 
@@ -44,6 +45,7 @@ interface Attempt {
 }
 
 export default function ItemsManagerPage() {
+    console.log('--- ITEMS MANAGER V2 LOADED ---');
     const { user } = useAuth();
     const [items, setItems] = useState<Item[]>([]);
     const [loading, setLoading] = useState(true);
@@ -121,15 +123,19 @@ export default function ItemsManagerPage() {
                 });
 
                 setItems(enhancedItems.sort((a, b) => (a.category + a.id).localeCompare(b.category + b.id)));
+            } else {
+                console.warn('[Frontend TTS] Data incomplete:', { items: !!itemsData.items, attempts: !!attemptsData.attempts });
             }
         } catch (e) {
-            console.error(e);
+            console.error('[Frontend TTS] fetchItems Error:', e);
         } finally {
+            console.log('[Frontend TTS] Setting loading to false');
             setLoading(false);
         }
     }
 
     const handleGenerate = async (itemIds: string[], type: 'answer' | 'question', force = false) => {
+        console.log(`[Frontend TTS] Generating ${type} TTS for ${itemIds.length} items. Force: ${force}`);
         if (itemIds.length === 0) return;
 
         let secret = sessionStorage.getItem('admin_secret');
@@ -173,7 +179,7 @@ export default function ItemsManagerPage() {
                     const result = data.results.find((r: any) => r.itemId === item.id);
                     if (result && result.status === 'generated') {
                         if (type === 'question') {
-                            return { ...item, question_audio_en: result.url, question_audio_source: 'tts' };
+                            return { ...item, question_audio_url: result.url, question_audio_source: 'tts' };
                         } else {
                             return { ...item, model_audio_url: result.url, audio_source: 'tts' };
                         }
@@ -192,8 +198,8 @@ export default function ItemsManagerPage() {
                 alert(`Error: ${data.error}`);
             }
         } catch (e) {
-            console.error(e);
-            alert('Network error');
+            console.error('Fetch error:', e);
+            alert('Network error: ' + (e instanceof Error ? e.message : String(e)));
         } finally {
             const cleanup = new Set(generating);
             itemIds.forEach(id => cleanup.delete(`${type}-${id}`));
@@ -203,7 +209,7 @@ export default function ItemsManagerPage() {
 
     const generateAllMissing = async () => {
         const missingAnswers = items.filter(i => !i.model_audio_url && i.target_en).map(i => i.id);
-        const missingQuestions = items.filter(i => !i.question_audio_en && i.question_text && i.question_audio_source !== 'manual' && i.question_audio_source !== 'external').map(i => i.id);
+        const missingQuestions = items.filter(i => !i.question_audio_url && i.question_text && i.question_audio_source !== 'manual' && i.question_audio_source !== 'external').map(i => i.id);
 
         if (missingAnswers.length > 0) {
             await handleGenerate(missingAnswers, 'answer', false);
@@ -218,7 +224,7 @@ export default function ItemsManagerPage() {
     };
 
     const filteredItems = items.filter(item => {
-        if (filter === 'missing') return !item.model_audio_url || (item.question_text && !item.question_audio_en);
+        if (filter === 'missing') return !item.model_audio_url || (item.question_text && !item.question_audio_url);
         return true;
     });
 
@@ -230,7 +236,7 @@ export default function ItemsManagerPage() {
     return (
         <div className={styles.container}>
             <header className={styles.header}>
-                <h1>Items & Audio Manager</h1>
+                <h1>Items & Audio Manager <span style={{ color: 'red', fontSize: '1rem' }}>[UPDATED]</span></h1>
                 <div className={styles.controls}>
 
                     <select
@@ -352,38 +358,36 @@ export default function ItemsManagerPage() {
                                                 </div>
                                             </div>
 
-                                            {item.question_text && (
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', background: '#f8f9fa', padding: '4px', borderRadius: '4px' }}>
-                                                    <strong style={{ fontSize: '0.75rem', color: '#555' }}>Question</strong>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                        {item.question_audio_en ? (
-                                                            <>
-                                                                <a href={item.question_audio_en} target="_blank" rel="noreferrer" style={{ fontSize: '0.8rem' }}>🔊 Play</a>
-                                                                <button
-                                                                    onClick={() => handleGenerate([item.id], 'question', true)}
-                                                                    disabled={generating.has(`question-${item.id}`)}
-                                                                    className={styles.actionBtn}
-                                                                    style={{ fontSize: '0.7rem', padding: '2px 6px' }}
-                                                                >
-                                                                    {generating.has(`question-${item.id}`) ? '...' : 'Regen'}
-                                                                </button>
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <span style={{ color: '#999', fontSize: '0.8rem' }}>None</span>
-                                                                <button
-                                                                    onClick={() => handleGenerate([item.id], 'question', false)}
-                                                                    disabled={generating.has(`question-${item.id}`)}
-                                                                    className={styles.actionBtn}
-                                                                    style={{ fontSize: '0.7rem', padding: '2px 6px' }}
-                                                                >
-                                                                    {generating.has(`question-${item.id}`) ? '...' : 'Gen'}
-                                                                </button>
-                                                            </>
-                                                        )}
-                                                    </div>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', background: '#f8f9fa', padding: '4px', borderRadius: '4px' }}>
+                                                <strong style={{ fontSize: '0.75rem', color: '#555' }}>Question</strong>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                    {item.question_audio_url || item.question_audio_en ? (
+                                                        <>
+                                                            <a href={item.question_audio_url || item.question_audio_en} target="_blank" rel="noreferrer" style={{ fontSize: '0.8rem' }}>🔊 Play</a>
+                                                            <button
+                                                                onClick={() => handleGenerate([item.id], 'question', true)}
+                                                                disabled={generating.has(`question-${item.id}`)}
+                                                                className={styles.actionBtn}
+                                                                style={{ fontSize: '0.7rem', padding: '2px 6px' }}
+                                                            >
+                                                                {generating.has(`question-${item.id}`) ? '...' : 'Gen'}
+                                                            </button>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <span style={{ color: '#999', fontSize: '0.8rem' }}>None</span>
+                                                            <button
+                                                                onClick={() => handleGenerate([item.id], 'question', false)}
+                                                                disabled={generating.has(`question-${item.id}`)}
+                                                                className={styles.actionBtn}
+                                                                style={{ fontSize: '0.7rem', padding: '2px 6px' }}
+                                                            >
+                                                                {generating.has(`question-${item.id}`) ? '...' : 'Gen'}
+                                                            </button>
+                                                        </>
+                                                    )}
                                                 </div>
-                                            )}
+                                            </div>
                                         </div>
                                     </td>
                                 </tr>
