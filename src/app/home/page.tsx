@@ -61,7 +61,6 @@ export default function HomePage() {
         <div className={styles.page}>
             <header className={styles.header}>
                 <div className={styles.brand}>
-                    <h2 className={styles.appLabel}>TAL Coach</h2>
                     <h1 className={styles.mission}>Take A Leap</h1>
                 </div>
                 <button onClick={logout} className={styles.logoutBtn}>🚪</button>
