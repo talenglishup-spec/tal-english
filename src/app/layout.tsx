@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Football English Trainer",
+  title: "Take A Leap",
   description: "Improve your football English skills",
 };
 

@@ -55,7 +55,6 @@ export default function LoginPage() {
     <div className={styles.container}>
       <div className={styles.card}>
         <div className={styles.brandSection}>
-          <h2 className={styles.appLabel}>TAL Coach</h2>
           <h1 className={styles.mission}>Take A Leap</h1>
           <p className={styles.subtext}>Improve your English.<br />Elevate your game.</p>
         </div>
