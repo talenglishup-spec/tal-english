@@ -956,3 +956,154 @@ export async function getClips() {
         notes: r.get('notes') || ''
     })).filter(c => c.active);
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Expression Types
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type ExpressionRow = {
+    expression_id: string;
+    lesson_id:     string;
+    expression:    string;
+    meaning_kr:    string;
+    category:      'on-pitch' | 'interview' | 'life';
+    example1:      string;
+    example2:      string;
+    example3:      string;
+    order:         number;
+    active:        boolean;
+};
+
+export type ExpressionProgressRow = {
+    id:                 string;
+    player_id:          string;
+    expression_id:      string;
+    lesson_id:          string;
+    mode:               'view' | 'cloze' | 'speaking' | 'flashcard';
+    completed:          boolean;
+    cloze_answer:       string;
+    cloze_score:        number;
+    speaking_audio_url: string;
+    speaking_completed: boolean;
+    completed_at:       string;
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Expression Functions
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function getExpressions(lessonId?: string): Promise<ExpressionRow[]> {
+    const sheet = await getSheet('Expressions');
+    if (!sheet) return [];
+    const rows = await sheet.getRows();
+    return rows
+        .map(row => ({
+            expression_id: row.get('expression_id'),
+            lesson_id:     row.get('lesson_id'),
+            expression:    row.get('expression'),
+            meaning_kr:    row.get('meaning_kr'),
+            category:      row.get('category') as ExpressionRow['category'],
+            example1:      row.get('example1') || '',
+            example2:      row.get('example2') || '',
+            example3:      row.get('example3') || '',
+            order:         Number(row.get('order') || 0),
+            active:        row.get('active') === 'TRUE' || row.get('active') === true,
+        }))
+        .filter(e => e.active && (!lessonId || e.lesson_id === lessonId))
+        .sort((a, b) => a.order - b.order);
+}
+
+export async function getExpressionsByCategory(category: string): Promise<ExpressionRow[]> {
+    const sheet = await getSheet('Expressions');
+    if (!sheet) return [];
+    const rows = await sheet.getRows();
+    return rows
+        .map(row => ({
+            expression_id: row.get('expression_id'),
+            lesson_id:     row.get('lesson_id'),
+            expression:    row.get('expression'),
+            meaning_kr:    row.get('meaning_kr'),
+            category:      row.get('category') as ExpressionRow['category'],
+            example1:      row.get('example1') || '',
+            example2:      row.get('example2') || '',
+            example3:      row.get('example3') || '',
+            order:         Number(row.get('order') || 0),
+            active:        row.get('active') === 'TRUE' || row.get('active') === true,
+        }))
+        .filter(e => e.active && e.category === category)
+        .sort((a, b) => a.order - b.order);
+}
+
+export async function getAllExpressionLessons(): Promise<string[]> {
+    const sheet = await getSheet('Expressions');
+    if (!sheet) return [];
+    const rows = await sheet.getRows();
+    const lessonIds = new Set<string>();
+    rows.forEach(r => {
+        const id = r.get('lesson_id');
+        if (id && (r.get('active') === 'TRUE' || r.get('active') === true)) {
+            lessonIds.add(id);
+        }
+    });
+    return Array.from(lessonIds);
+}
+
+export async function saveExpressionProgress(data: ExpressionProgressRow): Promise<void> {
+    const sheet = await getSheet('ExpressionProgress');
+    if (!sheet) throw new Error('ExpressionProgress sheet not found');
+    await sheet.addRow({
+        id:                 data.id,
+        player_id:          data.player_id,
+        expression_id:      data.expression_id,
+        lesson_id:          data.lesson_id,
+        mode:               data.mode,
+        completed:          data.completed ? 'TRUE' : 'FALSE',
+        cloze_answer:       data.cloze_answer,
+        cloze_score:        data.cloze_score,
+        speaking_audio_url: data.speaking_audio_url,
+        speaking_completed: data.speaking_completed ? 'TRUE' : 'FALSE',
+        completed_at:       data.completed_at,
+    });
+}
+
+export async function getExpressionProgress(playerId: string, lessonId?: string): Promise<ExpressionProgressRow[]> {
+    const sheet = await getSheet('ExpressionProgress');
+    if (!sheet) return [];
+    const rows = await sheet.getRows();
+    return rows
+        .map(row => ({
+            id:                 row.get('id'),
+            player_id:          row.get('player_id'),
+            expression_id:      row.get('expression_id'),
+            lesson_id:          row.get('lesson_id'),
+            mode:               row.get('mode') as ExpressionProgressRow['mode'],
+            completed:          row.get('completed') === 'TRUE',
+            cloze_answer:       row.get('cloze_answer') || '',
+            cloze_score:        Number(row.get('cloze_score') || 0),
+            speaking_audio_url: row.get('speaking_audio_url') || '',
+            speaking_completed: row.get('speaking_completed') === 'TRUE',
+            completed_at:       row.get('completed_at') || '',
+        }))
+        .filter(r => r.player_id === playerId && (!lessonId || r.lesson_id === lessonId));
+}
+
+export async function getAllExpressionProgress(lessonId?: string): Promise<ExpressionProgressRow[]> {
+    const sheet = await getSheet('ExpressionProgress');
+    if (!sheet) return [];
+    const rows = await sheet.getRows();
+    return rows
+        .map(row => ({
+            id:                 row.get('id'),
+            player_id:          row.get('player_id'),
+            expression_id:      row.get('expression_id'),
+            lesson_id:          row.get('lesson_id'),
+            mode:               row.get('mode') as ExpressionProgressRow['mode'],
+            completed:          row.get('completed') === 'TRUE',
+            cloze_answer:       row.get('cloze_answer') || '',
+            cloze_score:        Number(row.get('cloze_score') || 0),
+            speaking_audio_url: row.get('speaking_audio_url') || '',
+            speaking_completed: row.get('speaking_completed') === 'TRUE',
+            completed_at:       row.get('completed_at') || '',
+        }))
+        .filter(r => !lessonId || r.lesson_id === lessonId);
+}

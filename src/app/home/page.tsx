@@ -12,12 +12,19 @@ interface Lesson {
     note: string;
 }
 
+interface TodayExpression {
+    lessonId:    string;
+    count:       number;
+    allComplete: boolean;
+}
+
 export default function HomePage() {
     const { user, logout } = useAuth();
     const router = useRouter();
-    const [latestLesson, setLatestLesson] = useState<Lesson | null>(null);
-    const [itemCount, setItemCount] = useState(0);
-    const [loading, setLoading] = useState(true);
+    const [latestLesson,    setLatestLesson]    = useState<Lesson | null>(null);
+    const [itemCount,       setItemCount]       = useState(0);
+    const [loading,         setLoading]         = useState(true);
+    const [todayExpression, setTodayExpression] = useState<TodayExpression | null>(null);
 
     useEffect(() => {
         async function fetchData() {
@@ -36,6 +43,32 @@ export default function HomePage() {
                     const itemsData = await itemsRes.json();
                     if (itemsData.items) {
                         setItemCount(itemsData.items.length);
+                    }
+
+                    // 3. Check today's expressions for the latest lesson
+                    try {
+                        const [exprRes, progressRes] = await Promise.all([
+                            fetch(`/api/expressions?lessonId=${topLesson.lesson_id}`),
+                            fetch(`/api/expressions/progress?playerId=${user.id}&lessonId=${topLesson.lesson_id}`),
+                        ]);
+                        const exprData     = await exprRes.json();
+                        const progressData = await progressRes.json();
+
+                        const expressions: any[] = exprData.expressions ?? [];
+                        if (expressions.length > 0) {
+                            const completedIds = new Set(
+                                (progressData.progress ?? [])
+                                    .filter((p: any) => p.completed)
+                                    .map((p: any) => p.expression_id)
+                            );
+                            setTodayExpression({
+                                lessonId:    topLesson.lesson_id,
+                                count:       expressions.length,
+                                allComplete: completedIds.size >= expressions.length,
+                            });
+                        }
+                    } catch {
+                        // Expression feature may not be set up yet — fail silently
                     }
                 }
             } catch (e) {
@@ -90,6 +123,34 @@ export default function HomePage() {
                         <div className={styles.dailyArrow}>→</div>
                     </div>
                 </section>
+
+                {/* 1.7. 오늘의 표현 Card */}
+                {todayExpression && (
+                    <section className={styles.dailySection}>
+                        {todayExpression.allComplete ? (
+                            <div className={styles.dailyCard} style={{ background: 'linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%)', cursor: 'default' }}>
+                                <div className={styles.dailyIcon}>✅</div>
+                                <div className={styles.dailyInfo}>
+                                    <h2>오늘의 표현 완료!</h2>
+                                    <p>내일 새로운 표현으로 또 만나요.</p>
+                                </div>
+                            </div>
+                        ) : (
+                            <div
+                                className={styles.dailyCard}
+                                style={{ background: 'linear-gradient(135deg, #1a237e 0%, #283593 100%)' }}
+                                onClick={() => router.push(`/expressions/${todayExpression.lessonId}`)}
+                            >
+                                <div className={styles.dailyIcon}>📌</div>
+                                <div className={styles.dailyInfo}>
+                                    <h2>오늘의 표현</h2>
+                                    <p>표현 {todayExpression.count}개 · 약 2분</p>
+                                </div>
+                                <div className={styles.dailyArrow}>→</div>
+                            </div>
+                        )}
+                    </section>
+                )}
 
                 {/* 2. Today's Focus */}
                 <section className={styles.focusSection}>

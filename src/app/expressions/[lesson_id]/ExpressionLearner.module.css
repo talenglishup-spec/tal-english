@@ -1,0 +1,290 @@
+/* ── Layout ──────────────────────────────────────────────────────────────── */
+.page {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    max-width: 480px;
+    margin: 0 auto;
+    background: #fff;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.closeBtn {
+    background: none;
+    border: none;
+    font-size: 1.25rem;
+    cursor: pointer;
+    color: #666;
+    padding: 0.25rem;
+    flex-shrink: 0;
+}
+
+.progressBar {
+    display: flex;
+    gap: 4px;
+    flex: 1;
+}
+
+.segment {
+    flex: 1;
+    height: 4px;
+    border-radius: 2px;
+    background: #e0e0e0;
+    transition: background 0.3s;
+}
+
+.segmentActive {
+    background: #2962ff;
+}
+
+.content {
+    flex: 1;
+    padding: 1.5rem 1.25rem 2rem;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ── Shared Mode Wrapper ─────────────────────────────────────────────────── */
+.modeWrap {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    flex: 1;
+}
+
+.modeTag {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #2962ff;
+    background: #e8eeff;
+    border-radius: 20px;
+    padding: 0.25rem 0.75rem;
+    align-self: flex-start;
+    margin: 0;
+}
+
+/* ── Expression Block ────────────────────────────────────────────────────── */
+.expressionBlock {
+    background: #f8f9ff;
+    border-radius: 16px;
+    padding: 1.5rem;
+    text-align: center;
+}
+
+.expressionText {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #1a1a2e;
+    margin-bottom: 0.5rem;
+}
+
+.meaningText {
+    font-size: 1rem;
+    color: #666;
+}
+
+/* ── Examples Block ──────────────────────────────────────────────────────── */
+.examplesBlock {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.examplesLabel {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #999;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0;
+}
+
+.exampleRow {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+}
+
+.exampleNum {
+    font-size: 0.75rem;
+    color: #999;
+    min-width: 16px;
+    margin-top: 2px;
+}
+
+.exampleText {
+    font-size: 0.95rem;
+    color: #333;
+    line-height: 1.5;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+.primaryBtn {
+    width: 100%;
+    padding: 0.9rem;
+    background: #2962ff;
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: auto;
+    transition: opacity 0.2s;
+}
+
+.primaryBtn:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.ttsBtn {
+    padding: 0.7rem 1.25rem;
+    background: #f0f4ff;
+    color: #2962ff;
+    border: 1px solid #c5d0ff;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    align-self: flex-start;
+}
+
+.ttsSmallBtn {
+    background: none;
+    border: none;
+    font-size: 1.25rem;
+    cursor: pointer;
+    margin-top: 0.5rem;
+}
+
+/* ── Cloze Mode ──────────────────────────────────────────────────────────── */
+.clozePrompt {
+    font-size: 1.1rem;
+    color: #333;
+    line-height: 1.8;
+    background: #f8f9ff;
+    border-radius: 12px;
+    padding: 1.25rem;
+}
+
+.clozeBlank {
+    display: inline-block;
+    min-width: 80px;
+    border-bottom: 2px solid #2962ff;
+    color: #2962ff;
+    font-weight: 600;
+    margin: 0 4px;
+}
+
+.clozeInput {
+    width: 100%;
+    padding: 0.85rem 1rem;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    font-size: 1rem;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+}
+
+.clozeInput:focus {
+    border-color: #2962ff;
+}
+
+.clozeResult {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem;
+}
+
+.correctAnswer {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #1a1a2e;
+}
+
+.resultMsg {
+    font-size: 1rem;
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+}
+
+.correct {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.tryAgain {
+    background: #fff3e0;
+    color: #e65100;
+}
+
+/* ── Speaking Mode ───────────────────────────────────────────────────────── */
+.speakingHint {
+    text-align: center;
+    color: #666;
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+/* ── Flashcard Mode ──────────────────────────────────────────────────────── */
+.card {
+    min-height: 220px;
+    border-radius: 20px;
+    border: 2px solid #e8eeff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    transition: transform 0.1s;
+    user-select: none;
+}
+
+.card:active {
+    transform: scale(0.98);
+}
+
+.cardFlipped {
+    background: #f8f9ff;
+    border-color: #2962ff;
+}
+
+.cardFront,
+.cardBack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    text-align: center;
+    width: 100%;
+}
+
+.cardHint {
+    font-size: 0.8rem;
+    color: #aaa;
+    margin: 0;
+}
+
+.cardMeaning {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #1a1a2e;
+}
+
+.cardTap {
+    font-size: 0.8rem;
+    color: #2962ff;
+    margin: 0;
+}
