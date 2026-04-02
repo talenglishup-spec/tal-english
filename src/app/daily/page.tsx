@@ -100,7 +100,10 @@ export default function DailyPage() {
         else if (rawType === 'B' || rawType.includes('CLOZE')) type = '1-STEP-CLOZE';
         else if (rawType === 'C' || rawType.includes('BLANK')) type = '1-STEP-BLANK';
         else type = '3-STEP';
-        const maxSteps = type === '3-STEP' ? 3 : 1;
+        let maxSteps = type === '3-STEP' ? 3 : 1;
+        if (currentItem?.category?.toLowerCase() === 'onpitch') {
+            maxSteps = 1;
+        }
 
         if (subStep < maxSteps) {
             setDrillingState({ ...drillingState, subStep: subStep + 1 });

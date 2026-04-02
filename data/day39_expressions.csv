@@ -1,0 +1,4 @@
+expression_id,lesson_id,expression,meaning_kr,category,example1,example2,example3,order,active
+expr_d39_01,2026-03-22,have a go,한번 해보다 / 도전해보다,interview,"After we settled down, we felt like we could have a go.",Why don't you have a go at it?,"We thought, we can have a go here.",1,TRUE
+expr_d39_02,2026-03-22,look after the ball,공을 잘 지키다 / 소유권을 유지하다,on-pitch,We need to look after the ball better.,Who's looking after the back post?,If we look after the ball we create chances.,2,TRUE
+expr_d39_03,2026-03-22,come back fighting,포기하지 않고 다시 싸우다,interview,"When they got the equalizer, we came back fighting.",We were behind but we came back fighting.,That's what this team does — we always come back fighting.,3,TRUE

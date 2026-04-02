@@ -1,0 +1,118 @@
+expression_id,lesson_id,expression,meaning_kr,category,example1,example2,example3,order,active
+expr_PC01_01,PC-01,Come to the ball,볼 쪽으로 와,on-pitch,Come to the ball! I'll play it to you.,When you see space come to the ball.,,1,TRUE
+expr_PC01_02,PC-01,Come short,짧게 와 (가까이 내려와),on-pitch,Come short and I'll play it quick.,Come short don't stay wide.,,2,TRUE
+expr_PC01_03,PC-01,Check in,(안쪽으로) 움직여서 볼을 받아,on-pitch,Check in and I'll find you.,Check in so I have an option.,,3,TRUE
+expr_PC01_04,PC-01,Drop deep,깊이 내려와,on-pitch,Drop deep and receive the ball.,He dropped deep to pick up the ball.,,4,TRUE
+expr_PC01_05,PC-01,Show for the ball,볼을 받을 수 있게 모습을 보여줘,on-pitch,Show for the ball! I need an option.,Come show for the ball when I have it.,,5,TRUE
+expr_PC02_01,PC-02,Reaction!,반응해! 세컨볼!,on-pitch,Reaction! Get the second ball!,Reaction! Don't stand still!,,1,TRUE
+expr_PC02_02,PC-02,Go to space,빈 공간으로 가,on-pitch,Go to space! Don't stay close to me.,He went to space and got the ball.,,2,TRUE
+expr_PC02_03,PC-02,Make the run,달려! (침투해),on-pitch,Make the run! I'll find you.,He made the run behind the defence.,,3,TRUE
+expr_PC02_04,PC-02,Run into space,빈 공간으로 침투해,on-pitch,Run into space and I'll play it.,When I get the ball run into space.,,4,TRUE
+expr_PC02_05,PC-02,Hit the space,공간을 찔러,on-pitch,Hit the space behind the fullback.,Hit the space! Don't wait.,,5,TRUE
+expr_PC03_01,PC-03,Score a goal,골을 넣다,on-pitch,We scored a goal in the first half.,He scored a goal from outside the box.,,1,TRUE
+expr_PC03_02,PC-03,Concede a goal,실점하다,on-pitch,We conceded a goal from a set piece.,Don't concede a goal before halftime.,,2,TRUE
+expr_PC03_03,PC-03,Win the ball,공을 빼앗다,on-pitch,We need to win the ball higher up.,Good job winning the ball back!,,3,TRUE
+expr_PC03_04,PC-03,Lose the ball,공을 빼앗기다,on-pitch,I lost the ball in a dangerous area.,Don't lose the ball in our half!,,4,TRUE
+expr_PC03_05,PC-03,"When we switch it, get wide",사이드 전환하면 넓게 벌려,on-pitch,When we switch it get wide on the right.,Get wide when we switch the play!,,5,TRUE
+expr_PC03_06,PC-03,I'll overlap,내가 오버래핑 갈게,on-pitch,Stay inside. I'll overlap on the outside.,I'll overlap you cut inside.,,6,TRUE
+expr_PC03_07,PC-03,Unreal,대박이다! (칭찬),on-pitch,Unreal pass! What a goal!,That save was unreal!,,7,TRUE
+expr_S201_01,S2-01,No foul!,반칙하지 마!,on-pitch,No foul! Just play the ball.,No foul in this area!,,1,TRUE
+expr_S201_02,S2-01,Don't dive in!,무작정 달려들지 마!,on-pitch,Don't dive in! Stay on your feet.,Don't dive in just delay him.,,2,TRUE
+expr_S201_03,S2-01,Don't let him shoot!,슛하게 놔두지 마!,on-pitch,Don't let him shoot! Close him down.,Don't let him turn and shoot.,,3,TRUE
+expr_S201_04,S2-01,No long ball!,롱패스 하지마!,on-pitch,No long ball! Keep it short.,No long ball when we have possession.,,4,TRUE
+expr_S201_05,S2-01,I can't step up,올라갈 수 없어 (침투 주자 있어),on-pitch,I can't step up there's a runner!,"I can't step up, cover the space!",,5,TRUE
+expr_PC04_01,PC-04,Clear!,걷어내!,on-pitch,Clear the ball! Don't mess around.,Clear it out of the box!,,1,TRUE
+expr_PC04_02,PC-04,Clear the middle!,중앙 정리해!,on-pitch,Clear the middle! Too many players there.,Clear the middle and push out.,,2,TRUE
+expr_PC05_01,PC-05,Mine! / My ball!,내 공이야! 내가 할게!,on-pitch,Mine! I got it!,My ball! Leave it!,,1,TRUE
+expr_PC05_02,PC-05,Yours!,네가 해!,on-pitch,Yours! Take the shot!,Yours! I can't reach it!,,2,TRUE
+expr_PC05_03,PC-05,Cover me!,내 자리 커버해줘!,on-pitch,Cover me! I'm going forward.,Cover me when I press the ball.,,3,TRUE
+expr_PC05_04,PC-05,Mark up!,마크해! (수비 붙어!),on-pitch,Mark up! Don't give him space.,Everyone mark up at set pieces.,,4,TRUE
+expr_PC05_05,PC-05,Take him!,그 선수 잡아! (수비 맡아),on-pitch,Take him! I'll cover behind.,Take him on the left side!,,5,TRUE
+expr_PC05_06,PC-05,Watch the runners!,침투하는 선수 주의해!,on-pitch,Watch the runners from midfield!,Runner! Watch the runners!,,6,TRUE
+expr_S401_01,S4-01,Heads up!,고개 들어!,on-pitch,Heads up! Look for the pass.,Heads up there's space on the right.,,1,TRUE
+expr_S401_02,S4-01,Check your shoulders,뒤를 봐 (주변 확인해),on-pitch,Check your shoulders before you receive.,Always check your shoulders.,,2,TRUE
+expr_PC06_01,PC-06,Stay together!,뭉쳐! 간격 유지해!,on-pitch,Stay together! Don't spread out too much.,Stay together as a back four.,,1,TRUE
+expr_PC06_02,PC-06,Get back!,복귀해!,on-pitch,Get back! We lost the ball!,Get back and defend!,,2,TRUE
+expr_PC06_03,PC-06,Stay with him!,그 선수 따라가! 붙어 있어!,on-pitch,Stay with him! Don't let him go.,Stay with him until he passes.,,3,TRUE
+expr_PC06_04,PC-06,Man on!,뒤에 있어! (상대 압박),on-pitch,Man on! Play it quick!,Man on! Turn the other way!,,4,TRUE
+expr_PC06_05,PC-06,Time!,시간 있어! (여유 있어),on-pitch,Time! No pressure take a touch.,Time! You can turn.,,5,TRUE
+expr_PC06_06,PC-06,Turn!,돌아! (방향 전환해),on-pitch,Turn! You've got space behind you!,Turn! No one's on you!,,6,TRUE
+expr_PC06_07,PC-06,Play out from the back,후방에서 빌드업해,on-pitch,We need to play out from the back.,Play out from the back don't go long.,,7,TRUE
+expr_PC06_08,PC-06,Keep it short,짧게 패스해,on-pitch,Keep it short in our half.,Keep it short and move the ball.,,8,TRUE
+expr_PC06_09,PC-06,Hit it first time,원터치로 때리다,on-pitch,Hit it first time! Don't take a touch.,He hit it first time and scored.,,9,TRUE
+expr_PC06_10,PC-06,Exploit the space,공간을 활용하다,on-pitch,We need to exploit the space behind them.,Exploit the space on the wing!,,10,TRUE
+expr_S405_01,S4-05,I need a sub,교체가 필요해,on-pitch,I need a sub. I can't run anymore.,I need a sub my leg is hurting.,,1,TRUE
+expr_S405_02,S4-05,I need to come off,빠져야 해,on-pitch,I need to come off. I'm injured.,I need to come off I can't continue.,,2,TRUE
+expr_S405_03,S4-05,I can't defend alone!,혼자 못 막아!,on-pitch,I can't defend alone! Help me!,I can't defend alone support me!,,3,TRUE
+expr_S405_04,S4-05,He stepped on me,나를 밟았어,on-pitch,He stepped on my foot!,He stepped on me ref!,,4,TRUE
+expr_S804_01,S8-04,Well done!,잘했어!,on-pitch,Well done! Great tackle!,Well done keep it up!,,1,TRUE
+expr_S804_02,S8-04,What a goal!,골 대박이다!,on-pitch,What a goal! That was incredible!,What a pass! What a goal!,,2,TRUE
+expr_S404_01,S4-04,I have a cold,감기에 걸렸어,life,I have a cold can I rest today?,I have a cold but I can still train.,,1,TRUE
+expr_S404_02,S4-04,I feel dizzy,어지러워,life,I feel dizzy. Can I sit down?,I feel dizzy after heading the ball.,,2,TRUE
+expr_S404_03,S4-04,How's the knee today?,무릎 오늘 어때?,life,How's the knee today? Better?,How's the ankle? Any pain?,,3,TRUE
+expr_S101_01,S1-01,I think ~,내 생각에는 ~,interview,I think we played really well today.,I think we can win the league.,,1,TRUE
+expr_S101_02,S1-01,"We would love to say thank you to ~",~에게 감사를 전하고 싶습니다,interview,We would love to say thank you to the fans.,I would love to say thank you to my teammates.,,2,TRUE
+expr_S101_03,S1-01,I'm really proud of ~,~가 정말 자랑스럽다,interview,I'm really proud of my teammates.,I'm really proud of this team.,,3,TRUE
+expr_S603_01,S6-03,As long as ~,~하는 한,interview,As long as we play like this we can win.,As long as I'm helping the team I'm happy.,,4,TRUE
+expr_S502_01,S5-02,In a row,연속으로,interview,We won three games in a row.,He scored five goals in a row.,,1,TRUE
+expr_S101_04,S1-01,Stick to the plan,계획을 따르다,interview,We need to stick to the plan.,We stuck to the plan and won.,,5,TRUE
+expr_S804_03,S8-04,Appreciate,감사하다 고마워하다,interview,I really appreciate it.,I appreciate your help.,We really appreciate your support.,1,TRUE
+expr_S804_04,S8-04,Tactical aspect,전술적인 측면,interview,Today we will focus on the tactical aspect.,The tactical aspect was the key.,,2,TRUE
+expr_S101_05,S1-01,Blow them away,압도하다 완전히 이기다,interview,We blew them away in the second half.,That performance blew me away.,,6,TRUE
+expr_S403_01,S4-03,Struggle,고전하다 힘들어하다,interview,We struggled in the first half.,We struggled to break their defense.,The team is struggling with injuries.,1,TRUE
+expr_S403_02,S4-03,Click / Clicking,(호흡이) 잘 맞다,interview,Everything just clicked in the second half.,This team really seems to be clicking.,,2,TRUE
+expr_S804_05,S8-04,Insane,엄청난 대단한 (긍정적),interview,That goal was insane!,The atmosphere was insane.,It's insane how hard we train every day.,3,TRUE
+expr_S502_02,S5-02,Shuffle,(라인업을) 바꾸다,interview,The coach shuffled the lineup.,We shuffled the back four due to injury.,,2,TRUE
+expr_S901_01,S9-01,Individual training,개별 훈련 (팀 훈련과 별도),life,"After team training, I did some individual training.",The coach prepared individual training plans.,,1,TRUE
+expr_S901_02,S9-01,Personal routine,개인적인 루틴,life,I have a personal routine before every game.,This is my personal opinion.,,2,TRUE
+expr_S404_04,S4-04,Keep it up!,계속 잘해! 힘내!,life,Your English is improving. Keep it up!,You're playing well. Keep it up!,,4,TRUE
+expr_S404_05,S4-04,Hang in there,"포기하지 마, 버텨",life,"Hang in there, you'll be back soon.","Rehab is tough, but hang in there.",,5,TRUE
+expr_S804_06,S8-04,I got your back,내가 네 편이야,life,"Don't worry, I got your back.","Whatever happens, I got your back.",,4,TRUE
+expr_S603_02,S6-03,We deserved the win,우리가 이길 자격이 있었다,interview,It was a tough game but we deserved the win.,We gave everything and deserved the win.,,1,TRUE
+expr_S603_03,S6-03,We dominated the game,경기를 지배했다,interview,We dominated the game from start to finish.,"In the first half, we dominated the game.",,2,TRUE
+expr_S701_01,S7-01,Win the title / Win the league,우승하다,interview,We won the league last season.,I want to win the title with this team.,,1,TRUE
+expr_S602_01,S6-02,That's why ~,그래서 ~한 거다,interview,We worked hard. That's why we won.,That's why we need to keep going.,,1,TRUE
+expr_S1001_01,S10-01,In the future,"앞으로, 미래에",interview,I hope we can win more titles in the future.,I want to improve more in the future.,,1,TRUE
+expr_S101_06,S1-01,To be honest,솔직히 말해서,interview,"To be honest, every moment was tough.","To be honest, I didn't play my best.",,7,TRUE
+expr_S804_07,S8-04,Your support means a lot to me,응원은 저에게 큰 의미가 있어요,interview,Your support means a lot to me and the team.,"Thank you, your support means a lot.",,5,TRUE
+expr_S301_01,S3-01,Wanna / Gonna,~하고 싶어 / ~할 거야,interview,I wanna win the league.,We're gonna give everything.,,1,TRUE
+expr_S101_07,S1-01,To be fair,"공정하게 말하면, 사실",interview,"To be fair, they played well too.","To be fair, we deserved more.",,8,TRUE
+expr_S101_08,S1-01,You know,"있잖아, 그러니까 (입버릇)",interview,"You know, it's not easy to win here.","We just gave everything, you know.",,9,TRUE
+expr_S1001_02,S10-01,Are you looking forward to ~?,~이 기대되나요?,interview,Are you looking forward to next season?,I'm really looking forward to it.,,2,TRUE
+expr_S102_01,S1-02,No matter what,무슨 일이 있어도,interview,"No matter what, we have to win.",I'll give my best no matter what.,,1,TRUE
+expr_S804_08,S8-04,Absolutely / Definitely,정말로 / 확실히,interview,"Absolutely, I'm ready to go.","Definitely, it was a great performance.",,6,TRUE
+expr_S901_03,S9-01,Training,팀 전체 훈련,life,I have training tonight.,Pre-season training is really intense.,,3,TRUE
+expr_S901_04,S9-01,Practice,"연습, 연습하다",life,We practiced free kicks for 30 minutes.,I had shooting practice today.,,4,TRUE
+expr_RA01_01,RA-01,I didn't do anything!,나 아무것도 안 했어요!,on-pitch,I didn't do anything! That's not a foul!,I didn't touch him!,,1,TRUE
+expr_RA01_02,RA-01,That's not a foul!,그건 파울이 아니에요!,on-pitch,"That's not a foul, ref!","That's not a foul, I got the ball!",,2,TRUE
+expr_RA01_03,RA-01,He keeps pushing me!,계속 밀어요!,on-pitch,"He keeps pushing me, ref!",He keeps pulling my shirt!,,3,TRUE
+expr_RA01_04,RA-01,Stop holding me!,잡지 마!,on-pitch,Stop holding me! That's a foul!,He keeps holding me every time.,,4,TRUE
+expr_RA01_05,RA-01,That's a yellow card!,그건 옐로카드예요!,on-pitch,"That's a yellow card, ref!","Come on, ref! That's a yellow card!",,5,TRUE
+expr_S403_03,S4-03,Adapt to,~에 적응하다,interview,I adapted to the team quickly.,It's not easy to adapt to a new country.,It took me a while to adapt to the Premier League.,1,TRUE
+expr_S804_09,S8-04,The support from the fans is amazing,팬들의 응원이 대단해요,interview,The support from the fans is amazing.,The fans were incredible tonight.,,7,TRUE
+expr_S302_01,S3-02,Can I get a large latte please?,라떼 라지 사이즈 하나 주세요,life,Can I get a large latte with oat milk?,Can I get a flat white please?,,1,TRUE
+expr_S302_02,S3-02,Natural turf / Artificial turf,천연잔디 / 인조잔디,on-pitch,We trained on natural turf today.,The game is on an artificial pitch.,I prefer natural grass over synthetic turf.,2,TRUE
+expr_S302_03,S3-02,Can I get the bill please?,계산서 좀 주세요,life,Can I get the bill please?,Could I have the check please?,,3,TRUE
+expr_S302_04,S3-02,Less sugar please,설탕 적게 해주세요,life,Less sugar please.,More ice please.,Can I get it without cream?,4,TRUE
+expr_S501_01,S5-01,It was a tough game,힘든 경기였어요,interview,It was a tough game but we got the result.,It was a tough game they were very physical.,,1,TRUE
+expr_S501_02,S5-01,I am happy,행복합니다,interview,I am happy with the result.,I am happy to help the team.,,2,TRUE
+expr_S101_09,S1-01,I am + 상태,나는 ~이다 (상태 표현),life,I am tired after training.,I am ready for the match.,I am confident we can win.,10,TRUE
+expr_S101_10,S1-01,I work out,나는 운동한다,life,I work out every morning.,I work out at the gym after training.,,11,TRUE
+expr_S502_03,S5-02,Get to,~에 도착하다,life,What time did you get to the stadium?,I need to get to training early.,,3,TRUE
+expr_S101_11,S1-01,Wake up,일어나다,life,I wake up at 7 every morning.,I woke up late today.,,12,TRUE
+expr_S102_02,S1-02,I'm going to ~,~할 거야 (미래),life,I'm going to drive to training.,I'm going to rest tomorrow.,I'm going to eat Korean food.,2,TRUE
+expr_S1002_01,S10-02,I'm not sure,확실하지 않아요,interview,I'm not sure about the starting lineup.,"I'm not sure, I need to check.",,1,TRUE
+expr_S1002_02,S10-02,I don't know,모르겠어요,interview,I don't know the exact schedule.,"I don't know yet, we'll see.",,2,TRUE
+expr_S501_03,S5-01,It was a tough period for me,저에게 힘든 시기였어요,interview,"It was a tough period, but I overcame it.",It was a tough period for me and my family.,,3,TRUE
+expr_S102_03,S1-02,Have to,~해야 한다,life,I have to go to training.,We have to win tomorrow.,I have to get up early.,3,TRUE
+expr_S102_04,S1-02,Be supposed to,~해야 하는 거다 (예정/규칙),life,I'm supposed to be at practice by 9.,We're supposed to wear the new kit today.,,4,TRUE
+expr_S502_04,S5-02,Over the moon,"너무 행복한, 기쁜",interview,I'm over the moon with the result.,The fans are over the moon tonight.,,4,TRUE
+expr_S502_05,S5-02,Sooner rather than later,하루라도 빨리,interview,I want to come back sooner rather than later.,We need a result sooner rather than later.,,5,TRUE
+expr_S701_02,S7-01,Believe in,~을 믿다,interview,I believe in this team.,You have to believe in yourself.,,2,TRUE
+expr_S405_05,S4-05,Behind my back,내 뒤에서 몰래,life,He talked behind my back.,Don't say things behind my back.,,5,TRUE
+expr_S405_06,S4-05,I feel betrayed,배신당한 느낌이야,life,I feel betrayed after what happened.,He stabbed me in the back. I feel betrayed.,,6,TRUE
+expr_S401_03,S4-01,That looks good,그거 좋아 보인다,life,That looks good on you.,The pitch looks good today.,,3,TRUE
+expr_S402_01,S4-02,That sounds good,그거 좋게 들린다,life,That sounds good. Let's do it.,That sounds like a great idea.,,1,TRUE
+expr_S403_04,S4-03,Feel(s) like,~인 것 같다 / ~처럼 느껴지다,life,It feels like a final.,It feels like we're getting better every game.,I feel like I belong here now.,3,TRUE
+expr_S601_01,S6-01,As soon as,~하자마자,life,"As soon as training finished, I went home.",As soon as possible. I need to go.,,1,TRUE
+expr_S601_02,S6-01,Look after,~를 돌보다,life,Look after yourself during the break.,I need to look after my body.,,2,TRUE
