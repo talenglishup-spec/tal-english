@@ -275,7 +275,9 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
 
             <div className={styles.content}>
                 <div className={styles.card}>
-                    <div className={styles.stepBadge}>STEP {subStep} / 3</div>
+                <div className={styles.stepBadge}>
+                    STEP {subStep} / {item.category?.toLowerCase() === 'onpitch' ? '1' : '3'}
+                </div>
 
                 {/* Status Indicator */}
                 {!result && !isSubmitting && <div className={styles.questionText}>{msg}</div>}
@@ -283,15 +285,13 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
                 {/* Target or Blank Text */}
                 <div className={styles.targetText}>
                     {(() => {
-                        const rawType = (item.practice_type || 'A').toString().trim().toUpperCase();
-                        let type: string = rawType;
-                        if (rawType === 'A' || rawType.includes('3')) type = '3-STEP';
-                        else if (rawType === 'B' || rawType.includes('CLOZE')) type = '1-STEP-CLOZE';
-                        else if (rawType === 'C' || rawType.includes('BLANK')) type = '1-STEP-BLANK';
-                        else type = '3-STEP';
+                        let type = '3-STEP';
+                        if (item?.category?.toLowerCase() === 'onpitch') {
+                            type = '1-STEP-BLANK'; // On-pitch is essentially a blank step
+                        }
 
-                        const isClozeStep = (type === '3-STEP' && subStep === 2) || type === '1-STEP-CLOZE';
-                        const isBlankStep = (type === '3-STEP' && subStep === 3) || type === '1-STEP-BLANK' || mode === 'challenge';
+                        const isClozeStep = subStep === 2;
+                        const isBlankStep = subStep === 3 || mode === 'challenge' || type === '1-STEP-BLANK';
 
                         if (result || answerRevealed) {
                             return <span className={styles.targetTextNormal}>{item.target_en}</span>;
