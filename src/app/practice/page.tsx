@@ -110,7 +110,11 @@ function PracticeContent() {
     };
 
     const handleNextDrill = () => {
-        if (!drillingState) return;
+        console.log('[handleNextDrill] CALLED. Current drillingState:', JSON.stringify(drillingState));
+        if (!drillingState) {
+            console.log('[handleNextDrill] No drillingState, returning early');
+            return;
+        }
         const { items, index, subStep, sessionId } = drillingState;
         const currentItem = items[index];
 
@@ -125,12 +129,25 @@ function PracticeContent() {
             maxSteps = 1;
         }
 
+        console.log(`[handleNextDrill] rawType=${rawType}, type=${type}, maxSteps=${maxSteps}, subStep=${subStep}, index=${index}, category=${currentItem?.category}`);
+
         if (subStep < maxSteps) {
-            setDrillingState({ ...drillingState, subStep: subStep + 1 });
+            const newSubStep = subStep + 1;
+            console.log(`[handleNextDrill] ADVANCING subStep: ${subStep} -> ${newSubStep}`);
+            setDrillingState(prev => {
+                if (!prev) return prev;
+                console.log(`[handleNextDrill] setState callback - prev.subStep=${prev.subStep}, setting to ${prev.subStep + 1}`);
+                return { ...prev, subStep: prev.subStep + 1 };
+            });
         } else {
             if (index < items.length - 1) {
-                setDrillingState({ ...drillingState, index: index + 1, subStep: 1 });
+                console.log(`[handleNextDrill] MOVING to next item: index ${index} -> ${index + 1}`);
+                setDrillingState(prev => {
+                    if (!prev) return prev;
+                    return { ...prev, index: prev.index + 1, subStep: 1 };
+                });
             } else {
+                console.log('[handleNextDrill] ALL ITEMS COMPLETE');
                 alert("Situation Complete!");
                 setDrillingState(null);
             }
