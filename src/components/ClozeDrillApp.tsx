@@ -173,20 +173,34 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
 
     const playModelAudio = () => {
         let audioUrl = item.model_audio_url;
-        if (!audioUrl) return;
 
-        if (audioUrl.includes('drive.google.com/file/d/')) {
-            const match = audioUrl.match(/file\/d\/([a-zA-Z0-9_-]+)/);
-            if (match && match[1]) {
-                audioUrl = `https://docs.google.com/uc?export=download&id=${match[1]}`;
+        if (audioUrl) {
+            if (audioUrl.includes('drive.google.com/file/d/')) {
+                const match = audioUrl.match(/file\/d\/([a-zA-Z0-9_-]+)/);
+                if (match && match[1]) {
+                    audioUrl = `https://docs.google.com/uc?export=download&id=${match[1]}`;
+                }
             }
-        }
 
-        setModelPlayCount(prev => prev + 1);
-        const audio = new Audio(audioUrl);
-        audio.play().catch(err => {
-            console.error(err);
-        });
+            setModelPlayCount(prev => prev + 1);
+            const audio = new Audio(audioUrl);
+            audio.play().catch(err => {
+                console.error(err);
+                if (item.target_en) {
+                    window.speechSynthesis.cancel();
+                    const utterance = new SpeechSynthesisUtterance(item.target_en);
+                    utterance.lang = 'en-US';
+                    window.speechSynthesis.speak(utterance);
+                }
+            });
+        } else if (item.target_en) {
+            setModelPlayCount(prev => prev + 1);
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(item.target_en);
+            utterance.lang = 'en-US';
+            utterance.rate = 0.95;
+            window.speechSynthesis.speak(utterance);
+        }
     };
 
     const toggleTranslation = () => {
@@ -408,8 +422,8 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
                     {/* Audio Buttons in Result */}
                     {result && (
                         <div className={styles.audioButtons}>
-                            {item.model_audio_url && (
-                                <button type="button" onClick={() => playAudio(item.model_audio_url)} className={styles.audioBtn} style={{ cursor: 'pointer' }}>
+                            {(item.model_audio_url || item.target_en) && (
+                                <button type="button" onClick={playModelAudio} className={styles.audioBtn} style={{ cursor: 'pointer' }}>
                                     🔊 모범 발음
                                 </button>
                             )}
