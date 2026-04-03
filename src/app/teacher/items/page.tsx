@@ -51,6 +51,8 @@ export default function ItemsManagerPage() {
     const [loading, setLoading] = useState(true);
     const [generating, setGenerating] = useState<Set<string>>(new Set());
     const [filter, setFilter] = useState<'all' | 'missing'>('all');
+    const [selectedPlayer, setSelectedPlayer] = useState('all');
+    const [selectedLesson, setSelectedLesson] = useState('all');
 
     useEffect(() => {
         if (user?.role === 'teacher' || user?.role === 'admin') {
@@ -223,8 +225,54 @@ export default function ItemsManagerPage() {
         }
     };
 
+    const uniquePlayers = new Set<string>();
+    const uniqueLessons = new Set<string>();
+
+    items.forEach(item => {
+        if (item.playerInfo && item.playerInfo !== '-') {
+            const tokens = item.playerInfo.split(' / ');
+            tokens.forEach(tok => {
+                const parts = tok.split('-');
+                if (parts.length >= 2) {
+                    uniquePlayers.add(parts[0]);
+                    uniqueLessons.add(parts[1]);
+                }
+            });
+        }
+    });
+
+    const playerOptions = Array.from(uniquePlayers).sort();
+    const lessonOptions = Array.from(uniqueLessons).sort((a, b) => {
+        const numA = parseInt(a.replace('L', '')) || 0;
+        const numB = parseInt(b.replace('L', '')) || 0;
+        return numA - numB;
+    });
+
     const filteredItems = items.filter(item => {
-        if (filter === 'missing') return !item.model_audio_url || (item.question_text && !item.question_audio_url);
+        if (filter === 'missing') {
+            if (!(!item.model_audio_url || (item.question_text && !item.question_audio_url))) return false;
+        }
+
+        if (selectedPlayer !== 'all' || selectedLesson !== 'all') {
+            if (!item.playerInfo || item.playerInfo === '-') return false;
+            
+            const tokens = item.playerInfo.split(' / ');
+            
+            let matches = false;
+            for (const tok of tokens) {
+                const parts = tok.split('-');
+                const p = parts[0];
+                const l = parts[1];
+                const pMatch = selectedPlayer === 'all' || p === selectedPlayer;
+                const lMatch = selectedLesson === 'all' || l === selectedLesson;
+                if (pMatch && lMatch) {
+                    matches = true;
+                    break;
+                }
+            }
+            if (!matches) return false;
+        }
+
         return true;
     });
 
@@ -240,13 +288,32 @@ export default function ItemsManagerPage() {
                 <div className={styles.controls}>
 
                     <select
+                        value={selectedPlayer}
+                        onChange={(e) => setSelectedPlayer(e.target.value)}
+                        className={styles.select}
+                    >
+                        <option value="all">All Players</option>
+                        {playerOptions.map(p => <option key={p} value={p}>{p}</option>)}
+                    </select>
+
+                    <select
+                        value={selectedLesson}
+                        onChange={(e) => setSelectedLesson(e.target.value)}
+                        className={styles.select}
+                    >
+                        <option value="all">All Lessons</option>
+                        {lessonOptions.map(l => <option key={l} value={l}>{l}</option>)}
+                    </select>
+
+                    <select
                         value={filter}
                         onChange={(e) => setFilter(e.target.value as any)}
                         className={styles.select}
                     >
-                        <option value="all">All Items</option>
-                        <option value="missing">Missing Audio Only</option>
+                        <option value="all">All Audio</option>
+                        <option value="missing">Missing Audio</option>
                     </select>
+
                     <button
                         onClick={generateAllMissing}
                         className={styles.refreshBtn}
