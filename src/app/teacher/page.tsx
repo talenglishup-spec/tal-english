@@ -29,6 +29,9 @@ interface PlayerSummary {
     totalAttempts: number;
     avgAiScore: number;
     ungradedCount: number;
+    practiceCount: number;
+    challengeCount: number;
+    lessonsCount: number;
 }
 
 export default function TeacherPage() {
@@ -60,11 +63,36 @@ export default function TeacherPage() {
 
     useEffect(() => {
         if (user?.role === 'teacher' || user?.role === 'admin') {
-            fetch('/api/teacher/attempts')
-                .then(res => res.json())
-                .then(data => {
-                    const attempts: Attempt[] = data.attempts;
+            Promise.all([
+                fetch('/api/teacher/attempts').then(res => res.json()),
+                fetch('/api/teacher/lessons').then(res => res.json())
+            ])
+                .then(([data, lessonsData]) => {
+                    const attempts: Attempt[] = data.attempts || [];
+                    const lessons: any[] = lessonsData.lessons || [];
                     const summaryMap = new Map<string, PlayerSummary>();
+
+                    // Pre-populate players from lessons to guarantee they appear even with 0 attempts
+                    lessons.forEach((l: any) => {
+                        const pid = l.player_id;
+                        if (!pid) return;
+                        if (!summaryMap.has(pid)) {
+                            summaryMap.set(pid, {
+                                id: pid,
+                                name: 'Anonymous',
+                                lastActive: '1970-01-01',
+                                totalAttempts: 0,
+                                avgAiScore: 0,
+                                ungradedCount: 0,
+                                practiceCount: 0,
+                                challengeCount: 0,
+                                lessonsCount: 0
+                            });
+                        }
+                        if (l.active !== false) {
+                            summaryMap.get(pid)!.lessonsCount += 1;
+                        }
+                    });
 
                     // Aggregating KPIs across ALL players
                     let cCount = 0; let cResponseSum = 0; let cRevealCount = 0; let cTranslationCount = 0;
@@ -83,12 +111,18 @@ export default function TeacherPage() {
                                 lastActive: a.date_time,
                                 totalAttempts: 0,
                                 avgAiScore: 0,
-                                ungradedCount: 0
+                                ungradedCount: 0,
+                                practiceCount: 0,
+                                challengeCount: 0,
+                                lessonsCount: 0
                             });
                         }
 
                         const p = summaryMap.get(pid)!;
                         p.totalAttempts += 1;
+                        // Update name if valid (prefer incoming if we only had 'Anonymous' from lessons)
+                        if (pname && pname !== 'Anonymous' && p.name === 'Anonymous') p.name = pname;
+
                         if (new Date(a.date_time) > new Date(p.lastActive)) {
                             p.lastActive = a.date_time;
                             p.name = pname;
@@ -100,11 +134,13 @@ export default function TeacherPage() {
                         }
 
                         if (a.session_mode === 'challenge') {
+                            p.challengeCount += 1;
                             cCount++;
                             cResponseSum += (a.time_to_first_response_ms || 0);
                             if (a.answer_revealed) cRevealCount++;
                             if (a.translation_toggle_count && a.translation_toggle_count > 0) cTranslationCount++;
                         } else {
+                            p.practiceCount += 1;
                             pCount++;
                             pModelSum += (a.model_play_count || 0);
                             pDurationSum += (a.duration_sec || 0);
@@ -112,11 +148,12 @@ export default function TeacherPage() {
                         }
                     });
 
+
                     // Finalize calculations
                     const summaryList = Array.from(summaryMap.values()).map(p => ({
                         ...p,
                         avgAiScore: p.totalAttempts > 0 ? Math.round(p.avgAiScore / p.totalAttempts) : 0,
-                        lastActive: new Date(p.lastActive).toLocaleDateString()
+                        lastActive: p.lastActive === '1970-01-01' ? 'No history' : new Date(p.lastActive).toLocaleDateString()
                     }));
 
                     setPlayers(summaryList.sort((a, b) => new Date(b.lastActive).getTime() - new Date(a.lastActive).getTime()));
@@ -275,7 +312,9 @@ export default function TeacherPage() {
                     <thead>
                         <tr>
                             <th>Player</th>
+                            <th>Lessons</th>
                             <th>Last Active</th>
+                            <th>P/C Status</th>
                             <th>Attempts</th>
                             <th>Avg AI Score</th>
                             <th>Ungraded</th>
@@ -289,7 +328,18 @@ export default function TeacherPage() {
                                     <div className={styles.playerName}>{p.name}</div>
                                     <div className={styles.playerId}>{p.id}</div>
                                 </td>
+                                <td>
+                                    <span style={{ fontWeight: 'bold', color: '#0070f3' }}>
+                                        {p.lessonsCount} lessons
+                                    </span>
+                                </td>
                                 <td>{p.lastActive}</td>
+                                <td>
+                                    <div style={{ fontSize: '0.85rem' }}>
+                                        P: <strong style={{ color: '#60a5fa' }}>{p.practiceCount}</strong><br/>
+                                        C: <strong style={{ color: '#f87171' }}>{p.challengeCount}</strong>
+                                    </div>
+                                </td>
                                 <td>{p.totalAttempts}</td>
                                 <td>
                                     <span className={p.avgAiScore >= 80 ? styles.scoreHigh : p.avgAiScore >= 60 ? styles.scoreMid : styles.scoreLow}>
