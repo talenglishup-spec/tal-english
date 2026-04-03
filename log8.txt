@@ -1,0 +1,5 @@
+﻿commit b09f040dd16fdde8cf1ca5f6fa76f8d440f1b226
+Author: Roi Lee <tal.english.up@gmail.com>
+Date:   Fri Apr 3 08:15:13 2026 +0900
+
+    fix(practice): ensure on-pitch drills are treated as single step and sync day39 data

@@ -110,48 +110,35 @@ function PracticeContent() {
     };
 
     const handleNextDrill = () => {
-        console.log('[handleNextDrill] CALLED. Current drillingState:', JSON.stringify(drillingState));
-        if (!drillingState) {
-            console.log('[handleNextDrill] No drillingState, returning early');
-            return;
-        }
-        const { items, index, subStep, sessionId } = drillingState;
-        const currentItem = items[index];
+        setDrillingState(prev => {
+            if (!prev) return prev;
+            
+            const { items, index, subStep } = prev;
+            const currentItem = items[index];
 
-        const rawType = (currentItem?.practice_type || 'A').toString().trim().toUpperCase();
-        let type = rawType;
-        if (rawType === 'A' || rawType.includes('3')) type = '3-STEP';
-        else if (rawType === 'B' || rawType.includes('CLOZE')) type = '1-STEP-CLOZE';
-        else if (rawType === 'C' || rawType.includes('BLANK')) type = '1-STEP-BLANK';
-        else type = '3-STEP';
-        let maxSteps = type === '3-STEP' ? 3 : 1;
-        if (currentItem?.category?.toLowerCase() === 'onpitch') {
-            maxSteps = 1;
-        }
-
-        console.log(`[handleNextDrill] rawType=${rawType}, type=${type}, maxSteps=${maxSteps}, subStep=${subStep}, index=${index}, category=${currentItem?.category}`);
-
-        if (subStep < maxSteps) {
-            const newSubStep = subStep + 1;
-            console.log(`[handleNextDrill] ADVANCING subStep: ${subStep} -> ${newSubStep}`);
-            setDrillingState(prev => {
-                if (!prev) return prev;
-                console.log(`[handleNextDrill] setState callback - prev.subStep=${prev.subStep}, setting to ${prev.subStep + 1}`);
-                return { ...prev, subStep: prev.subStep + 1 };
-            });
-        } else {
-            if (index < items.length - 1) {
-                console.log(`[handleNextDrill] MOVING to next item: index ${index} -> ${index + 1}`);
-                setDrillingState(prev => {
-                    if (!prev) return prev;
-                    return { ...prev, index: prev.index + 1, subStep: 1 };
-                });
-            } else {
-                console.log('[handleNextDrill] ALL ITEMS COMPLETE');
-                alert("Situation Complete!");
-                setDrillingState(null);
+            const rawType = (currentItem?.practice_type || 'A').toString().trim().toUpperCase();
+            let type = rawType;
+            if (rawType === 'A' || rawType.includes('3')) type = '3-STEP';
+            else if (rawType === 'B' || rawType.includes('CLOZE')) type = '1-STEP-CLOZE';
+            else if (rawType === 'C' || rawType.includes('BLANK')) type = '1-STEP-BLANK';
+            else type = '3-STEP';
+            
+            let maxSteps = type === '3-STEP' ? 3 : 1;
+            if (currentItem?.category?.toLowerCase() === 'onpitch') {
+                maxSteps = 1;
             }
-        }
+
+            if (subStep < maxSteps) {
+                return { ...prev, subStep: subStep + 1 };
+            } else {
+                if (index < items.length - 1) {
+                    return { ...prev, index: index + 1, subStep: 1 };
+                } else {
+                    setTimeout(() => alert("Situation Complete!"), 0);
+                    return null;
+                }
+            }
+        });
     };
 
     // Grouping Logic for Active Situation
