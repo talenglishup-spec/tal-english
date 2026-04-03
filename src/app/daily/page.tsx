@@ -96,7 +96,14 @@ export default function DailyPage() {
             const { items, index, subStep } = prev;
             const currentItem = items[index];
 
-            let maxSteps = 3;
+            const rawType = (currentItem?.practice_type || 'A').toString().trim().toUpperCase();
+            let type = rawType;
+            if (rawType === 'A' || rawType.includes('3')) type = '3-STEP';
+            else if (rawType === 'B' || rawType.includes('CLOZE')) type = '1-STEP-CLOZE';
+            else if (rawType === 'C' || rawType.includes('BLANK')) type = '1-STEP-BLANK';
+            else type = '3-STEP';
+            
+            let maxSteps = type === '3-STEP' ? 3 : 1;
             if (currentItem?.category?.toLowerCase() === 'onpitch') {
                 maxSteps = 1;
             }

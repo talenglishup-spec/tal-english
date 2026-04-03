@@ -59,6 +59,17 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
     const challengeType = item.challenge_type || 'FOOTBALL_KO_TO_EN';
     const isEnType = challengeType === 'FOOTBALL_ENQ_TO_EN' || challengeType === 'INTERVIEW_ENQ_TO_EN';
 
+    const rawType = (item.practice_type || 'A').toString().trim().toUpperCase();
+    let type: string = rawType;
+    if (rawType === 'A' || rawType.includes('3')) type = '3-STEP';
+    else if (rawType === 'B' || rawType.includes('CLOZE')) type = '1-STEP-CLOZE';
+    else if (rawType === 'C' || rawType.includes('BLANK')) type = '1-STEP-BLANK';
+    else type = '3-STEP';
+
+    if (item?.category?.toLowerCase() === 'onpitch') {
+        type = '1-STEP-BLANK';
+    }
+
     useEffect(() => {
         // Reset state on new item
         setResult(null);
@@ -276,7 +287,7 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
             <div className={styles.content}>
                 <div className={styles.card}>
                 <div className={styles.stepBadge}>
-                    STEP {subStep} / {item.category?.toLowerCase() === 'onpitch' ? '1' : '3'}
+                    STEP {subStep} / {type === '3-STEP' ? '3' : '1'}
                 </div>
 
                 {/* Status Indicator */}
@@ -285,13 +296,8 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
                 {/* Target or Blank Text */}
                 <div className={styles.targetText}>
                     {(() => {
-                        let type = '3-STEP';
-                        if (item?.category?.toLowerCase() === 'onpitch') {
-                            type = '1-STEP-BLANK'; // On-pitch is essentially a blank step
-                        }
-
-                        const isClozeStep = subStep === 2;
-                        const isBlankStep = subStep === 3 || mode === 'challenge' || type === '1-STEP-BLANK';
+                        const isClozeStep = (type === '3-STEP' && subStep === 2) || type === '1-STEP-CLOZE';
+                        const isBlankStep = (type === '3-STEP' && subStep === 3) || type === '1-STEP-BLANK' || mode === 'challenge';
 
                         if (result || answerRevealed) {
                             return <span className={styles.targetTextNormal}>{item.target_en}</span>;
