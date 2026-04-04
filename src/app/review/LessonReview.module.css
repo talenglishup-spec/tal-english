@@ -1,47 +1,49 @@
 .page {
     min-height: 100vh;
-    background-color: var(--background, #0f172a);
-    color: var(--foreground, #ffffff);
+    background-color: #f8fafc;
+    color: #0f172a;
     display: flex;
     flex-direction: column;
     font-family: -apple-system, sans-serif;
     max-width: 480px;
     margin: 0 auto;
     position: relative;
-    box-shadow: 0 0 30px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.1);
 }
 
 .header {
-    background-color: var(--card-bg, #1e293b);
+    background-color: white;
     padding: 1rem 1.5rem;
-    border-bottom: 1px solid var(--border-color, #334155);
+    border-bottom: 1px solid #e2e8f0;
     display: flex;
     justify-content: space-between;
     align-items: center;
     position: sticky;
     top: 0;
     z-index: 50;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
 }
 
 .title {
-    font-size: 1.5rem;
+    font-size: 1.35rem;
     font-weight: 800;
-    color: var(--primary, #6366f1);
+    color: #0f172a;
 }
 
 .homeBtn {
     background: transparent;
-    border: 1px solid var(--border-color, #334155);
-    color: var(--foreground);
+    border: 1px solid #e2e8f0;
+    color: #64748b;
     padding: 0.5rem 1rem;
     border-radius: 8px;
     cursor: pointer;
     font-weight: 600;
+    transition: all 0.2s;
 }
 
 .homeBtn:hover {
-    background-color: var(--hover-bg, #334155);
+    background-color: #f1f5f9;
+    color: #0f172a;
 }
 
 .content {
@@ -55,27 +57,34 @@
 .filters {
     display: flex;
     gap: 0.5rem;
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
     overflow-x: auto;
     padding-bottom: 0.5rem;
 }
 
 .filterBtn {
-    background: var(--card-bg, #1e293b);
-    border: 1px solid var(--border-color, #334155);
-    color: var(--text-secondary, #94a3b8);
+    background: white;
+    border: 1px solid #e2e8f0;
+    color: #64748b;
     padding: 0.5rem 1rem;
     border-radius: 20px;
     cursor: pointer;
     font-weight: 600;
     transition: all 0.2s;
     white-space: nowrap;
+    font-size: 0.9rem;
+}
+
+.filterBtn:hover {
+    border-color: #bfdbfe;
+    color: #3b82f6;
 }
 
 .activeFilter {
-    background: var(--primary, #6366f1);
+    background: #3b82f6;
     color: white;
-    border-color: var(--primary, #6366f1);
+    border-color: #3b82f6;
+    box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
 }
 
 .lessonList {
@@ -85,20 +94,21 @@
 }
 
 .lessonCard {
-    background: var(--card-bg, #1e293b);
+    background: white;
     border-radius: 16px;
     padding: 1.5rem;
-    border: 1px solid var(--border-color, #334155);
+    border: 1px solid #e2e8f0;
     cursor: pointer;
     transition: transform 0.2s, box-shadow 0.2s;
     position: relative;
     overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .lessonCard:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-    border-color: var(--primary, #6366f1);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+    border-color: #3b82f6;
 }
 
 .cardHeader {
@@ -112,18 +122,20 @@
     font-weight: 800;
     padding: 3px 8px;
     border-radius: 6px;
-    background: rgba(99, 102, 241, 0.2);
-    color: #818cf8;
+    background: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
 }
 
 .lessonDate {
     font-size: 0.8rem;
-    color: var(--text-secondary);
+    color: #94a3b8;
 }
 
 .lessonCard h3 {
     margin: 0 0 1rem 0;
-    font-size: 1.25rem;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #1e293b;
 }
 
 .progressWrap {
@@ -134,13 +146,13 @@
     display: flex;
     justify-content: space-between;
     font-size: 0.85rem;
-    color: #cbd5e1;
+    color: #64748b;
     margin-bottom: 0.3rem;
 }
 
 .progressBar {
     height: 8px;
-    background: #334155;
+    background: #e2e8f0;
     border-radius: 4px;
     overflow: hidden;
 }
@@ -153,7 +165,7 @@
 
 .lastAttempt {
     font-size: 0.8rem;
-    color: var(--text-secondary);
+    color: #94a3b8;
     display: flex;
     align-items: center;
     gap: 0.3rem;
@@ -163,23 +175,35 @@
 .backBtn {
     background: none;
     border: none;
-    color: var(--text-secondary);
+    color: #3b82f6;
     font-weight: 600;
-    font-size: 1.1rem;
+    font-size: 1rem;
     cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: color 0.2s;
+}
+
+.backBtn:hover {
+    color: #2563eb;
 }
 
 .lessonOverview {
-    background: var(--card-bg);
+    background: white;
     padding: 2rem;
     border-radius: 16px;
     margin-bottom: 2rem;
-    border: 1px solid var(--border-color);
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .lessonOverview h2 {
     margin: 0.5rem 0 1.5rem 0;
     font-size: 1.8rem;
+    font-weight: 800;
+    color: #1e293b;
 }
 
 .actionPanel {
@@ -197,61 +221,75 @@
     font-weight: 700;
     font-size: 1rem;
     cursor: pointer;
-    background: #334155;
     color: white;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    transition: transform 0.1s, filter 0.2s;
+    transition: transform 0.1s, box-shadow 0.2s;
+    background: linear-gradient(135deg, #3b82f6, #6366f1);
 }
 
 .actionBtn:hover {
-    filter: brightness(1.2);
     transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(59, 130, 246, 0.3);
 }
 
 .actionBtnWeak {
-    background: #b91c1c;
+    background: linear-gradient(135deg, #ef4444, #b91c1c);
+}
+
+.actionBtnWeak:hover {
+    box-shadow: 0 8px 16px rgba(239, 68, 68, 0.3) !important;
 }
 
 .actionBtnQuick {
-    background: #d97706;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.actionBtnQuick:hover {
+    box-shadow: 0 8px 16px rgba(245, 158, 11, 0.3) !important;
 }
 
 .actionBtn:disabled {
     opacity: 0.4;
     cursor: not-allowed;
     transform: none;
-    filter: none;
+    box-shadow: none;
 }
 
 .situationsList h3 {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #1e293b;
     margin-bottom: 1rem;
 }
 
 .situationCard {
-    background: var(--card-bg);
+    background: white;
     border-radius: 12px;
     margin-bottom: 1rem;
-    border: 1px solid var(--border-color);
+    border: 1px solid #e2e8f0;
     overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .sitHeader {
-    background: rgba(0, 0, 0, 0.2);
+    background: #f8fafc;
     padding: 1rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    border-bottom: 1px solid #e2e8f0;
 }
 
 .sitHeader h4 {
     margin: 0;
-    font-size: 1.05rem;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1e293b;
 }
 
 .sitCount {
     font-size: 0.8rem;
-    color: var(--text-secondary);
+    color: #94a3b8;
 }
 
 .itemsBlock {
@@ -263,7 +301,7 @@
     gap: 1rem;
     align-items: center;
     padding: 0.8rem 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid #f1f5f9;
 }
 
 .itemRow:last-child {
@@ -287,7 +325,7 @@
 
 .dot_finalized {
     background: #22c55e;
-    box-shadow: 0 0 5px rgba(34, 197, 94, 0.5);
+    box-shadow: 0 0 5px rgba(34, 197, 94, 0.4);
 }
 
 .dot_failed {
@@ -295,48 +333,50 @@
 }
 
 .dot_unattempted {
-    background: #64748b;
+    background: #cbd5e1;
 }
 
 .itemCat {
     font-size: 0.65rem;
     text-transform: uppercase;
     color: #94a3b8;
+    font-weight: 600;
 }
 
 .itemText {
     flex: 1;
     font-size: 0.95rem;
+    color: #1e293b;
 }
 
 .itemEn {
-    color: var(--text-secondary);
+    color: #64748b;
     font-size: 0.85rem;
     margin-top: 0.2rem;
 }
 
 .weakBadge {
-    background: rgba(239, 68, 68, 0.2);
-    color: #fca5a5;
+    background: rgba(239, 68, 68, 0.1);
+    color: #dc2626;
     font-size: 0.7rem;
     padding: 2px 6px;
     border-radius: 4px;
     font-weight: 700;
 }
 
-/* Drill Header (Full screen mode component) */
+/* Drill Header */
 .drillHeader {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 1rem;
-    background-color: var(--card-bg);
-    border-bottom: 1px solid var(--border-color);
+    background-color: white;
+    border-bottom: 1px solid #e2e8f0;
     z-index: 100;
 }
 
 .drillBadge {
-    background-color: var(--primary);
+    background-color: #3b82f6;
     color: white;
     padding: 0.25rem 0.75rem;
     border-radius: 20px;
@@ -347,5 +387,5 @@
 .drillProgress {
     font-size: 0.9rem;
     font-weight: 600;
-    color: var(--text-secondary);
+    color: #64748b;
 }
