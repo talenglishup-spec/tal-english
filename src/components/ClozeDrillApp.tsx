@@ -24,6 +24,11 @@ interface TrainingItem {
     expected_phrases?: string;
     // v5 matching fields
     matched_question_text?: string;
+    
+    // Mode B Dialogue
+    dialogue_prompt_en?: string;
+    dialogue_speaker?: string;
+    dialogue_audio_url?: string;
 }
 
 interface ClozeDrillProps {
@@ -44,6 +49,7 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
     const [recordingTime, setRecordingTime] = useState(0);
     const [userAudioBlobUrl, setUserAudioBlobUrl] = useState<string | null>(null);
     const [isHintRevealed, setIsHintRevealed] = useState(false);
+    const [interviewCountdown, setInterviewCountdown] = useState<number | null>(null);
     const audioRecorderRef = useRef<any>(null);
 
     // Tracking variables
@@ -97,17 +103,31 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
 
         // Auto-play logic: Manual Question Audio -> Manual Question Text (EN TTS) -> Auto-Matched Question Text (EN TTS) -> Korean Fallback (KO TTS)
         const englishQuestionText = item.question_text || item.matched_question_text;
+        const dialogueText = item.dialogue_prompt_en;
         const hasManualAudio = !!(item.question_audio_en || item.question_audio_url);
 
         console.log(`[ClozeDrill] Item: ${item.id}`, { 
             hasManualAudio, 
             englishQuestionText, 
+            dialogueText,
             matched: item.matched_question_text,
             manual: item.question_text,
             prompt_kr: item.prompt_kr 
         });
 
-        if (hasManualAudio || englishQuestionText) {
+        if (dialogueText) {
+            console.log(`[ClozeDrill] Dialogue Auto-play: ${dialogueText}`);
+            if (item.dialogue_audio_url) {
+                const audio = new Audio(item.dialogue_audio_url);
+                audio.play().catch(e => console.error("Dialogue Audio Error:", e));
+            } else {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(dialogueText);
+                utterance.lang = 'en-US';
+                utterance.rate = 0.95;
+                window.speechSynthesis.speak(utterance);
+            }
+        } else if (hasManualAudio || englishQuestionText) {
             if (hasManualAudio) {
                 console.log("[ClozeDrill] Auto-playing manual audio");
                 playQuestionAudio();
@@ -122,8 +142,25 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
             }
         }
 
+        let interval: any;
+        if (challengeType === 'INTERVIEW_ENQ_TO_EN' && mode === 'challenge') {
+            setInterviewCountdown(3);
+            interval = setInterval(() => {
+                setInterviewCountdown((prev) => {
+                    if (prev === null) return null;
+                    if (prev <= 1) {
+                        clearInterval(interval);
+                        setMsg('🎙️ 생각할 시간이 끝났습니다. 답변을 녹음하세요!');
+                        return null;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+        }
+
         return () => {
             window.speechSynthesis.cancel();
+            if (interval) clearInterval(interval);
         };
     }, [item, mode, isEnType]);
 
@@ -304,8 +341,23 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
                     STEP {subStep} / {type === '3-STEP' ? '3' : '1'}
                 </div>
 
-                {/* Status Indicator */}
-                {!result && !isSubmitting && <div className={styles.questionText}>{msg}</div>}
+                {/* Status Indicator & Countdown */}
+                {interviewCountdown !== null && (
+                    <div className={styles.countdownBadge}>
+                        ⏱️ 생각할 시간: {interviewCountdown}초
+                    </div>
+                )}
+                {!result && !isSubmitting && interviewCountdown === null && (
+                    <div className={styles.questionText}>{msg}</div>
+                )}
+
+                {/* Dialogue Display (Mode B) */}
+                {item.dialogue_prompt_en && (
+                    <div className={styles.dialogueBox}>
+                        <span className={styles.speakersIcon}>🗣️</span>
+                        <strong>{item.dialogue_speaker || 'Coach'}:</strong> "{item.dialogue_prompt_en}"
+                    </div>
+                )}
 
                 {/* Target or Blank Text */}
                 <div className={styles.targetText}>

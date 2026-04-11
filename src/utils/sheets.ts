@@ -87,9 +87,6 @@ export type TrainingItem = {
     // v2.0 Fields
     subtype?: string; // situation | dialogue | build | assemble
     pattern_type?: string;
-    intent_tags?: string;
-    answer_role?: string;
-    variation_examples?: string;
     followup_group_id?: string;
     expected_phrases?: string;
     max_latency_ms?: number;
@@ -100,6 +97,11 @@ export type TrainingItem = {
     matched_question_text?: string;
     match_confidence?: number;
     review_needed?: boolean;
+
+    // NEW FIELDS (Mode B)
+    dialogue_prompt_en?: string;
+    dialogue_speaker?: string;
+    dialogue_audio_url?: string;
 };
 
 
@@ -121,6 +123,7 @@ export type PlayerRow = {
     active: boolean;
     note: string;
     created_at?: string;
+    level?: string;
 };
 
 // --- v2.0+ CMS & Review Types ---
@@ -179,6 +182,9 @@ export type InterviewQuestionRow = {
     primary_tags: string;
     difficulty: string;
     followup_group_id: string;
+    frequency_rank?: number;
+    min_level?: string;
+    sample_answer?: string;
 };
 
 export type ClipRow = {
@@ -257,7 +263,8 @@ export async function getPlayer(playerId: string): Promise<PlayerRow | null> {
         password: row.get('password'),
         active: isActive,
         note: row.get('note') || '',
-        created_at: row.get('created_at')
+        created_at: row.get('created_at'),
+        level: row.get('level') || 'L1'
     };
 }
 
@@ -302,9 +309,6 @@ export async function getItems(): Promise<TrainingItem[]> {
                 // v2.0 Fields
                 subtype: row.get('subtype') || '',
                 pattern_type: row.get('pattern_type') || null,
-                intent_tags: row.get('intent_tags') || '',
-                answer_role: row.get('answer_role') || '',
-                variation_examples: row.get('variation_examples') || '',
                 followup_group_id: row.get('followup_group_id') || '',
                 expected_phrases: row.get('expected_phrases') || '',
                 max_latency_ms: Number(row.get('max_latency_ms')) || 1500,
@@ -315,6 +319,10 @@ export async function getItems(): Promise<TrainingItem[]> {
                 matched_question_text: row.get('matched_question_text') || '',
                 match_confidence: Number(row.get('match_confidence') || 0),
                 review_needed: row.get('review_needed') === 'TRUE',
+
+                dialogue_prompt_en: row.get('dialogue_prompt_en') || '',
+                dialogue_speaker: row.get('dialogue_speaker') || '',
+                dialogue_audio_url: row.get('dialogue_audio_url') || '',
             };
         })
         .filter(item => item.active === true);
@@ -1107,3 +1115,35 @@ export async function getAllExpressionProgress(lessonId?: string): Promise<Expre
         }))
         .filter(r => !lessonId || r.lesson_id === lessonId);
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Interview Question Functions
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function getInterviewQuestions(): Promise<InterviewQuestionRow[]> {
+    const sheet = await getSheet('InterviewQuestions');
+    if (!sheet) return [];
+    
+    const rows = await sheet.getRows();
+    return rows
+        .map(row => {
+            const activeVal = row.get('active');
+            const isActive = activeVal === 'TRUE' || activeVal === true || activeVal === 'true';
+            
+            return {
+                active: isActive,
+                question_id: row.get('question_id') || '',
+                question_en: row.get('question_en') || '',
+                question_ko: row.get('question_ko') || '',
+                pattern_type: row.get('pattern_type') || '',
+                primary_tags: row.get('primary_tags') || '',
+                difficulty: row.get('difficulty') || '',
+                followup_group_id: row.get('followup_group_id') || '',
+                frequency_rank: Number(row.get('frequency_rank')) || 999,
+                min_level: row.get('min_level') || 'L1',
+                sample_answer: row.get('sample_answer') || ''
+            };
+        })
+        .filter(q => q.active);
+}
+

@@ -13,22 +13,13 @@
 .header {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
+    align-items: center;
     margin-bottom: 2.5rem;
 }
 
 .brand {
     display: flex;
     flex-direction: column;
-}
-
-.appLabel {
-    font-size: 0.8rem;
-    font-weight: 700;
-    color: #64748b;
-    margin: 0 0 4px 0;
-    text-transform: uppercase;
-    letter-spacing: 1px;
 }
 
 .mission {
@@ -40,57 +31,147 @@
 }
 
 .logoutBtn {
-    background: none;
-    border: none;
-    font-size: 1.5rem;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    font-size: 1.2rem;
     cursor: pointer;
-    padding: 0;
-    opacity: 0.7;
-    transition: opacity 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s;
 }
 
 .logoutBtn:hover {
-    opacity: 1;
+    transform: scale(1.05);
 }
 
-.focusSection {
+.content {
     display: flex;
     flex-direction: column;
     gap: 1rem;
 }
 
+.dailySection {
+    margin-bottom: 0.5rem;
+}
+
+.dailyCard {
+    display: flex;
+    align-items: center;
+    padding: 1.5rem;
+    border-radius: 20px;
+    cursor: pointer;
+    background: white;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dailyCard:hover {
+    transform: translateY(-2px);
+    border-color: #3b82f6;
+    box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.1);
+}
+
+.dailyCard:active {
+    transform: scale(0.98);
+}
+
+/* Specific Card Themes */
+.dailyCardDaily {
+    border-left: 5px solid #3b82f6;
+}
+
+.dailyCardReview {
+    border-left: 5px solid #6366f1;
+}
+
+.dailyCardExpression {
+    border-left: 5px solid #ec4899;
+}
+
+.dailyCardExpressionDone {
+    border-left: 5px solid #10b981;
+    background: #f0fdf4;
+    cursor: default;
+}
+
+.dailyIcon {
+    font-size: 1.8rem;
+    margin-right: 1.2rem;
+    background: #f1f5f9;
+    width: 54px;
+    height: 54px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 16px;
+}
+
+.dailyCardReview .dailyIcon { background: #eef2ff; }
+.dailyCardExpression .dailyIcon { background: #fdf2f8; }
+.dailyCardExpressionDone .dailyIcon { background: #dcfce7; }
+
+.dailyInfo {
+    flex: 1;
+}
+
+.dailyInfo h2 {
+    margin: 0 0 0.2rem 0;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.dailyInfo p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #64748b;
+}
+
+.dailyArrow {
+    font-size: 1.2rem;
+    color: #94a3b8;
+    margin-left: 1rem;
+}
+
+.focusSection {
+    margin-top: 1.5rem;
+}
+
 .sectionTitle {
-    font-size: 1.25rem;
+    font-size: 1.1rem;
     color: #334155;
     font-weight: 700;
-    margin: 0;
+    margin-bottom: 1rem;
 }
 
 .focusCard {
     background: white;
-    border-radius: 20px;
-    padding: 1.5rem;
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+    border-radius: 24px;
+    padding: 1.8rem;
     border: 1px solid #e2e8f0;
-    display: flex;
-    flex-direction: column;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
 }
 
 .cardHeader {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1rem;
+    margin-bottom: 1.2rem;
 }
 
 .lessonBadges {
     background: #eff6ff;
     color: #2563eb;
-    padding: 4px 10px;
+    padding: 4px 12px;
     border-radius: 20px;
     font-size: 0.75rem;
     font-weight: 700;
-    text-transform: uppercase;
 }
 
 .date {
@@ -100,15 +181,17 @@
 
 .lessonTitle {
     font-size: 1.8rem;
-    margin: 0 0 0.5rem 0;
-    color: #1e293b;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    margin: 0 0 0.3rem 0;
+    color: #0f172a;
 }
 
 .lessonNote {
     font-size: 1rem;
     color: #64748b;
     margin: 0 0 2rem 0;
-    line-height: 1.5;
+    line-height: 1.6;
 }
 
 .stats {
@@ -116,37 +199,43 @@
     gap: 2rem;
     margin-bottom: 2rem;
     padding-bottom: 1.5rem;
-    border-bottom: 1px solid #f1f5f9;
 }
 
 .statItem {
     display: flex;
     flex-direction: column;
-    gap: 2px;
 }
 
 .statValue {
-    font-size: 1.5rem;
+    font-size: 1.6rem;
     font-weight: 800;
     color: #0f172a;
 }
 
 .statLabel {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .primaryBtn {
-    background: #000;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
     color: white;
     border: none;
-    padding: 1rem;
-    border-radius: 14px;
-    font-size: 1rem;
-    font-weight: 600;
+    padding: 1.1rem;
+    border-radius: 16px;
+    font-size: 1.05rem;
+    font-weight: 700;
     cursor: pointer;
-    transition: transform 0.1s;
+    box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.4);
+    transition: transform 0.2s, box-shadow 0.2s;
     width: 100%;
+}
+
+.primaryBtn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
 }
 
 .primaryBtn:active {
@@ -155,83 +244,35 @@
 
 .secondaryBtn {
     background: white;
-    color: #0f172a;
-    border: 1px solid #cbd5e1;
+    color: #475569;
+    border: 1px solid #e2e8f0;
     padding: 1rem;
-    border-radius: 14px;
+    border-radius: 16px;
     font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
     width: 100%;
+    transition: background 0.2s;
+}
+
+.secondaryBtn:hover {
+    background: #f8fafc;
 }
 
 .emptyState {
     background: white;
-    border-radius: 20px;
-    padding: 2rem;
+    border-radius: 24px;
+    padding: 3rem 2rem;
     text-align: center;
     color: #64748b;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e2e8f0;
 }
 
-/* Daily Routine overrides for Home Page */
-.dailySection {
-    margin-bottom: 2rem;
-}
-
-.dailyCard {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
-    color: white;
-    padding: 1.5rem;
-    border-radius: 20px;
-    cursor: pointer;
-    box-shadow: 0 10px 25px -5px rgba(49, 46, 129, 0.4);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.dailyCard:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 15px 30px -5px rgba(49, 46, 129, 0.5);
-}
-
-.dailyCard:active {
-    transform: scale(0.98);
-}
-
-.dailyIcon {
-    font-size: 2.2rem;
-    margin-right: 1.2rem;
-    background: rgba(255, 255, 255, 0.1);
-    width: 60px;
-    height: 60px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-}
-
-.dailyInfo {
-    flex: 1;
-}
-
-.dailyInfo h2 {
-    margin: 0 0 0.3rem 0;
-    font-size: 1.25rem;
-    font-weight: 700;
-}
-
-.dailyInfo p {
-    margin: 0;
-    font-size: 0.85rem;
-    opacity: 0.8;
-}
-
-.dailyArrow {
-    font-size: 1.5rem;
-    font-weight: 700;
-    opacity: 0.7;
-    margin-left: 1rem;
+.cardSkeleton {
+    background: white;
+    border-radius: 24px;
+    padding: 4rem 2rem;
+    text-align: center;
+    color: #cbd5e1;
+    border: 1px solid #f1f5f9;
 }

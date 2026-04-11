@@ -10,30 +10,41 @@ function shuffle<T>(array: T[]): T[] {
     return arr;
 }
 
-export async function GET(req: Request) {
-    try {
-        const { searchParams } = new URL(req.url);
-        const playerId = searchParams.get('player_id');
-        const type = searchParams.get('type') || 'onpitch';
-
-        if (!playerId) {
-            return NextResponse.json({ error: 'player_id is required' }, { status: 400 });
-        }
-
-        const allItems = await getItems();
-
-        // Ensure active
-        const activeItems = allItems.filter(i => i.active);
-
-        const pool = activeItems.filter(i => i.category === type);
-
-        // Return 10 random items for challenge
-        const challengeItems = shuffle(pool).slice(0, 10);
-
-        return NextResponse.json({
-            success: true,
-            items: challengeItems
-        });
+    export async function GET(req: Request) {
+        try {
+            const { searchParams } = new URL(req.url);
+            const playerId = searchParams.get('player_id');
+            const type = searchParams.get('type') || 'onpitch';
+            const mode = searchParams.get('mode'); // 'A' or 'B'
+    
+            if (!playerId) {
+                return NextResponse.json({ error: 'player_id is required' }, { status: 400 });
+            }
+    
+            const allItems = await getItems();
+    
+            // Ensure active
+            const activeItems = allItems.filter(i => i.active);
+    
+            let pool = activeItems.filter(i => i.category === type);
+            
+            if (type === 'onpitch') {
+                if (mode === 'A') {
+                    // Situation Speak - no dialogue
+                    pool = pool.filter(i => !i.dialogue_prompt_en);
+                } else if (mode === 'B') {
+                    // Dialogue Respond
+                    pool = pool.filter(i => !!i.dialogue_prompt_en);
+                }
+            }
+    
+            // Return 10 random items for challenge
+            const challengeItems = shuffle(pool).slice(0, 10);
+    
+            return NextResponse.json({
+                success: true,
+                items: challengeItems
+            });
 
     } catch (e: any) {
         console.error('API Error:', e);

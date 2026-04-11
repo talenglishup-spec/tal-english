@@ -102,7 +102,7 @@ export default function HomePage() {
             <div className={styles.content}>
                 {/* 1. Daily 10-Min Routine Banner */}
                 <section className={styles.dailySection} style={{ marginBottom: '1rem' }}>
-                    <div className={styles.dailyCard} onClick={() => router.push('/daily')}>
+                    <div className={`${styles.dailyCard} ${styles.dailyCardDaily}`} onClick={() => router.push('/daily')}>
                         <div className={styles.dailyIcon}>⏱️</div>
                         <div className={styles.dailyInfo}>
                             <h2>Daily 10-Min Routine</h2>
@@ -114,7 +114,7 @@ export default function HomePage() {
 
                 {/* 1.5. Review by Lesson Banner */}
                 <section className={styles.dailySection}>
-                    <div className={styles.dailyCard} onClick={() => router.push('/review/lesson')} style={{ background: 'linear-gradient(135deg, #0f172a 0%, #334155 100%)' }}>
+                    <div className={`${styles.dailyCard} ${styles.dailyCardReview}`} onClick={() => router.push('/review/lesson')}>
                         <div className={styles.dailyIcon}>📚</div>
                         <div className={styles.dailyInfo}>
                             <h2>Review by Lesson</h2>
@@ -128,7 +128,7 @@ export default function HomePage() {
                 {todayExpression && (
                     <section className={styles.dailySection}>
                         {todayExpression.allComplete ? (
-                            <div className={styles.dailyCard} style={{ background: 'linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%)', cursor: 'default' }}>
+                            <div className={`${styles.dailyCard} ${styles.dailyCardExpressionDone}`}>
                                 <div className={styles.dailyIcon}>✅</div>
                                 <div className={styles.dailyInfo}>
                                     <h2>오늘의 표현 완료!</h2>
@@ -137,8 +137,7 @@ export default function HomePage() {
                             </div>
                         ) : (
                             <div
-                                className={styles.dailyCard}
-                                style={{ background: 'linear-gradient(135deg, #1a237e 0%, #283593 100%)' }}
+                                className={`${styles.dailyCard} ${styles.dailyCardExpression}`}
                                 onClick={() => router.push(`/expressions/${todayExpression.lessonId}`)}
                             >
                                 <div className={styles.dailyIcon}>📌</div>

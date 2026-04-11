@@ -321,3 +321,30 @@
     font-size: 24px;
   }
 }
+
+.dialogueBox {
+  background-color: #f1f5f9;
+  border-left: 4px solid #3b82f6;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  font-size: 18px;
+  color: #334155;
+  width: 100%;
+  text-align: left;
+  line-height: 1.5;
+}
+
+.speakersIcon {
+  margin-right: 8px;
+}
+
+.countdownBadge {
+  background-color: #fee2e2;
+  color: #ef4444;
+  padding: 8px 16px;
+  border-radius: 100px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  animation: pulse 1s infinite;
+}
