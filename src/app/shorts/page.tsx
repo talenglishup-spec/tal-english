@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { getSupabase } from '@/utils/supabase';
 import ShortsPlayer from '@/components/ShortsPlayer';
 import styles from './ShortsPage.module.css';
 
@@ -12,7 +12,7 @@ export default function ShortsPage() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [playerId, setPlayerId] = useState<string | null>(null);
 
-  const supabase = createClientComponentClient();
+  const supabase = getSupabase();
 
   useEffect(() => {
     async function loadData() {

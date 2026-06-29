@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { getSupabase } from '@/utils/supabase';
 import CardProgress from '@/components/CardProgress';
 import styles from './home.module.css';
 
@@ -11,7 +11,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [clubTheme, setClubTheme] = useState<'tottenham' | 'mancity' | 'realmadrid'>('tottenham');
 
-  const supabase = createClientComponentClient();
+  const supabase = getSupabase();
 
   useEffect(() => {
     async function loadDashboard() {

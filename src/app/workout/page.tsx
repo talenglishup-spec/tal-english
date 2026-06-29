@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { getSupabase } from '@/utils/supabase';
 import ShortsPlayer from '@/components/ShortsPlayer';
 import XPToast from '@/components/XPToast';
 import styles from './WorkoutPage.module.css';
@@ -33,7 +33,7 @@ export default function WorkoutPage() {
   const [xpToastVisible, setXpToastVisible] = useState(false);
   const [earnedXp, setEarnedXp] = useState(0);
 
-  const supabase = createClientComponentClient();
+  const supabase = getSupabase();
 
   useEffect(() => {
     async function loadDrills() {

@@ -141,7 +141,7 @@ const progressAreaStyle: React.CSSProperties = {
 
 const labelRowStyle: React.CSSProperties = {
   display: 'flex',
-  justify-content: 'between',
+  justifyContent: 'space-between',
   fontSize: '0.75rem',
   color: '#94a3b8',
   fontWeight: 600,
