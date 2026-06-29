@@ -45,10 +45,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (isLoading) return;
 
         const path = window.location.pathname;
-        const isPublic = path === '/' || path === '/shorts-demo' || path === '/learn-modes-demo' || path === '/youtube-test';
+        const isPublic = 
+            path === '/' || 
+            path.startsWith('/login') || 
+            path.startsWith('/register') || 
+            path.startsWith('/payment') || 
+            path.startsWith('/paywall') || 
+            path === '/shorts-demo' || 
+            path === '/learn-modes-demo' || 
+            path === '/youtube-test';
 
         if (!user && !isPublic) {
-            router.push('/');
+            router.push('/login');
         } else if (user && isPublic) {
             if (user.role === 'teacher' || user.role === 'admin') {
                 router.push('/teacher');
