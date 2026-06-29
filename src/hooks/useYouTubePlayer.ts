@@ -120,7 +120,7 @@ export function useYouTubePlayer(opts: UseYouTubePlayerOptions): UseYouTubePlaye
     } = opts;
 
     const containerRef    = useRef<HTMLDivElement>(null);
-    const playerRef       = useRef<YT.Player | null>(null);
+    const playerRef       = useRef<any>(null);
     const pollRef         = useRef<number | null>(null);
     const speakFiredRef   = useRef(false); // prevent double-fire per clip
 
@@ -265,12 +265,12 @@ export function useYouTubePlayer(opts: UseYouTubePlayerOptions): UseYouTubePlaye
                         playerRef.current?.setPlaybackRate(STAGE_RATES[1]);
                         startPolling();
                     },
-                    onStateChange: (e: YT.OnStateChangeEvent) => {
+                    onStateChange: (e: any) => {
                         const playing = e.data === window.YT.PlayerState.PLAYING;
                         setIsPlaying(playing);
                         onStateChange?.(e.data);
                     },
-                    onError: (e: YT.OnErrorEvent) => {
+                    onError: (e: any) => {
                         console.error('[useYouTubePlayer] YT error:', e.data);
                     },
                 },
