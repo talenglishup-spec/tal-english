@@ -24,11 +24,8 @@ export default function HomePage() {
 
         if (!dbErr && dashboard) {
           setProfile(dashboard);
-        } else {
-          // 세션 없을 시 로그인 페이지 리다이렉트
-          window.location.href = '/login';
-          return;
         }
+        // 세션 없을 시 게스트 모드로 표시 (로그인 불필요)
 
         // 2. 카드 컬렉션 조회
         const { data: collection, error: colErr } = await supabase

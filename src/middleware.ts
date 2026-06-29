@@ -44,18 +44,19 @@ export async function middleware(req: NextRequest) {
     const pathname = req.nextUrl.pathname;
 
     const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register');
-    const isApiRoute = pathname.startsWith('/api/auth') || pathname.startsWith('/api/content');
+    const isApiRoute = pathname.startsWith('/api/');
     const isStatic = pathname.match(/\.(png|jpg|jpeg|gif|svg|ico|css|js)$/);
+    const isLanding = pathname === '/';
+    const isDemo = pathname.startsWith('/shorts-demo') || pathname.startsWith('/learn-modes-demo') || pathname.startsWith('/youtube-test');
 
-    // 비인증 사용자 -> /login 리다이렉트
-    if (!user && !isAuthPage && !isApiRoute && !isStatic && pathname !== '/') {
-      return NextResponse.redirect(new URL('/login', req.url));
-    }
-
-    // 로그인 상태에서 다시 로그인페이지 진입 시 -> /home 대시보드로 복귀 리다이렉트
-    if (user && isAuthPage) {
-      return NextResponse.redirect(new URL('/home', req.url));
-    }
+    // TODO: 로그인 기능 완성 후 아래 주석 해제
+    // const isPublic = isAuthPage || isApiRoute || isStatic || isLanding || isDemo;
+    // if (!user && !isPublic) {
+    //   return NextResponse.redirect(new URL('/login', req.url));
+    // }
+    // if (user && isAuthPage) {
+    //   return NextResponse.redirect(new URL('/home', req.url));
+    // }
 
   } catch (err) {
     console.error('[Middleware Error Catch]:', err);

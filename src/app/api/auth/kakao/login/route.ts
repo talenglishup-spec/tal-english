@@ -10,6 +10,9 @@ export async function GET() {
       provider: 'kakao',
       options: {
         redirectTo: `${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/kakao/callback`,
+        queryParams: {
+          scope: 'profile_nickname profile_image',
+        },
       },
     });
 

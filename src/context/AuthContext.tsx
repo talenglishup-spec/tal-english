@@ -40,31 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsLoading(false);
     }, []);
 
-    // Strict Auth Guard
-    useEffect(() => {
-        if (isLoading) return;
 
-        const path = window.location.pathname;
-        const isPublic = 
-            path === '/' || 
-            path.startsWith('/login') || 
-            path.startsWith('/register') || 
-            path.startsWith('/payment') || 
-            path.startsWith('/paywall') || 
-            path === '/shorts-demo' || 
-            path === '/learn-modes-demo' || 
-            path === '/youtube-test';
-
-        if (!user && !isPublic) {
-            router.push('/login');
-        } else if (user && isPublic) {
-            if (user.role === 'teacher' || user.role === 'admin') {
-                router.push('/teacher');
-            } else {
-                router.push('/home');
-            }
-        }
-    }, [user, isLoading, router]);
 
     // Login via API
     const login = async (userData: any) => {
