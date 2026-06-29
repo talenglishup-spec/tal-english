@@ -22,7 +22,7 @@ import { useEffect, useRef, useCallback, useState } from 'react';
 // ── YouTube IFrame API types ───────────────────────────────────
 declare global {
     interface Window {
-        YT: typeof YT;
+        YT: any;
         onYouTubeIframeAPIReady: () => void;
     }
 }
