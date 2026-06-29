@@ -8,13 +8,12 @@ const customFetchOptions = {
 };
 
 export const getSupabase = () => {
-    const supabaseUrl = process.env.SUPABASE_URL || '';
-    const supabaseKey = process.env.SUPABASE_KEY || '';
-    
-    console.log(`[Supabase Init] URL present: ${!!supabaseUrl}, Key present: ${!!supabaseKey}`);
-    
+    // NEXT_PUBLIC_ prefix required for client-side (browser) access
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '';
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_KEY || '';
+
     if (!supabaseUrl || !supabaseKey) {
-        throw new Error("Supabase credentials missing in environment variables (SUPABASE_URL/SUPABASE_KEY).");
+        throw new Error("Supabase credentials missing (NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY).");
     }
     return createClient(supabaseUrl, supabaseKey, customFetchOptions);
 };

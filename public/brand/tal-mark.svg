@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- Globe -->
+  <circle cx="50" cy="24" r="16" fill="currentColor"/>
+  <!-- Globe latitude lines (simplified) -->
+  <ellipse cx="50" cy="24" rx="16" ry="10" stroke="#0A228F" stroke-width="1.2" fill="none"/>
+  <line x1="34" y1="24" x2="66" y2="24" stroke="#0A228F" stroke-width="1.2"/>
+  <line x1="36" y1="17" x2="64" y2="17" stroke="#0A228F" stroke-width="0.8"/>
+  <line x1="36" y1="31" x2="64" y2="31" stroke="#0A228F" stroke-width="0.8"/>
+  <!-- T stem + rounded crossbar -->
+  <!-- Left arm -->
+  <path d="M50 38 Q30 38 26 44 Q22 50 26 53 Q30 56 38 52 Q44 49 50 48" fill="currentColor"/>
+  <!-- Right arm -->
+  <path d="M50 38 Q70 38 74 44 Q78 50 74 53 Q70 56 62 52 Q56 49 50 48" fill="currentColor"/>
+  <!-- Stem -->
+  <rect x="44" y="46" width="12" height="34" rx="6" fill="currentColor"/>
+</svg>

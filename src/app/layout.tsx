@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import BottomNav from '@/components/BottomNav';
 import { AuthProvider } from '@/context/AuthContext';
 
 const geistSans = Geist({
@@ -28,10 +27,9 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <AuthProvider>
-          <main style={{ paddingBottom: '70px' }}> {/* Add padding for BottomNav */}
+          <main>
             {children}
           </main>
-          <BottomNav />
         </AuthProvider>
       </body>
     </html>

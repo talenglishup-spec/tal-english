@@ -1,0 +1,171 @@
+
+.container {
+    min-height: 100vh;
+    background: #0b0f19;
+    color: #ffffff;
+    font-family: 'Manrope', 'Pretendard', sans-serif;
+    display: flex;
+    flex-direction: column;
+    padding: 16px;
+    gap: 16px;
+}
+
+.loadingContainer {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #0b0f19;
+    color: #94a3b8;
+    font-weight: 700;
+}
+
+.header {
+    text-align: center;
+}
+.title {
+    font-size: 1.3rem;
+    font-weight: 900;
+    margin: 0;
+    letter-spacing: -0.5px;
+}
+.subtitle {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    margin: 4px 0 0 0;
+    font-weight: 600;
+}
+
+/* 4단계 스텝 */
+.indicatorSection {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
+    padding: 16px;
+}
+.indicatorGrid {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+}
+.indicatorItem {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    cursor: pointer;
+    opacity: 0.4;
+    transition: all 0.3s;
+}
+.indicatorCurrent {
+    opacity: 1;
+}
+.indicatorCompleted {
+    opacity: 1;
+}
+.indicatorCircle {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 0.8rem;
+    color: #94a3b8;
+    transition: all 0.2s;
+}
+.indicatorCurrent .indicatorCircle {
+    border-color: #3b82f6;
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+}
+.indicatorCompleted .indicatorCircle {
+    border-color: #10b981;
+    background: #10b981;
+    color: #ffffff;
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+}
+.indicatorText {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #64748b;
+    text-align: center;
+}
+.indicatorCurrent .indicatorText {
+    color: #3b82f6;
+}
+.indicatorCompleted .indicatorText {
+    color: #10b981;
+}
+
+/* 비디오 카드 */
+.feedScroll {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+.playerWrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+.stepBadge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    color: #3b82f6;
+    font-size: 0.75rem;
+    font-weight: 800;
+    margin-bottom: 12px;
+    align-self: flex-start;
+}
+
+.successMessage {
+    color: #10b981;
+    font-weight: 800;
+    font-size: 0.85rem;
+}
+.waitingMessage {
+    color: #64748b;
+    font-weight: 600;
+    font-size: 0.75rem;
+}
+
+.footer {
+    width: 100%;
+    margin-top: auto;
+}
+.drillStatusText {
+    text-align: center;
+    font-size: 0.75rem;
+    color: #475569;
+    font-weight: 600;
+}
+.btnComplete {
+    width: 100%;
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    border: none;
+    color: white;
+    padding: 16px;
+    border-radius: 16px;
+    font-size: 1rem;
+    font-weight: 900;
+    cursor: pointer;
+    box-shadow: 0 8px 20px rgba(245, 158, 11, 0.3);
+    transition: all 0.2s;
+}
+.btnComplete:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+.btnCompleteSuccess {
+    background: #10b981;
+    box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
+}

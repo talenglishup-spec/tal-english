@@ -61,6 +61,10 @@ export type AttemptRow = {
     error_message?: string;
     created_at?: string;
     finalized_at?: string;
+
+    // V2.0 Context Fit fields
+    context_fit_score?: number;
+    context_fit_feedback?: string;
 };
 
 export type TrainingItem = {
@@ -124,6 +128,34 @@ export type PlayerRow = {
     note: string;
     created_at?: string;
     level?: string;
+    // antigravity Phase 1
+    team_id?: string;
+    track?: string;
+    onboarding_complete?: boolean;
+    // Task 007: Subscription
+    subscription_status?: string;
+    subscription_plan?: string;
+    subscription_until?: string;
+};
+
+export type TeamRow = {
+    team_id: string;
+    team_name: string;
+    coach_id: string;
+    team_code: string;
+    created_at: string;
+};
+
+export type SubscriptionRow = {
+    order_id: string;
+    player_id: string;
+    amount: number;
+    status: 'pending' | 'active' | 'failed' | 'canceled';
+    plan: string;
+    period: string;
+    payment_key?: string;
+    paid_at?: string;
+    created_at: string;
 };
 
 // --- v2.0+ CMS & Review Types ---
@@ -185,6 +217,8 @@ export type InterviewQuestionRow = {
     frequency_rank?: number;
     min_level?: string;
     sample_answer?: string;
+    scenario_tags?: string;
+    hint_keywords?: string;
 };
 
 export type ClipRow = {
@@ -235,6 +269,67 @@ export async function getSheet(title: string) {
     }
 }
 
+// Generic helper to append a row to any sheet
+export async function appendToSheet(sheetTitle: string, data: Record<string, any>): Promise<void> {
+    const sheet = await getSheet(sheetTitle);
+    if (!sheet) throw new Error(`Sheet ${sheetTitle} not found`);
+    await sheet.addRow(data);
+}
+
+// Generic helper to get a single row from any sheet based on a match condition
+export async function getSheetRow(
+    sheetTitle: string,
+    matchCondition: Record<string, any>
+): Promise<Record<string, any> | null> {
+    const sheet = await getSheet(sheetTitle);
+    if (!sheet) return null;
+
+    const rows = await sheet.getRows();
+    const matchKeys = Object.keys(matchCondition);
+
+    const row = rows.find(r => {
+        return matchKeys.every(k => r.get(k) === matchCondition[k]);
+    });
+
+    if (!row) return null;
+
+    const result: Record<string, any> = {};
+    for (const key of sheet.headerValues) {
+        result[key] = row.get(key);
+    }
+    return result;
+}
+
+// Generic helper to update a row in any sheet based on a match condition
+export async function updateSheetRow(
+    sheetTitle: string,
+    matchCondition: Record<string, any>,
+    updates: Record<string, any>
+): Promise<boolean> {
+    const sheet = await getSheet(sheetTitle);
+    if (!sheet) throw new Error(`Sheet ${sheetTitle} not found`);
+
+    const rows = await sheet.getRows();
+    const matchKeys = Object.keys(matchCondition);
+
+    const row = rows.find(r => {
+        return matchKeys.every(k => r.get(k) === matchCondition[k]);
+    });
+
+    if (!row) {
+        return false;
+    }
+
+    for (const [key, value] of Object.entries(updates)) {
+        if (value !== undefined) {
+            row.set(key, value.toString());
+        }
+    }
+
+    await row.save();
+    return true;
+}
+
 export async function getAttemptsSheet() {
     const sheet = await getSheet('Attempts');
     if (!sheet) return doc.sheetsByIndex[0];
@@ -264,7 +359,56 @@ export async function getPlayer(playerId: string): Promise<PlayerRow | null> {
         active: isActive,
         note: row.get('note') || '',
         created_at: row.get('created_at'),
-        level: row.get('level') || 'L1'
+        level: row.get('level') || 'L1',
+        team_id: row.get('team_id'),
+        track: row.get('track'),
+        onboarding_complete: row.get('onboarding_complete') === 'TRUE',
+        subscription_status: row.get('subscription_status') || 'free',
+        subscription_plan: row.get('subscription_plan') || '',
+        subscription_until: row.get('subscription_until') || ''
+    };
+}
+
+export async function insertPlayer(data: {
+    player_id: string;
+    player_name: string;
+    password: string;
+    position: string;
+    team_id: string;
+    level: string;
+    track: string;
+}): Promise<void> {
+    const sheet = await getSheet('Players');
+    if (!sheet) throw new Error('Players sheet not found');
+
+    await sheet.addRow({
+        player_id: data.player_id,
+        player_name: data.player_name,
+        password: data.password,
+        active: 'TRUE',
+        note: data.position,
+        created_at: new Date().toISOString(),
+        level: data.level,
+        team_id: data.team_id,
+        track: data.track,
+        onboarding_complete: 'TRUE',
+    });
+}
+
+export async function getTeamByCode(teamCode: string): Promise<TeamRow | null> {
+    const sheet = await getSheet('Teams');
+    if (!sheet) return null;
+
+    const rows = await sheet.getRows();
+    const row = rows.find(r => r.get('team_code') === teamCode);
+    if (!row) return null;
+
+    return {
+        team_id: row.get('team_id'),
+        team_name: row.get('team_name'),
+        coach_id: row.get('coach_id'),
+        team_code: row.get('team_code'),
+        created_at: row.get('created_at') || '',
     };
 }
 
@@ -366,6 +510,10 @@ export async function appendAttempt(data: AttemptRow) {
         error_message: data.error_message || '',
         created_at: data.created_at || new Date().toISOString(),
         finalized_at: data.finalized_at || '',
+
+        // V2.0 Context Fit fields
+        context_fit_score: data.context_fit_score || 0,
+        context_fit_feedback: data.context_fit_feedback || ''
     });
 }
 
@@ -402,6 +550,10 @@ export async function getAttempts(): Promise<AttemptRow[]> {
         repetition_score: Number(row.get('repetition_score') || 0),
         pattern_selected: row.get('pattern_selected') || '',
         structure_score: Number(row.get('structure_score') || 0),
+
+        // V2.0 Context Fit fields
+        context_fit_score: Number(row.get('context_fit_score') || 0),
+        context_fit_feedback: row.get('context_fit_feedback') || ''
     })).reverse();
 }
 
@@ -1141,7 +1293,9 @@ export async function getInterviewQuestions(): Promise<InterviewQuestionRow[]> {
                 followup_group_id: row.get('followup_group_id') || '',
                 frequency_rank: Number(row.get('frequency_rank')) || 999,
                 min_level: row.get('min_level') || 'L1',
-                sample_answer: row.get('sample_answer') || ''
+                sample_answer: row.get('sample_answer') || '',
+                scenario_tags: row.get('scenario_tags') || '',
+                hint_keywords: row.get('hint_keywords') || ''
             };
         })
         .filter(q => q.active);

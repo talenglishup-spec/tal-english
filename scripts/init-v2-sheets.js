@@ -31,7 +31,7 @@ async function main() {
             },
             {
                 title: 'InterviewQuestions',
-                headers: ['active', 'question_id', 'question_en', 'question_ko', 'pattern_type', 'primary_tags', 'difficulty', 'followup_group_id']
+                headers: ['active', 'question_id', 'question_en', 'question_ko', 'pattern_type', 'primary_tags', 'difficulty', 'followup_group_id', 'frequency_rank', 'min_level', 'sample_answer']
             },
             {
                 title: 'InterviewFollowups',

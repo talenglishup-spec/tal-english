@@ -5,6 +5,7 @@ import { getOpenAI } from '@/utils/openai';
 import { calculateScore } from '@/utils/score';
 import { appendAttempt, updateAttempt } from '@/utils/sheets';
 import { v4 as uuidv4 } from 'uuid';
+import { INTERVIEW_SCENARIOS } from '@/constants/interviewScenarios';
 
 export async function POST(req: NextRequest) {
     let attempt_id = '';
@@ -38,6 +39,7 @@ export async function POST(req: NextRequest) {
         const expected_phrases = formData.get('expected_phrases') as string || '';
         const max_latency_ms = Number(formData.get('max_latency_ms')) || 1500;
         const pattern_selected = formData.get('pattern_selected') as string || '';
+        const scenario_id = formData.get('scenario_id') as string || '';
 
         if (!file) {
             return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
@@ -156,6 +158,8 @@ export async function POST(req: NextRequest) {
         let sentence_count = 0;
         let repetition_score = 0;
         let structure_score = 0;
+        let context_fit_score = 0;
+        let context_fit_feedback = '';
 
         if (category === 'onpitch') {
             // Priority: Speed and Fuzzy Match
@@ -204,6 +208,39 @@ export async function POST(req: NextRequest) {
             }
             // Basic structure scoring (this will be upgraded with full LLM evaluation later)
             structure_score = Math.min(100, sentence_count * 30 + (duration_sec > 10 ? 10 : 0));
+
+            // LLM Context Fit Evaluation
+            if (scenario_id && safeSttText.length > 5) {
+                const scenario = INTERVIEW_SCENARIOS.find(s => s.id === scenario_id);
+                if (scenario) {
+                    try {
+                        const prompt = `You are a football coach evaluating a player's interview answer.
+The scenario is: "${scenario.title_ko}" (${scenario.description}).
+The player's transcript: "${safeSttText}"
+Evaluate how well the answer fits the scenario on a scale of 0 to 100. Provide a short 1-sentence feedback.
+Return exactly this JSON format: {"score": 85, "feedback": "Your answer fits the context perfectly."}`;
+                        
+                        const completion = await openai.chat.completions.create({
+                            model: "gpt-4o-mini",
+                            messages: [{ role: "user", content: prompt }],
+                            response_format: { type: "json_object" }
+                        });
+
+                        const resultText = completion.choices[0].message.content;
+                        if (resultText) {
+                            const parsed = JSON.parse(resultText);
+                            context_fit_score = parsed.score || 0;
+                            context_fit_feedback = parsed.feedback || '';
+                            
+                            // Adjust the main score to weight in the context fit
+                            score = Math.round((score * 0.4) + (context_fit_score * 0.6));
+                        }
+                    } catch (e) {
+                        console.error('Context Fit LLM Error:', e);
+                    }
+                }
+            }
+
         } else {
             // Fallback (V1 Logic)
             const result = calculateScore(target_en, stt_text, [], key_word);
@@ -231,7 +268,9 @@ export async function POST(req: NextRequest) {
             pattern_selected,
             structure_score,
             status: 'finalized',
-            finalized_at: new Date().toISOString()
+            finalized_at: new Date().toISOString(),
+            context_fit_score,
+            context_fit_feedback
         };
 
         if (session_mode !== 'daily') {
@@ -247,7 +286,9 @@ export async function POST(req: NextRequest) {
                 audio_url,
                 sentence_count,
                 structure_score,
-                latency_ms: time_to_first_response_ms
+                latency_ms: time_to_first_response_ms,
+                context_fit_score,
+                context_fit_feedback
             }
         });
 

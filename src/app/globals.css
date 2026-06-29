@@ -1,4 +1,8 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
   --font-primary: 'Inter', sans-serif;
@@ -20,6 +24,37 @@
   --radius-md: 0.5rem;
   --radius-lg: 0.75rem;
   --radius-full: 9999px;
+
+  /* TAL Design Spec Tokens */
+  --terra-blue: #0A228F;
+  --terra-blue-deep: #06155C;
+  --terra-blue-ink: #030A33;
+  --terra-sky: #E6E9F7;
+  --terra-sky-2: #C5CCE9;
+  
+  --ink: #0A0E1A;
+  --ink-2: #1A2030;
+  --slate: #3A4252;
+  --slate-2: #565E72;
+  --neutral: #8A93A6;
+  --neutral-2: #B4BCCB;
+  
+  --hairline: #E3E6EF;
+  --hairline-strong: #D2D7E3;
+  --surface: #F7F8FB;
+  --surface-2: #EFF1F6;
+  --canvas: #FFFFFF;
+  
+  --success: #1F8A5B;
+  --success-tint: #E1F2EA;
+  --danger: #C8342B;
+  --danger-tint: #FADCD9;
+  --warning: #C97A0E;
+  --warning-tint: #FAEDD7;
+
+  --font-display: 'Manrope', 'Pretendard', sans-serif;
+  --font-sans: 'Manrope', 'Pretendard', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
 }
 
 * {

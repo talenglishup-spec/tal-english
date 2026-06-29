@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getInterviewQuestions, getPlayer } from '@/utils/sheets';
+import { INTERVIEW_SCENARIOS } from '@/constants/interviewScenarios';
 
 function shuffle<T>(array: T[]): T[] {
     const arr = [...array];
@@ -14,6 +15,7 @@ export async function GET(req: Request) {
     try {
         const { searchParams } = new URL(req.url);
         const playerId = searchParams.get('player_id');
+        const scenarioId = searchParams.get('scenario_id');
 
         if (!playerId) {
             return NextResponse.json({ error: 'player_id is required' }, { status: 400 });
@@ -43,6 +45,17 @@ export async function GET(req: Request) {
         // Filter based on allowed levels
         let pool = allQuestions.filter(q => allowedLevels.includes(q.min_level || 'L1'));
 
+        // If scenarioId is provided, filter by scenario tags
+        if (scenarioId) {
+            const scenario = INTERVIEW_SCENARIOS.find(s => s.id === scenarioId);
+            if (scenario) {
+                pool = pool.filter(q => {
+                    const tags = (q.scenario_tags || '').toUpperCase();
+                    return tags.includes('ALL') || tags.includes(scenario.type);
+                });
+            }
+        }
+
         // Sort by frequency_rank (1 is most important)
         pool = pool.sort((a, b) => (a.frequency_rank || 999) - (b.frequency_rank || 999));
 
@@ -65,6 +78,8 @@ export async function GET(req: Request) {
             lesson_note: '',
             challenge_type: 'INTERVIEW_ENQ_TO_EN' as const,
             question_text: q.question_en,
+            hint_keywords: q.hint_keywords,
+            scenario_id: scenarioId || undefined,
             // Since it's interview challenge, we want to play the EN TTS for question_en
         }));
 

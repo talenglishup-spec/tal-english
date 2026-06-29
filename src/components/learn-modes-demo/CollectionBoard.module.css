@@ -1,0 +1,340 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  height: 100%;
+}
+
+.topInfo {
+  margin-bottom: 20px;
+}
+
+.topInfo h3 {
+  font-size: 16px;
+  font-weight: 800;
+  color: #fff;
+  margin: 0 0 4px 0;
+}
+
+.topInfo p {
+  font-size: 12px;
+  color: #9ca3af;
+  margin: 0 0 12px 0;
+}
+
+.currentFocusBox {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  padding: 10px 14px;
+  border-radius: 10px;
+}
+
+.focusLabel {
+  font-size: 11px;
+  color: #9ca3af;
+  display: block;
+}
+
+.focusName {
+  font-size: 14px;
+  color: #10b981;
+  font-weight: 800;
+}
+
+.changeTargetBtn {
+  background: #10b981;
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.grid {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.cardOuter {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 20px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: all 0.3s ease;
+}
+
+.focusCard {
+  border-color: rgba(16, 185, 129, 0.3);
+  background: rgba(16, 185, 129, 0.02);
+}
+
+/* Soccer Card styles */
+.soccerCard {
+  border-radius: 14px;
+  height: 200px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.imageArea {
+  position: absolute;
+  right: 16px;
+  top: 16px;
+  width: 90px;
+  height: 120px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.playerImage {
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+}
+
+.silhouetteImage {
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  mask: radial-gradient(circle, transparent 20%, black 80%);
+  position: relative;
+}
+
+.silhouetteImage::before {
+  content: '👤';
+  font-size: 48px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0.3;
+}
+
+.playerDetails {
+  margin-top: auto;
+  z-index: 10;
+}
+
+.playerName {
+  font-size: 15px;
+  font-weight: 800;
+  color: #fff;
+  margin: 0 0 2px 0;
+}
+
+.playerClub {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0 0 8px 0;
+}
+
+.sigPhraseBox {
+  background: rgba(0, 0, 0, 0.4);
+  padding: 6px 10px;
+  border-radius: 6px;
+  max-width: 180px;
+}
+
+.phraseLabel {
+  font-size: 9px;
+  color: #9ca3af;
+  display: block;
+}
+
+.phraseText {
+  font-size: 12px;
+  font-weight: 800;
+  color: #fbbf24;
+  margin: 0;
+}
+
+.lockBox {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: 700;
+}
+
+.cardFooter {
+  position: absolute;
+  bottom: 8px;
+  right: 16px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+/* Actions area */
+.cardActionArea {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.progressLabel {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+}
+
+.progressLabel span {
+  color: #9ca3af;
+}
+
+.progressLabel strong {
+  color: #fbbf24;
+}
+
+.progressTrack {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progressBar {
+  height: 100%;
+  background: #fbbf24;
+  box-shadow: 0 0 8px #fbbf24;
+  border-radius: 3px;
+}
+
+.cheatBtn {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  color: #9ca3af;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-top: 4px;
+}
+
+.cheatBtn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  border-color: rgba(255,255,255,0.2);
+}
+
+/* Modal overlays */
+.modalOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.modalContent {
+  width: 100%;
+  max-width: 320px;
+  background: #0d1321;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 20px;
+  padding: 24px;
+  text-align: center;
+}
+
+.modalContent h3 {
+  font-size: 16px;
+  font-weight: 800;
+  color: #fff;
+  margin: 0 0 6px 0;
+}
+
+.modalSub {
+  font-size: 11px;
+  color: #9ca3af;
+  margin: 0 0 20px 0;
+}
+
+.modalList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.modalItem {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 10px 14px;
+  border-radius: 10px;
+  width: 100%;
+  cursor: pointer;
+  text-align: left;
+}
+
+.modalItemActive {
+  background: rgba(16, 185, 129, 0.06);
+  border-color: #10b981;
+}
+
+.modalNumber {
+  font-size: 20px;
+  font-weight: 900;
+  color: rgba(255,255,255,0.2);
+  margin-right: 14px;
+}
+
+.modalItemActive .modalNumber {
+  color: #10b981;
+}
+
+.modalMeta {
+  display: flex;
+  flex-direction: column;
+}
+
+.modalMeta strong {
+  font-size: 13px;
+  color: #fff;
+}
+
+.modalMeta span {
+  font-size: 10px;
+  color: #9ca3af;
+}
+
+.modalCloseBtn {
+  background: rgba(255, 255, 255, 0.05);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-weight: 700;
+  padding: 10px;
+  width: 100%;
+  cursor: pointer;
+}

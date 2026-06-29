@@ -29,6 +29,10 @@ interface TrainingItem {
     dialogue_prompt_en?: string;
     dialogue_speaker?: string;
     dialogue_audio_url?: string;
+    
+    // Scenario hints
+    hint_keywords?: string;
+    scenario_id?: string;
 }
 
 interface ClozeDrillProps {
@@ -43,7 +47,14 @@ interface ClozeDrillProps {
 export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice', sessionId, subStep = 1 }: ClozeDrillProps) {
     const { user } = useAuth();
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [result, setResult] = useState<{ score: number; feedback: string; audio_url: string; stt_text: string } | null>(null);
+    const [result, setResult] = useState<{ 
+        score: number; 
+        feedback: string; 
+        audio_url: string; 
+        stt_text: string;
+        context_fit_score?: number;
+        context_fit_feedback?: string;
+    } | null>(null);
     const [msg, setMsg] = useState('');
     const [isRecording, setIsRecording] = useState(false);
     const [recordingTime, setRecordingTime] = useState(0);
@@ -279,6 +290,9 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
         formData.append('category', item.category || '');
         formData.append('max_latency_ms', item.max_latency_ms?.toString() || '1500');
         formData.append('expected_phrases', item.expected_phrases || '');
+        if (item.scenario_id) {
+            formData.append('scenario_id', item.scenario_id);
+        }
 
         if (user) {
             formData.append('player_id', user.id);
@@ -435,6 +449,18 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
                     {item.prompt_kr}
                 </div>
 
+                {/* Hint Keywords */}
+                {item.hint_keywords && (
+                    <div className={styles.hintContainer}>
+                        <span className={styles.hintTitle}>💡 Hint:</span>
+                        <div className={styles.hintChips}>
+                            {item.hint_keywords.split(',').map((kw, idx) => (
+                                <span key={idx} className={styles.hintChip}>{kw.trim()}</span>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
                 {(!result && !isSubmitting) && (
                     <>
                         {(item.question_text || item.matched_question_text) && (
@@ -484,6 +510,18 @@ export default function ClozeDrillApp({ item, onNext, onClose, mode = 'practice'
                                     ▶️ 내 발음
                                 </button>
                             )}
+                        </div>
+                    )}
+
+                    {/* Context Fit Evaluation Result */}
+                    {result?.context_fit_score !== undefined && (
+                        <div className={styles.contextFitBox}>
+                            <div className={styles.contextFitHeader}>
+                                🎯 컨텍스트 적합도: <strong>{result.context_fit_score}점</strong>
+                            </div>
+                            <div className={styles.contextFitFeedback}>
+                                {result.context_fit_feedback}
+                            </div>
                         </div>
                     )}
 

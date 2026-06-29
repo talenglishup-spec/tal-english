@@ -348,3 +348,60 @@
   margin-bottom: 16px;
   animation: pulse 1s infinite;
 }
+
+.hintContainer {
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.hintTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.hintChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+.hintChip {
+  background-color: #f1f5f9;
+  color: #3b82f6;
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid #e2e8f0;
+}
+
+.contextFitBox {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 24px;
+  width: 100%;
+  text-align: left;
+}
+
+.contextFitHeader {
+  font-size: 16px;
+  color: #1e293b;
+  margin-bottom: 8px;
+}
+
+.contextFitHeader strong {
+  color: #3b82f6;
+}
+
+.contextFitFeedback {
+  font-size: 14px;
+  color: #475569;
+  line-height: 1.5;
+}
