@@ -381,7 +381,7 @@ export default function YoutubeTestPage() {
         stopMonitoring();
         player.pauseVideo();
         setIsPlaying(false);
-        triggerSpeakSequence(presetId, currentPhase);
+        triggerSpeakSequence(presetId, Number(currentPhase));
         return;
       }
 
