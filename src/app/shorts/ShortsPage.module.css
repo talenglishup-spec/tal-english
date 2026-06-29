@@ -243,6 +243,33 @@
   font-weight: 800;
 }
 
+.advToggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #0f1e30;
+  padding: 5px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.advLabel {
+  font-size: 10px;
+  font-weight: 800;
+  color: #94a3b8;
+}
+
+.advActive {
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.advActive .advLabel {
+  color: #ef4444;
+}
+
 .centerSection {
   display: flex;
   justify-content: center;
@@ -585,5 +612,303 @@
 .situationNameText {
   font-size: 11.5px;
   font-weight: 700;
+  color: #ffffff;
+}
+
+/* One Day / Mode Placeholder */
+.modePlaceholder {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px;
+  text-align: center;
+  background: #070e17;
+}
+
+.placeholderIcon {
+  font-size: 50px;
+  margin-bottom: 20px;
+  animation: bounceIcon 2s infinite alternate;
+}
+
+@keyframes bounceIcon {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-8px); }
+}
+
+.modePlaceholder h2 {
+  font-size: 20px;
+  font-weight: 800;
+  color: #3b82f6;
+  margin-bottom: 12px;
+}
+
+.modePlaceholder p {
+  font-size: 13px;
+  color: #94a3b8;
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+/* Collection 탭 레이아웃 */
+.collectionTab {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+  background: #070e17;
+}
+
+.clubSelectorContainer {
+  margin-bottom: 20px;
+}
+
+.clubSelectorLabel {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #3b82f6;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.clubSelectorRow {
+  display: flex;
+  gap: 8px;
+}
+
+.clubBtn {
+  flex: 1;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #0f1e30;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.clubBtnActiveTottenham {
+  background: #ffffff;
+  color: #070e17;
+  border-color: #ffffff;
+}
+
+.clubBtnActiveMancity {
+  background: #3b82f6;
+  color: #ffffff;
+  border-color: #3b82f6;
+}
+
+.clubBtnActiveRealmadrid {
+  background: #fbbf24;
+  color: #070e17;
+  border-color: #fbbf24;
+}
+
+.cabinetSection, .cardSection {
+  margin-bottom: 24px;
+}
+
+.cabinetTitle {
+  font-size: 12px;
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 12px;
+}
+
+.badgeGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.badgeItem {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 12px 8px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  opacity: 0.5;
+  transition: all 0.3s;
+}
+
+.badgeItemActive {
+  opacity: 1;
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.badgeEmblem {
+  font-size: 24px;
+  margin-bottom: 6px;
+}
+
+.badgeName {
+  font-size: 9.5px;
+  font-weight: 700;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.badgeStatus {
+  font-size: 8px;
+  font-weight: 800;
+  color: #94a3b8;
+}
+
+.badgeItemActive .badgeStatus {
+  color: #22c55e;
+}
+
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+/* FUT Player Card Styling */
+.playerCard {
+  position: relative;
+  background: linear-gradient(135deg, #1e293b, #0f172a);
+  border: 2px solid #334155;
+  border-radius: 16px;
+  padding: 16px;
+  aspect-ratio: 2/3;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+}
+
+.playerCardActive {
+  background: linear-gradient(135deg, #1e3a8a, #0f172a);
+  border-color: #3b82f6;
+  box-shadow: 0 10px 25px rgba(59, 130, 246, 0.25);
+}
+
+.cardLockMask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(7, 14, 23, 0.85);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+}
+
+.cardLockIcon {
+  font-size: 24px;
+  margin-bottom: 6px;
+}
+
+.cardLockText {
+  font-size: 9px;
+  font-weight: 700;
+  color: #94a3b8;
+}
+
+.playerCardHeader {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.cardOvr {
+  font-size: 24px;
+  font-weight: 900;
+  color: #3b82f6;
+}
+
+.cardPos {
+  font-size: 10px;
+  font-weight: 800;
+  color: #94a3b8;
+}
+
+.cardImagePlaceholder {
+  font-size: 40px;
+  text-align: center;
+  margin: 12px 0;
+}
+
+.playerCardFooter {
+  text-align: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 8px;
+}
+
+.cardPlayerName {
+  font-size: 11px;
+  font-weight: 900;
+  color: #ffffff;
+}
+
+.cardClubText {
+  font-size: 8px;
+  color: #94a3b8;
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+/* Bottom Tab Bar */
+.bottomTabBar {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  background: #0f1e30;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 10px 4px;
+  z-index: 10;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.tabItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 4px 2px;
+  flex: 1;
+  transition: all 0.15s;
+}
+
+.tabIcon {
+  font-size: 16px;
+  transition: transform 0.15s;
+}
+
+.tabLabel {
+  font-size: 9px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.tabItemActive {
+  color: #3b82f6;
+}
+
+.tabItemActive .tabIcon {
+  transform: scale(1.15);
+}
+
+.tabItem:hover {
   color: #ffffff;
 }
