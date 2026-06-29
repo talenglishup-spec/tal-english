@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { loadTossPayments } from '@tosspayments/payment-sdk';
 import { getSupabase } from '@/utils/supabase';
 
-export default function PaymentPage() {
+function PaymentContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const plan = searchParams.get('plan') || 'pro';
@@ -79,12 +79,22 @@ export default function PaymentPage() {
   }, [plan, period, router]);
 
   return (
-    <div className="min-h-screen bg-[#070e17] flex items-center justify-center text-white">
+    <>
       {loading ? (
         <div className="text-xl font-bold animate-pulse">결제창을 불러오는 중입니다...</div>
       ) : (
         <div className="text-xl font-bold">결제 진행 중...</div>
       )}
+    </>
+  );
+}
+
+export default function PaymentPage() {
+  return (
+    <div className="min-h-screen bg-[#070e17] flex items-center justify-center text-white">
+      <Suspense fallback={<div className="text-xl font-bold animate-pulse">결제창을 불러오는 중입니다...</div>}>
+        <PaymentContent />
+      </Suspense>
     </div>
   );
 }
