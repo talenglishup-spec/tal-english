@@ -59,7 +59,7 @@ export interface UseYouTubePlayerOptions {
 // ── Hook return value ─────────────────────────────────────────
 export interface UseYouTubePlayerReturn {
     /** Ref to attach to the <div id="..."> container */
-    containerRef: React.RefObject<HTMLDivElement>;
+    containerRef: React.RefObject<HTMLDivElement | null>;
     /** True once YT player is fully initialised */
     isReady: boolean;
     /** Current playback stage (1/2/3) */
