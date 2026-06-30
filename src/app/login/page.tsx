@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { getSupabase } from '@/utils/supabase';
 import styles from '../LoginPage.module.css';
 
 export default function LoginPage() {
@@ -20,20 +21,34 @@ export default function LoginPage() {
     setError(null);
     
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+      const supabase = getSupabase();
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
-      
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || '로그인에 실패했습니다.');
+
+      if (signInError) {
+        throw new Error(signInError.message);
       }
-      
-      window.location.href = '/home';
+
+      if (!data.user) {
+        throw new Error('사용자 세션을 불러올 수 없습니다.');
+      }
+
+      // AuthContext용 tal_user 로컬 세션 동기화
+      localStorage.setItem('tal_user', JSON.stringify({
+        id: data.user.id,
+        name: data.user.user_metadata?.name || data.user.email?.split('@')[0] || 'Player',
+        role: 'player'
+      }));
+
+      // 세션 쿠키 브라우저 갱신 타임 대기용 150ms 후 대시보드로 이동
+      setTimeout(() => {
+        window.location.href = '/home';
+      }, 150);
+
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || '로그인에 실패했습니다.');
     } finally {
       setLoading(false);
     }
