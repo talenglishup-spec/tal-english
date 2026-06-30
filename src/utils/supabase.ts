@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { createBrowserClient } from '@supabase/ssr';
 import fetch from 'cross-fetch';
 
 const customFetchOptions = {
@@ -8,13 +9,19 @@ const customFetchOptions = {
 };
 
 export const getSupabase = () => {
-    // NEXT_PUBLIC_ prefix required for client-side (browser) access
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '';
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_KEY || '';
 
     if (!supabaseUrl || !supabaseKey) {
         throw new Error("Supabase credentials missing (NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY).");
     }
+
+    // 브라우저 클라이언트 환경에서는 createBrowserClient를 사용하여 쿠키와 세션을 자동 보존
+    if (typeof window !== 'undefined') {
+        return createBrowserClient(supabaseUrl, supabaseKey);
+    }
+
+    // 서버 사이드 폴백
     return createClient(supabaseUrl, supabaseKey, customFetchOptions);
 };
 

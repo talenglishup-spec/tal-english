@@ -49,14 +49,23 @@ export async function middleware(req: NextRequest) {
     const isLanding = pathname === '/';
     const isDemo = pathname.startsWith('/shorts-demo') || pathname.startsWith('/learn-modes-demo') || pathname.startsWith('/youtube-test');
 
-    // TODO: 로그인 기능 완성 후 아래 주석 해제
-    // const isPublic = isAuthPage || isApiRoute || isStatic || isLanding || isDemo;
-    // if (!user && !isPublic) {
-    //   return NextResponse.redirect(new URL('/login', req.url));
-    // }
-    // if (user && isAuthPage) {
-    //   return NextResponse.redirect(new URL('/home', req.url));
-    // }
+    const isPublic = isAuthPage || isApiRoute || isStatic || isLanding || isDemo;
+
+    if (!user && !isPublic) {
+      const redirectRes = NextResponse.redirect(new URL('/login', req.url));
+      res.cookies.getAll().forEach(c => {
+        redirectRes.cookies.set(c.name, c.value, c);
+      });
+      return redirectRes;
+    }
+
+    if (user && isAuthPage) {
+      const redirectRes = NextResponse.redirect(new URL('/home', req.url));
+      res.cookies.getAll().forEach(c => {
+        redirectRes.cookies.set(c.name, c.value, c);
+      });
+      return redirectRes;
+    }
 
   } catch (err) {
     console.error('[Middleware Error Catch]:', err);
