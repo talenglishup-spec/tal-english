@@ -1,201 +1,914 @@
-
 .container {
-    min-height: 100vh;
-    background: #0b0f19;
-    color: #ffffff;
-    font-family: 'Manrope', 'Pretendard', sans-serif;
-    display: flex;
-    flex-direction: column;
-    padding: 16px;
-    gap: 16px;
-    transition: background 0.5s ease;
-}
-
-/* 테마 분기 구단 배경 */
-.tottenham {
-    background: radial-gradient(circle at top right, #001c58 0%, #0b0f19 100%);
-}
-.mancity {
-    background: radial-gradient(circle at top right, #004d7c 0%, #0b0f19 100%);
-}
-.realmadrid {
-    background: radial-gradient(circle at top right, #3f3100 0%, #0b0f19 100%);
-}
-
-.loadingContainer {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #0b0f19;
-    color: #94a3b8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #050b14 0%, #0c1829 100%);
+  color: #ffffff;
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  padding: 20px;
 }
 
 .header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-}
-.themeRow {
-    display: flex;
-    gap: 6px;
-}
-.themeBtn {
-    padding: 6px 12px;
-    border-radius: 12px;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.05);
-    color: #cbd5e1;
-    font-size: 0.75rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-.themeBtnActive {
-    background: rgba(255,255,255,0.15);
-    border-color: rgba(255,255,255,0.2);
-    color: #ffffff;
-}
-.btnLogout {
-    background: transparent;
-    border: none;
-    color: #64748b;
-    font-size: 0.8rem;
-    font-weight: 600;
-    cursor: pointer;
+  text-align: center;
+  margin-bottom: 24px;
 }
 
-/* 유저 상태 카드 */
-.statusSection {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 20px;
-    padding: 20px;
-    backdrop-filter: blur(20px);
-}
-.profileRow {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-}
-.avatar {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    background: rgba(59, 130, 246, 0.15);
-    border: 1px solid rgba(59, 130, 246, 0.3);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.5rem;
-}
-.meta {
-    display: flex;
-    flex-direction: column;
-}
-.displayName {
-    font-size: 1.25rem;
-    font-weight: 800;
-    letter-spacing: -0.5px;
-    margin: 0;
-}
-.levelLabel {
-    font-size: 0.8rem;
-    color: #94a3b8;
-    margin: 2px 0 0 0;
-    font-weight: 600;
-}
-.progressBarBg {
-    width: 100%;
-    height: 8px;
-    background: rgba(255,255,255,0.05);
-    border-radius: 4px;
-    overflow: hidden;
-}
-.progressBarFill {
-    height: 100%;
-    background: #10b981;
-    border-radius: 4px;
-    transition: width 0.4s;
-    box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+.header h1 {
+  font-size: 28px;
+  font-weight: 900;
+  color: #3b82f6;
+  margin: 0 0 6px 0;
+  letter-spacing: -0.02em;
 }
 
-/* 스트릭 보드 */
-.streakSection {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 20px;
-    padding: 16px 20px;
-}
-.streakGrid {
-    display: flex;
-    justify-content: space-between;
-    gap: 6px;
-    margin-top: 8px;
-}
-.streakItem {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    flex: 1;
-}
-.streakDay {
-    font-size: 0.75rem;
-    color: #64748b;
-    font-weight: 700;
-}
-.streakDot {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #64748b;
-    font-size: 0.85rem;
-    font-weight: 800;
-}
-.streakDotActive {
-    background: #f59e0b;
-    border-color: #fbbf24;
-    color: #ffffff;
-    box-shadow: 0 0 12px rgba(245, 158, 11, 0.4);
+.header p {
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+  margin: 0;
 }
 
-/* 컬렉션 세션 */
-.collectionSection {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 20px;
-    padding: 20px;
-    flex: 1;
-}
-.cardsGrid {
-    display: flex;
-    justify-content: space-around;
-    gap: 12px;
-    margin-top: 8px;
-    overflow-x: auto;
+.phoneFrame {
+  position: relative;
+  width: 100%;
+  max-width: 375px;
+  height: 80vh;
+  max-height: 680px;
+  background: #070e17;
+  border: 8px solid #1e293b;
+  border-radius: 40px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.3s;
 }
 
-.btnTrain {
-    width: 100%;
-    background: #3b82f6;
-    border: none;
-    color: white;
-    padding: 16px;
-    border-radius: 16px;
-    font-size: 1rem;
-    font-weight: 800;
-    cursor: pointer;
-    box-shadow: 0 8px 20px rgba(59,130,246,0.3);
-    transition: all 0.2s;
+@media (max-width: 480px) {
+  .phoneFrame {
+    width: 100vw;
+    height: 100vh;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    border: none !important;
+    border-radius: 0 !important;
+  }
+  .phoneNotch {
+    display: none !important;
+  }
 }
-.btnTrain:hover {
-    background: #2563eb;
-    transform: translateY(-1px);
+
+.phoneNotch {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 150px;
+  height: 26px;
+  background: #1e293b;
+  border-bottom-left-radius: 20px;
+  border-bottom-right-radius: 20px;
+  z-index: 10;
+}
+
+.phoneScreen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  background: #070e17;
+}
+
+.presetBar {
+  padding: 26px 16px 12px 16px;
+  background: #0f1e30;
+  z-index: 5;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.presetTitle {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: #3b82f6;
+  margin-bottom: 8px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.presets {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.presets::-webkit-scrollbar {
+  height: 3px;
+}
+
+.presets::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.presetBtn {
+  padding: 6px 12px;
+  border-radius: 12px;
+  background: #070e17;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.presetBtnActive {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+}
+
+.shortsContainer {
+  flex: 1;
+  overflow-y: scroll;
+  scroll-snap-type: y mandatory;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+  scroll-behavior: smooth;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.shortsContainer::-webkit-scrollbar {
+  display: none;
+}
+
+.shortsCard {
+  width: 100%;
+  height: 100%;
+  flex: 0 0 100%;
+  position: relative;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  overflow: hidden;
+}
+
+.videoArea {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  background: #070e17;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.youtubeWrapper {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  background: #070e17;
+}
+
+.youtubeIframe {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform: scale(1.85);
+  transform-origin: center center;
+  pointer-events: none;
+  background: #070e17;
+}
+
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 16px;
+  box-sizing: border-box;
+  background: linear-gradient(to bottom, rgba(7, 14, 23, 0.2) 0%, rgba(255, 255, 255, 0) 50%, rgba(7, 14, 23, 0.85) 100%);
+  z-index: 2;
+  transition: background 0.3s, backdrop-filter 0.3s;
+}
+
+.overlayPaused {
+  background: rgba(7, 14, 23, 0.75) !important;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.topSection {
+  margin-top: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.badge {
+  background: rgba(59, 130, 246, 0.2);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  color: #93c5fd;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.phaseBadge {
+  background: rgba(245, 158, 11, 0.2);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  color: #fbbf24;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.advToggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #0f1e30;
+  padding: 5px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.advLabel {
+  font-size: 10px;
+  font-weight: 800;
+  color: #94a3b8;
+}
+
+.advActive {
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.advActive .advLabel {
+  color: #ef4444;
+}
+
+.centerSection {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 60%;
+}
+
+.playPauseBtn {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  color: #070e17;
+  font-size: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.playPauseBtn:hover {
+  transform: scale(1.08);
+  background: #ffffff;
+}
+
+.bottomSection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.captionCard {
+  background: transparent;
+  text-align: center;
+}
+
+.captionKr {
+  font-size: 14px;
+  color: #93c5fd;
+  margin-bottom: 6px;
+  font-weight: 700;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+
+.captionEn {
+  font-size: 18px;
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1.4;
+  letter-spacing: -0.02em;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.95);
+}
+
+.timelineContainer {
+  margin-top: 8px;
+}
+
+.timelineBar {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+}
+
+.timelineProgress {
+  height: 100%;
+  background: #3b82f6;
+  width: 0%;
+}
+
+.actionArea {
+  display: flex;
+  flex-direction: column;
+}
+
+.speakButton {
+  width: 100%;
+  padding: 13px;
+  border-radius: 12px;
+  border: none;
+  background: #3b82f6;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.speakButton:hover {
+  background: #2563eb;
+}
+
+/* 5단계 시퀀스 락 레이아웃 */
+.lockOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(7, 14, 23, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 15;
+  transition: all 0.3s;
+}
+
+.overlayBlurActive {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.lockContent {
+  text-align: center;
+  padding: 24px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.lockIcon {
+  font-size: 40px;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.lockTitle {
+  font-size: 20px;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0 0 8px 0;
+}
+
+.lockSubtitle {
+  font-size: 12px;
+  color: #94a3b8;
+  line-height: 1.5;
+  margin: 0 0 24px 0;
+}
+
+.skipSeqBtn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #cbd5e1;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.skipSeqBtn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* 카운트다운 박스 */
+.countdownBox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.countdownPulseNum {
+  font-size: 64px;
+  font-weight: 900;
+  color: #3b82f6;
+  animation: pulseScale 1s infinite alternate;
+}
+
+@keyframes pulseScale {
+  0% { transform: scale(0.9); }
+  100% { transform: scale(1.1); }
+}
+
+.speakStageText {
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-top: 12px;
+}
+
+/* 레코딩 박스 */
+.recordingBox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.micCircleActive {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
+  animation: pulseBg 1.2s infinite;
+}
+
+@keyframes pulseBg {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5); }
+  70% { transform: scale(0.96); box-shadow: 0 0 0 12px rgba(239, 68, 68, 0); }
+  100% { transform: scale(1); }
+}
+
+.recTimerBar {
+  width: 150px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 16px;
+}
+
+.recTimerProgress {
+  height: 100%;
+  background: #ef4444;
+  width: 0%;
+  transition: width 1s linear;
+}
+
+/* 분석 및 평가 박스 */
+.evaluationBox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.analyzingSpinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  border-left-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s infinite linear;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.evaluationSuccess {
+  text-align: center;
+}
+
+.evaluationFail {
+  text-align: center;
+}
+
+.evalIcon {
+  font-size: 48px;
+  font-weight: 800;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.evaluationSuccess .evalIcon {
+  color: #22c55e;
+}
+
+.evaluationFail .evalIcon {
+  color: #ef4444;
+}
+
+/* 상황 카테고리 리스트 */
+.presetHeaderRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.listToggleBtn {
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: #070e17;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #3b82f6;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.listToggleBtn:hover {
+  background: #0f1e30;
+}
+
+.verticalPresetList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 10px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.verticalPresetItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: #070e17;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.12s;
+  width: 100%;
+}
+
+.verticalPresetItem:hover {
+  background: #0f1e30;
+}
+
+.verticalPresetItemActive {
+  border-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.15) !important;
+}
+
+.situationNameText {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+/* One Day / Mode Placeholder */
+.modePlaceholder {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px;
+  text-align: center;
+  background: #070e17;
+}
+
+.placeholderIcon {
+  font-size: 50px;
+  margin-bottom: 20px;
+  animation: bounceIcon 2s infinite alternate;
+}
+
+@keyframes bounceIcon {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-8px); }
+}
+
+.modePlaceholder h2 {
+  font-size: 20px;
+  font-weight: 800;
+  color: #3b82f6;
+  margin-bottom: 12px;
+}
+
+.modePlaceholder p {
+  font-size: 13px;
+  color: #94a3b8;
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+/* Collection 탭 레이아웃 */
+.collectionTab {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+  background: #070e17;
+}
+
+.clubSelectorContainer {
+  margin-bottom: 20px;
+}
+
+.clubSelectorLabel {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #3b82f6;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.clubSelectorRow {
+  display: flex;
+  gap: 8px;
+}
+
+.clubBtn {
+  flex: 1;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #0f1e30;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.clubBtnActiveTottenham {
+  background: #ffffff;
+  color: #070e17;
+  border-color: #ffffff;
+}
+
+.clubBtnActiveMancity {
+  background: #3b82f6;
+  color: #ffffff;
+  border-color: #3b82f6;
+}
+
+.clubBtnActiveRealmadrid {
+  background: #fbbf24;
+  color: #070e17;
+  border-color: #fbbf24;
+}
+
+.cabinetSection, .cardSection {
+  margin-bottom: 24px;
+}
+
+.cabinetTitle {
+  font-size: 12px;
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 12px;
+}
+
+.badgeGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.badgeItem {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 12px 8px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  opacity: 0.5;
+  transition: all 0.3s;
+}
+
+.badgeItemActive {
+  opacity: 1;
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.badgeEmblem {
+  font-size: 24px;
+  margin-bottom: 6px;
+}
+
+.badgeName {
+  font-size: 9.5px;
+  font-weight: 700;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.badgeStatus {
+  font-size: 8px;
+  font-weight: 800;
+  color: #94a3b8;
+}
+
+.badgeItemActive .badgeStatus {
+  color: #22c55e;
+}
+
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+/* FUT Player Card Styling */
+.playerCard {
+  position: relative;
+  background: linear-gradient(135deg, #1e293b, #0f172a);
+  border: 2px solid #334155;
+  border-radius: 16px;
+  padding: 16px;
+  aspect-ratio: 2/3;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+}
+
+.playerCardActive {
+  background: linear-gradient(135deg, #1e3a8a, #0f172a);
+  border-color: #3b82f6;
+  box-shadow: 0 10px 25px rgba(59, 130, 246, 0.25);
+}
+
+.cardLockMask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(7, 14, 23, 0.85);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+}
+
+.cardLockIcon {
+  font-size: 24px;
+  margin-bottom: 6px;
+}
+
+.cardLockText {
+  font-size: 9px;
+  font-weight: 700;
+  color: #94a3b8;
+}
+
+.playerCardHeader {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.cardOvr {
+  font-size: 24px;
+  font-weight: 900;
+  color: #3b82f6;
+}
+
+.cardPos {
+  font-size: 10px;
+  font-weight: 800;
+  color: #94a3b8;
+}
+
+.cardImagePlaceholder {
+  font-size: 40px;
+  text-align: center;
+  margin: 12px 0;
+}
+
+.playerCardFooter {
+  text-align: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 8px;
+}
+
+.cardPlayerName {
+  font-size: 11px;
+  font-weight: 900;
+  color: #ffffff;
+}
+
+.cardClubText {
+  font-size: 8px;
+  color: #94a3b8;
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+/* Bottom Tab Bar */
+.bottomTabBar {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  background: #0f1e30;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 10px 4px;
+  z-index: 10;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.tabItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 4px 2px;
+  flex: 1;
+  transition: all 0.15s;
+}
+
+.tabIcon {
+  font-size: 16px;
+  transition: transform 0.15s;
+}
+
+.tabLabel {
+  font-size: 9px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.tabItemActive {
+  color: #3b82f6;
+}
+
+.tabItemActive .tabIcon {
+  transform: scale(1.15);
+}
+
+.tabItem:hover {
+  color: #ffffff;
 }
