@@ -648,251 +648,249 @@ export default function HomePage() {
         
         <div className={styles.phoneScreen} onClick={handleGlobalInteraction}>
           
-          {(activeTab === 'shorts' || activeTab === 'speak') && (
-            <>
-              {/* 상단 카테고리 필터바 */}
-              <div className={styles.presetBar}>
-                <div className={styles.presetHeaderRow}>
-                  <div className={styles.presetTitle}>
-                    {activeTab === 'shorts' ? '쇼츠 감상 목록' : '실전 스피킹 훈련 목록'}
-                  </div>
-                  <button 
-                    type="button"
-                    className={styles.listToggleBtn}
-                    onClick={() => setIsListOpen(!isListOpen)}
-                  >
-                    {isListOpen ? '필터 닫기 ▲' : '카테고리 필터 ☰'}
-                  </button>
+          <div style={{ display: (activeTab === 'shorts' || activeTab === 'speak') ? 'flex' : 'none', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+            {/* 상단 카테고리 필터바 */}
+            <div className={styles.presetBar}>
+              <div className={styles.presetHeaderRow}>
+                <div className={styles.presetTitle}>
+                  {activeTab === 'shorts' ? '쇼츠 감상 목록' : '실전 스피킹 훈련 목록'}
                 </div>
-                
-                {isListOpen ? (
-                  <div className={styles.verticalPresetList}>
-                    {['ALL', 'tactical', 'post_match', 'press_conference', 'training'].map((tab) => (
-                      <button
-                        key={tab}
-                        type="button"
-                        onClick={() => {
-                          setIsListOpen(false);
-                        }}
-                        className={styles.verticalPresetItem}
-                      >
-                        <span className={styles.situationNameText}>
-                          {tab === 'ALL' ? '전체 훈련' : tab.toUpperCase().replace('_', ' ')}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <div className={styles.presets}>
-                    {clips.map((clip) => (
-                      <button
-                        key={clip.clip_id}
-                        type="button"
-                        onClick={() => scrollToPreset(clip.clip_id)}
-                        className={`${styles.presetBtn} ${activePresetId === clip.clip_id ? styles.presetBtnActive : ''}`}
-                      >
-                        {clip.player_name}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                <button 
+                  type="button"
+                  className={styles.listToggleBtn}
+                  onClick={() => setIsListOpen(!isListOpen)}
+                >
+                  {isListOpen ? '필터 닫기 ▲' : '카테고리 필터 ☰'}
+                </button>
               </div>
+              
+              {isListOpen ? (
+                <div className={styles.verticalPresetList}>
+                  {['ALL', 'tactical', 'post_match', 'press_conference', 'training'].map((tab) => (
+                    <button
+                      key={tab}
+                      type="button"
+                      onClick={() => {
+                        setIsListOpen(false);
+                      }}
+                      className={styles.verticalPresetItem}
+                    >
+                      <span className={styles.situationNameText}>
+                        {tab === 'ALL' ? '전체 훈련' : tab.toUpperCase().replace('_', ' ')}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className={styles.presets}>
+                  {clips.map((clip) => (
+                    <button
+                      key={clip.clip_id}
+                      type="button"
+                      onClick={() => scrollToPreset(clip.clip_id)}
+                      className={`${styles.presetBtn} ${activePresetId === clip.clip_id ? styles.presetBtnActive : ''}`}
+                    >
+                      {clip.player_name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
-              {/* 수직 스냅 스크롤링 쇼츠 피드 */}
-              <div 
-                ref={containerRef} 
-                className={styles.shortsContainer}
-              >
-                {clips.length > 0 ? (
-                  clips.map((clip) => {
-                    const currentPhase = phases[clip.clip_id] || 1;
-                    const rate = playbackRates[clip.clip_id] || 1.0;
-                    const time = currentTimes[clip.clip_id] || 0;
-                    const isCurrentActive = activePresetId === clip.clip_id;
+            {/* 수직 스냅 스크롤링 쇼츠 피드 */}
+            <div 
+              ref={containerRef} 
+              className={styles.shortsContainer}
+            >
+              {clips.length > 0 ? (
+                clips.map((clip) => {
+                  const currentPhase = phases[clip.clip_id] || 1;
+                  const rate = playbackRates[clip.clip_id] || 1.0;
+                  const time = currentTimes[clip.clip_id] || 0;
+                  const isCurrentActive = activePresetId === clip.clip_id;
 
-                    // 재생바 비율
-                    const startSec = Number(clip.start_sec || 0);
-                    const endSec = Number(clip.end_sec || 0);
-                    const duration = Math.max(1, endSec - startSec);
-                    const elapsed = Math.max(0, time - startSec);
-                    const progressPercent = Math.min(100, (elapsed / duration) * 100);
+                  // 재생바 비율
+                  const startSec = Number(clip.start_sec || 0);
+                  const endSec = Number(clip.end_sec || 0);
+                  const duration = Math.max(1, endSec - startSec);
+                  const elapsed = Math.max(0, time - startSec);
+                  const progressPercent = Math.min(100, (elapsed / duration) * 100);
 
-                    return (
-                      <div 
-                        key={clip.clip_id} 
-                        id={`card-${clip.clip_id}`}
-                        data-clip-id={clip.clip_id}
-                        className={styles.shortsCard}
-                      >
-                        <div className={styles.videoArea}>
-                          <div className={styles.youtubeWrapper}>
-                            <div id={`youtube-player-${clip.clip_id}`} className={styles.youtubeIframe}></div>
+                  return (
+                    <div 
+                      key={clip.clip_id} 
+                      id={`card-${clip.clip_id}`}
+                      data-clip-id={clip.clip_id}
+                      className={styles.shortsCard}
+                    >
+                      <div className={styles.videoArea}>
+                        <div className={styles.youtubeWrapper}>
+                          <div id={`youtube-player-${clip.clip_id}`} className={styles.youtubeIframe}></div>
+                        </div>
+
+                        {/* 5단계 스피킹 챌린지 가림막 오버레이 */}
+                        {isCurrentActive && speakSeqSteps[clip.clip_id] >= 1 && speakSeqSteps[clip.clip_id] <= 4 && (
+                          <div className={`${styles.lockOverlay} ${speakSeqSteps[clip.clip_id] >= 1 ? styles.overlayBlurActive : ''}`}>
+                            <div className={styles.lockContent}>
+                              
+                              {/* STEP 1: 자동 정지 가림막 */}
+                              {speakSeqSteps[clip.clip_id] === 1 && (
+                                <>
+                                  <span className={styles.lockIcon}>🚨</span>
+                                  <h3 className={styles.lockTitle}>맥락 정지 스피킹 단계</h3>
+                                  <p className={styles.lockSubtitle}>선수 뒤에 숨겨진 자막을 직접 말해 통과하세요!</p>
+                                </>
+                              )}
+
+                              {/* STEP 2: 3초 카운트다운 */}
+                              {speakSeqSteps[clip.clip_id] === 2 && (
+                                <div className={styles.countdownBox}>
+                                  <div className={styles.countdownPulseNum}>{countdownNum}</div>
+                                  <p className={styles.speakStageText}>선수 대신 네가 말해봐!</p>
+                                </div>
+                              )}
+
+                              {/* STEP 3: 5초 레코딩 */}
+                              {speakSeqSteps[clip.clip_id] === 3 && (
+                                <div className={styles.recordingBox}>
+                                  <div className={styles.micCircleActive}>🎙️</div>
+                                  <div className={styles.recTimerBar}>
+                                    <div className={styles.recTimerProgress} style={{ width: `${(recordProgress / 5) * 100}%` }} />
+                                  </div>
+                                  <p className={styles.speakStageText} style={{ color: '#ef4444' }}>지금 말하세요! ({5 - recordProgress}초)</p>
+                                </div>
+                              )}
+
+                              {/* STEP 4: 판정 */}
+                              {speakSeqSteps[clip.clip_id] === 4 && (
+                                <div className={styles.evaluationBox}>
+                                  {seqResult[clip.clip_id] === null ? (
+                                    <>
+                                      <div className={styles.analyzingSpinner} />
+                                      <p className={styles.speakStageText}>AI 발음 분석 중...</p>
+                                    </>
+                                  ) : seqResult[clip.clip_id] === 'pass' ? (
+                                    <div className={styles.evaluationSuccess}>
+                                      <span className={styles.evalIcon}>✓</span>
+                                      <p className={styles.speakStageText}>EXCELLENT! 합격 (XP +50점)</p>
+                                    </div>
+                                  ) : (
+                                    <div className={styles.evaluationFail}>
+                                      <span className={styles.evalIcon}>✗</span>
+                                      <p className={styles.speakStageText}>TRY AGAIN! 불합격</p>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
+                              <button 
+                                type="button" 
+                                className={styles.skipSeqBtn}
+                                onClick={() => handleSkipSequence(clip.clip_id, `${clip.clip_id}_${currentPhase}`)}
+                              >
+                                SKIP ➔
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 메인 투명 오버레이 패널 */}
+                        <div className={`${styles.overlay} ${!isPlaying ? styles.overlayPaused : ''}`}>
+                          
+                          {/* 상단 메타 바 */}
+                          <div className={styles.topSection}>
+                            <span className={styles.badge}>{clip.player_name} ({clip.position_tag})</span>
+                            <span className={styles.phaseBadge}>{currentPhase}회차: {rate.toFixed(2)}x</span>
+                            
+                            {/* Advanced 모드 토글 */}
+                            <div 
+                              onClick={() => setIsAdvanced(!isAdvanced)} 
+                              className={`${styles.advToggle} ${isAdvanced ? styles.advActive : ''}`}
+                            >
+                              <span className={styles.advLabel}>
+                                Advanced {isAdvanced ? 'ON' : 'OFF'}
+                              </span>
+                            </div>
                           </div>
 
-                          {/* 5단계 스피킹 챌린지 가림막 오버레이 */}
-                          {isCurrentActive && speakSeqSteps[clip.clip_id] >= 1 && speakSeqSteps[clip.clip_id] <= 4 && (
-                            <div className={`${styles.lockOverlay} ${speakSeqSteps[clip.clip_id] >= 1 ? styles.overlayBlurActive : ''}`}>
-                              <div className={styles.lockContent}>
-                                
-                                {/* STEP 1: 자동 정지 가림막 */}
-                                {speakSeqSteps[clip.clip_id] === 1 && (
-                                  <>
-                                    <span className={styles.lockIcon}>🚨</span>
-                                    <h3 className={styles.lockTitle}>맥락 정지 스피킹 단계</h3>
-                                    <p className={styles.lockSubtitle}>선수 뒤에 숨겨진 자막을 직접 말해 통과하세요!</p>
-                                  </>
-                                )}
-
-                                {/* STEP 2: 3초 카운트다운 */}
-                                {speakSeqSteps[clip.clip_id] === 2 && (
-                                  <div className={styles.countdownBox}>
-                                    <div className={styles.countdownPulseNum}>{countdownNum}</div>
-                                    <p className={styles.speakStageText}>선수 대신 네가 말해봐!</p>
-                                  </div>
-                                )}
-
-                                {/* STEP 3: 5초 레코딩 */}
-                                {speakSeqSteps[clip.clip_id] === 3 && (
-                                  <div className={styles.recordingBox}>
-                                    <div className={styles.micCircleActive}>🎙️</div>
-                                    <div className={styles.recTimerBar}>
-                                      <div className={styles.recTimerProgress} style={{ width: `${(recordProgress / 5) * 100}%` }} />
-                                    </div>
-                                    <p className={styles.speakStageText} style={{ color: '#ef4444' }}>지금 말하세요! ({5 - recordProgress}초)</p>
-                                  </div>
-                                )}
-
-                                {/* STEP 4: 판정 */}
-                                {speakSeqSteps[clip.clip_id] === 4 && (
-                                  <div className={styles.evaluationBox}>
-                                    {seqResult[clip.clip_id] === null ? (
-                                      <>
-                                        <div className={styles.analyzingSpinner} />
-                                        <p className={styles.speakStageText}>AI 발음 분석 중...</p>
-                                      </>
-                                    ) : seqResult[clip.clip_id] === 'pass' ? (
-                                      <div className={styles.evaluationSuccess}>
-                                        <span className={styles.evalIcon}>✓</span>
-                                        <p className={styles.speakStageText}>EXCELLENT! 합격 (XP +50점)</p>
-                                      </div>
-                                    ) : (
-                                      <div className={styles.evaluationFail}>
-                                        <span className={styles.evalIcon}>✗</span>
-                                        <p className={styles.speakStageText}>TRY AGAIN! 불합격</p>
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-
-                                <button 
-                                  type="button" 
-                                  className={styles.skipSeqBtn}
-                                  onClick={() => handleSkipSequence(clip.clip_id, `${clip.clip_id}_${currentPhase}`)}
-                                >
-                                  SKIP ➔
-                                </button>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* 메인 투명 오버레이 패널 */}
-                          <div className={`${styles.overlay} ${!isPlaying ? styles.overlayPaused : ''}`}>
-                            
-                            {/* 상단 메타 바 */}
-                            <div className={styles.topSection}>
-                              <span className={styles.badge}>{clip.player_name} ({clip.position_tag})</span>
-                              <span className={styles.phaseBadge}>{currentPhase}회차: {rate.toFixed(2)}x</span>
-                              
-                              {/* Advanced 모드 토글 */}
-                              <div 
-                                onClick={() => setIsAdvanced(!isAdvanced)} 
-                                className={`${styles.advToggle} ${isAdvanced ? styles.advActive : ''}`}
+                          {/* 중앙 재생 컨트롤러 */}
+                          <div className={styles.centerSection}>
+                            {isCurrentActive && (
+                              <button 
+                                type="button" 
+                                onClick={() => togglePlay(clip.clip_id)} 
+                                className={styles.playPauseBtn}
                               >
-                                <span className={styles.advLabel}>
-                                  Advanced {isAdvanced ? 'ON' : 'OFF'}
-                                </span>
-                              </div>
-                            </div>
+                                {isPlaying ? '⏸' : '▶'}
+                              </button>
+                            )}
+                          </div>
 
-                            {/* 중앙 재생 컨트롤러 */}
-                            <div className={styles.centerSection}>
-                              {isCurrentActive && (
-                                <button 
-                                  type="button" 
-                                  onClick={() => togglePlay(clip.clip_id)} 
-                                  className={styles.playPauseBtn}
-                                >
-                                  {isPlaying ? '⏸' : '▶'}
-                                </button>
-                              )}
-                            </div>
-
-                            {/* 하단 훈련 자막 및 컨트롤러 */}
-                            <div className={styles.bottomSection}>
-                              
-                              {!isAdvanced ? (
-                                <div className={styles.captionCard}>
-                                  <p className={styles.captionKr}>"{clip.translation}"</p>
-                                  <p className={styles.captionEn}>
-                                    {clip.target_phrase}
-                                  </p>
-                                  
-                                  <div className={styles.timelineContainer}>
-                                    <div className={styles.timelineBar}>
-                                      <div className={styles.timelineProgress} style={{ width: `${progressPercent}%` }}></div>
-                                    </div>
+                          {/* 하단 훈련 자막 및 컨트롤러 */}
+                          <div className={styles.bottomSection}>
+                            
+                            {!isAdvanced ? (
+                              <div className={styles.captionCard}>
+                                <p className={styles.captionKr}>"{clip.translation}"</p>
+                                <p className={styles.captionEn}>
+                                  {clip.target_phrase}
+                                </p>
+                                
+                                <div className={styles.timelineContainer}>
+                                  <div className={styles.timelineBar}>
+                                    <div className={styles.timelineProgress} style={{ width: `${progressPercent}%` }}></div>
                                   </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className={styles.captionCard}>
+                                <p className={styles.captionEn} style={{ color: '#ef4444', fontSize: '13px', fontWeight: 800 }}>
+                                  🚫 Advanced 모드: 자막 없이 상황에 맞춰 발화하세요!
+                                </p>
+                              </div>
+                            )}
+
+                            <div className={styles.actionArea}>
+                              {activeTab === 'shorts' ? (
+                                <div style={{ fontSize: '11px', color: '#94a3b8', textAlign: 'center', width: '100%', fontWeight: 700, background: 'rgba(255,255,255,0.05)', padding: '8px', borderRadius: '8px' }}>
+                                  📺 쇼츠 감상 중 (감속 관찰 쉐도잉)
                                 </div>
                               ) : (
-                                <div className={styles.captionCard}>
-                                  <p className={styles.captionEn} style={{ color: '#ef4444', fontSize: '13px', fontWeight: 800 }}>
-                                    🚫 Advanced 모드: 자막 없이 상황에 맞춰 발화하세요!
-                                  </p>
-                                </div>
+                                <button
+                                  type="button"
+                                  className={styles.speakButton}
+                                  style={{
+                                    background: isPlaying ? '#0f1e30' : '#3b82f6',
+                                    color: '#ffffff',
+                                    border: isPlaying ? '1px solid rgba(255,255,255,0.1)' : 'none'
+                                  }}
+                                  onClick={() => {
+                                    if (isPlaying) {
+                                      togglePlay(clip.clip_id);
+                                    } else {
+                                      const activePhase = phases[clip.clip_id] || 1;
+                                      triggerSpeakSequence(clip.clip_id, activePhase);
+                                    }
+                                  }}
+                                >
+                                  {isPlaying ? '⏸ 훈련 일시정지' : '▶ 실전 스피킹 훈련 시작'}
+                                </button>
                               )}
-
-                              <div className={styles.actionArea}>
-                                {activeTab === 'shorts' ? (
-                                  <div style={{ fontSize: '11px', color: '#94a3b8', textAlign: 'center', width: '100%', fontWeight: 700, background: 'rgba(255,255,255,0.05)', padding: '8px', borderRadius: '8px' }}>
-                                    📺 쇼츠 감상 중 (감속 관찰 쉐도잉)
-                                  </div>
-                                ) : (
-                                  <button
-                                    type="button"
-                                    className={styles.speakButton}
-                                    style={{
-                                      background: isPlaying ? '#0f1e30' : '#3b82f6',
-                                      color: '#ffffff',
-                                      border: isPlaying ? '1px solid rgba(255,255,255,0.1)' : 'none'
-                                    }}
-                                    onClick={() => {
-                                      if (isPlaying) {
-                                        togglePlay(clip.clip_id);
-                                      } else {
-                                        const activePhase = phases[clip.clip_id] || 1;
-                                        triggerSpeakSequence(clip.clip_id, activePhase);
-                                      }
-                                    }}
-                                  >
-                                    {isPlaying ? '⏸ 훈련 일시정지' : '▶ 실전 스피킹 훈련 시작'}
-                                  </button>
-                                )}
-                              </div>
                             </div>
-
                           </div>
+
                         </div>
                       </div>
-                    );
-                  })
-                ) : (
-                  <div style={{ padding: '80px 20px', textAlign: 'center', color: '#94a3b8' }}>
-                    <p>해당 카테고리의 훈련 카드가 비어 있습니다.</p>
-                  </div>
-                )}
-              </div>
-            </>
-          )}
+                    </div>
+                  );
+                })
+              ) : (
+                <div style={{ padding: '80px 20px', textAlign: 'center', color: '#94a3b8' }}>
+                  <p>해당 카테고리의 훈련 카드가 비어 있습니다.</p>
+                </div>
+              )}
+            </div>
+          </div>
 
           {/* One Day 모드 데모 영역 */}
           {activeTab === 'oneday' && (
