@@ -11,8 +11,6 @@
  * Response: { items: ClipItem[], total: number, cached_at: string }
  */
 
-export const dynamic = 'force-dynamic';
-
 import { NextRequest, NextResponse } from 'next/server';
 import {
     getClipItems,
