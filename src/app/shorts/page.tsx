@@ -8,9 +8,9 @@ import styles from './ShortsPage.module.css';
 
 function getYoutubeId(url: string) {
   if (!url) return '';
-  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const regExp = /^.*(?:(?:youtu\.be\/|v\/|vi\/|u\/\w\/|embed\/|shorts\/)|(?:(?:watch)?\?v(?:i)?=|\&v(?:i)?=))([^#\&\?]*).*/;
   const match = url.match(regExp);
-  return (match && match[2].length === 11) ? match[2] : '';
+  return (match && match[1].length === 11) ? match[1] : '';
 }
 
 export default function ShortsPage() {
@@ -637,10 +637,7 @@ export default function ShortsPage() {
         onClose={() => setXpToastVisible(false)} 
       />
 
-      <header className={styles.header}>
-        <h1>TAL Shorts Player</h1>
-        <p>위아래로 스크롤하며 실제 풋볼 훈련 영상 구간을 반복 학습하세요</p>
-      </header>
+
 
       {/* 모바일 스마트폰 목업 프레임 */}
       <div className={styles.phoneFrame}>

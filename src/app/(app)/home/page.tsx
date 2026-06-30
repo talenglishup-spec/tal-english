@@ -8,9 +8,9 @@ import styles from './home.module.css';
 
 function getYoutubeId(url: string) {
   if (!url) return '';
-  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const regExp = /^.*(?:(?:youtu\.be\/|v\/|vi\/|u\/\w\/|embed\/|shorts\/)|(?:(?:watch)?\?v(?:i)?=|\&v(?:i)?=))([^#\&\?]*).*/;
   const match = url.match(regExp);
-  return (match && match[2].length === 11) ? match[2] : '';
+  return (match && match[1].length === 11) ? match[1] : '';
 }
 
 export default function HomePage() {
@@ -637,10 +637,7 @@ export default function HomePage() {
         onClose={() => setXpToastVisible(false)} 
       />
 
-      <header className={styles.header}>
-        <h1>TAL Trainer App</h1>
-        <p>어플리케이션 홈 화면에서 즉각 영어 훈련을 전개하세요</p>
-      </header>
+
 
       {/* 모바일 스마트폰 목업 프레임 */}
       <div className={styles.phoneFrame}>
