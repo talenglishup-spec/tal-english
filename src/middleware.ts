@@ -46,10 +46,19 @@ export async function middleware(req: NextRequest) {
     const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register');
     const isApiRoute = pathname.startsWith('/api/');
     const isStatic = pathname.match(/\.(png|jpg|jpeg|gif|svg|ico|css|js)$/);
-    const isLanding = pathname === '/';
     const isDemo = pathname.startsWith('/shorts-demo') || pathname.startsWith('/learn-modes-demo') || pathname.startsWith('/youtube-test');
 
-    const isPublic = isAuthPage || isApiRoute || isStatic || isLanding || isDemo;
+    const isPublic = isAuthPage || isApiRoute || isStatic || isDemo;
+
+    // 루트 '/' 접속 시 랜딩 페이지를 건너뛰고 로그인 여부에 따라 어플 직행
+    if (pathname === '/') {
+      const destination = user ? '/home' : '/login';
+      const redirectRes = NextResponse.redirect(new URL(destination, req.url));
+      res.cookies.getAll().forEach(c => {
+        redirectRes.cookies.set(c.name, c.value, c);
+      });
+      return redirectRes;
+    }
 
     if (!user && !isPublic) {
       const redirectRes = NextResponse.redirect(new URL('/login', req.url));
