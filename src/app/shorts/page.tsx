@@ -61,6 +61,19 @@ export default function ShortsPage() {
   const [playbackRates, setPlaybackRates] = useState<Record<string, number>>({});
   const [currentTimes, setCurrentTimes] = useState<Record<string, number>>({});
 
+  // startMonitoring의 setInterval 콜백은 최초 바인딩 시점의 클로저를 재귀적으로
+  // 재사용하므로, 이후 상태 갱신이 반영되지 않는 stale closure 문제가 있었음.
+  // 폴링 루프 내부에서는 항상 아래 ref들을 통해 최신값을 읽는다.
+  const phasesRef = useRef<Record<string, number>>({});
+  const activeTabRef = useRef(activeTab);
+  const speakSeqStepsRef = useRef<{ [presetId: string]: number }>({});
+  const seqDoneThisPhaseRef = useRef<{ [key: string]: boolean }>({});
+
+  useEffect(() => { phasesRef.current = phases; }, [phases]);
+  useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
+  useEffect(() => { speakSeqStepsRef.current = speakSeqSteps; }, [speakSeqSteps]);
+  useEffect(() => { seqDoneThisPhaseRef.current = seqDoneThisPhase; }, [seqDoneThisPhase]);
+
   const supabase = getSupabase();
 
   // 1. 세션 및 클립 데이터 동적 가져오기
@@ -323,12 +336,16 @@ export default function ShortsPage() {
 
       const start = Number(clip.start_sec || 0);
       const end = Number(clip.end_sec || 0);
+      // start_sec/end_sec 시트 데이터 누락(0 또는 역전) 시 매 틱마다 즉시
+      // "구간 끝 도달"로 오인식되어 재생이 시작되자마자 seekTo가 무한 반복되며
+      // 영상이 멈춘 것처럼 보이는 문제를 방지하기 위한 유효성 가드.
+      const hasValidRange = end > start;
       const pauseAt = Number(clip.pause_at || start + 2.5);
-      const currentPhase = phases[clipId] || 1;
+      const currentPhase = phasesRef.current[clipId] || 1;
       const phaseKey = `${clipId}_${currentPhase}`;
 
       // 스픽 모드 탭일 때만 멈춤 시퀀스 트리거
-      if (activeTab === 'speak' && currTime >= pauseAt && !seqDoneThisPhase[phaseKey] && (!speakSeqSteps[clipId] || speakSeqSteps[clipId] === 0)) {
+      if (activeTabRef.current === 'speak' && currTime >= pauseAt && !seqDoneThisPhaseRef.current[phaseKey] && (!speakSeqStepsRef.current[clipId] || speakSeqStepsRef.current[clipId] === 0)) {
         stopMonitoring();
         player.pauseVideo();
         setIsPlaying(false);
@@ -337,7 +354,7 @@ export default function ShortsPage() {
       }
 
       // 배속 루프 단계 전이 감지 (끝점에 도달 시 단 한 번 실행)
-      if (currTime >= end) {
+      if (hasValidRange && currTime >= end) {
         stopMonitoring();
         
         let nextPhase = 1;
@@ -503,11 +520,10 @@ export default function ShortsPage() {
       const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
       const formData = new FormData();
       formData.append('audio', audioBlob, 'speech.webm');
-      formData.append('target_phrase', clip.target_phrase);
       formData.append('clip_id', clip.clip_id);
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3500);
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
 
       const res = await fetch('/api/train/speak-score', {
         method: 'POST',
@@ -554,18 +570,12 @@ export default function ShortsPage() {
       }, 1500);
 
     } catch (err) {
-      console.warn('STT score evaluation timeout/failed, fallback to pass.', err);
-      setSeqResult(prev => ({ ...prev, [clipId]: 'pass' }));
-      setSuccessCounts(prev => ({ ...prev, [clipId]: (prev[clipId] || 0) + 1 }));
-      setScores(prev => ({ ...prev, [clipId]: 92 }));
+      // STT 채점 실패/타임아웃을 자동 합격으로 처리하면 오디오 업로드를
+      // 일부러 실패시켜 보상을 받는 우회가 가능해지므로, 실패는 실패로
+      // 처리하고 유저가 다시 도전하도록 한다 (보상은 지급하지 않음).
+      console.warn('STT score evaluation timeout/failed.', err);
+      setSeqResult(prev => ({ ...prev, [clipId]: 'fail' }));
 
-      if (playerId) {
-        fetch('/api/train/complete', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ clip_id: clip.clip_id, card_id: clip.player_name })
-        }).then(() => setXpToastVisible(true)).catch(() => {});
-      }
       setTimeout(() => {
         setSpeakSeqSteps(prev => ({ ...prev, [clipId]: 5 }));
         setTimeout(() => {

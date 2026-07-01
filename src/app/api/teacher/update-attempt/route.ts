@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { updateAttempt } from '@/utils/sheets';
+import { requireStaffAuth } from '@/utils/supabaseServer';
 
 export async function POST(req: NextRequest) {
     try {
+        const auth = await requireStaffAuth();
+        if (!auth.ok) {
+            return NextResponse.json({ error: auth.error }, { status: auth.status });
+        }
+
         const { attemptId, coach_score, coach_feedback } = await req.json();
 
         if (!attemptId) {

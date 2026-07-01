@@ -40,6 +40,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    // RPC가 실제 통과 기록을 찾지 못하면 success:false를 반환한다
+    // (speak-score를 거치지 않고 이 엔드포인트를 직접 호출한 경우 등).
+    if (data && data.success === false) {
+      return NextResponse.json(data, { status: 403 });
+    }
+
     return NextResponse.json(data, { status: 200 });
 
   } catch (err: any) {

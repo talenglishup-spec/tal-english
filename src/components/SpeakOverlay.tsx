@@ -113,11 +113,10 @@ export default function SpeakOverlay({ targetPhrase, clipId, onClose, onSkip }: 
       const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
       const formData = new FormData();
       formData.append('audio', audioBlob, 'speech.webm');
-      formData.append('target_phrase', targetPhrase);
       formData.append('clip_id', clipId);
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2500);
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
 
       const res = await fetch('/api/train/speak-score', {
         method: 'POST',
@@ -127,7 +126,7 @@ export default function SpeakOverlay({ targetPhrase, clipId, onClose, onSkip }: 
       clearTimeout(timeoutId);
 
       if (!res.ok) throw new Error('API request failed');
-      
+
       const data = await res.json();
       setPassed(data.passed);
 
@@ -136,8 +135,13 @@ export default function SpeakOverlay({ targetPhrase, clipId, onClose, onSkip }: 
       }, 1500);
 
     } catch (err) {
-      console.warn('[SpeakOverlay] STT evaluation failed/timeout, skipping...', err);
-      onClose(true); // Fallback to passed to let user progress
+      // STT 채점 실패/타임아웃을 자동 합격 처리하면 오디오 업로드를 일부러
+      // 실패시켜 보상을 받는 우회가 가능해지므로, 실패로 처리한다.
+      console.warn('[SpeakOverlay] STT evaluation failed/timeout.', err);
+      setPassed(false);
+      setTimeout(() => {
+        onClose(false);
+      }, 1500);
     }
   };
 

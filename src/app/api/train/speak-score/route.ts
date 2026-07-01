@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabaseServer';
+import { getClipItems } from '@/lib/sheets';
 import { OpenAI } from 'openai';
 
 function levenshtein(a: string, b: string): number {
@@ -37,24 +38,42 @@ export async function POST(req: NextRequest) {
   try {
     const data = await req.formData();
     const audio = data.get('audio') as Blob;
-    const target_phrase = data.get('target_phrase') as string;
     const clip_id = data.get('clip_id') as string;
 
-    if (!audio || !target_phrase || !clip_id) {
+    if (!audio || !clip_id) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-    const buffer = Buffer.from(await audio.arrayBuffer());
-    const file = await OpenAI.toFile(buffer, 'speech.webm', { type: 'audio/webm' });
-    
-    const transcription = await openai.audio.transcriptions.create({
-      file,
-      model: 'whisper-1',
-      language: 'en'
-    });
+    // 정답 문구는 클라이언트가 보낸 값을 신뢰하지 않고 clip_id로 서버에서
+    // 직접 조회한다. 클라이언트가 target_phrase를 임의로 조작해 채점을
+    // 우회하는 것을 막기 위함.
+    const clips = await getClipItems();
+    const clip = clips.find(c => c.clip_id === clip_id);
+    if (!clip || !clip.target_phrase) {
+      return NextResponse.json({ error: 'Unknown clip_id' }, { status: 400 });
+    }
+    const target_phrase = clip.target_phrase;
 
-    const transcript = transcription.text || '';
+    let transcript = '';
+    try {
+      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      const buffer = Buffer.from(await audio.arrayBuffer());
+      const file = await OpenAI.toFile(buffer, 'speech.webm', { type: 'audio/webm' });
+
+      const transcription = await openai.audio.transcriptions.create({
+        file,
+        model: 'whisper-1',
+        language: 'en'
+      });
+      transcript = transcription.text || '';
+    } catch (sttErr: any) {
+      // Whisper 호출 실패를 자동 합격으로 처리하면 오디오를 일부러 깨뜨려
+      // 채점을 우회할 수 있으므로, 실패는 실패로 응답한다(채점 실패를
+      // 그대로 fail 처리하지 않고 클라이언트가 재시도하도록 에러를 반환).
+      console.error('[speak-score] Whisper STT failed:', sttErr);
+      return NextResponse.json({ error: 'stt_failed' }, { status: 502 });
+    }
+
     console.log(`[Whisper STT] Result: "${transcript}" | Target: "${target_phrase}"`);
 
     const score = getSimilarityScore(transcript, target_phrase);
@@ -86,6 +105,6 @@ export async function POST(req: NextRequest) {
 
   } catch (err: any) {
     console.error('[speak-score API Error]:', err);
-    return NextResponse.json({ passed: true }, { status: 200 });
+    return NextResponse.json({ error: 'internal_error' }, { status: 500 });
   }
 }

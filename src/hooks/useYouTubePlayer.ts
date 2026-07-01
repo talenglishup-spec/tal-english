@@ -132,12 +132,14 @@ export function useYouTubePlayer(opts: UseYouTubePlayerOptions): UseYouTubePlaye
     const startAtRef        = useRef(startAt);
     const endAtRef          = useRef(endAt);
     const onSpeakTriggerRef = useRef(onSpeakTrigger);
+    const onStateChangeRef  = useRef(onStateChange);
 
     // opts가 바뀔 때마다 ref 동기화
     useEffect(() => { pauseAtRef.current = pauseAt; }, [pauseAt]);
     useEffect(() => { startAtRef.current = startAt; }, [startAt]);
     useEffect(() => { endAtRef.current = endAt; }, [endAt]);
     useEffect(() => { onSpeakTriggerRef.current = onSpeakTrigger; }, [onSpeakTrigger]);
+    useEffect(() => { onStateChangeRef.current = onStateChange; }, [onStateChange]);
 
     const [isReady,        setIsReady]        = useState(false);
     const [stage,          setStageState]     = useState<PlaybackStage>(1);
@@ -268,7 +270,7 @@ export function useYouTubePlayer(opts: UseYouTubePlayerOptions): UseYouTubePlaye
                     onStateChange: (e: any) => {
                         const playing = e.data === window.YT.PlayerState.PLAYING;
                         setIsPlaying(playing);
-                        onStateChange?.(e.data);
+                        onStateChangeRef.current?.(e.data);
                     },
                     onError: (e: any) => {
                         console.error('[useYouTubePlayer] YT error:', e.data);

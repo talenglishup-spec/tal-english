@@ -84,6 +84,24 @@ export type ClipItem = {
     notes: string;
 };
 
+// ── Time parsing ──────────────────────────────────────────────
+/**
+ * 구글 시트에서 시간 셀로 서식된 값("3:20", "1:03:20")과 순수 초 단위 숫자
+ * 문자열("200")을 모두 초 단위 숫자로 변환한다.
+ * parseFloat("3:20")은 콜론 이전의 "3"만 읽어버려 분:초 구간이 통째로
+ * 잘못 인식되는 문제가 있어 별도 파서로 처리한다.
+ */
+function parseSeconds(raw: string | undefined): number {
+    if (!raw) return 0;
+    const str = String(raw).trim();
+    if (!str) return 0;
+    if (!str.includes(':')) return parseFloat(str) || 0;
+
+    const parts = str.split(':').map(p => Number(p.trim()));
+    if (parts.some(p => Number.isNaN(p))) return 0;
+    return parts.reduce((acc, p) => acc * 60 + p, 0);
+}
+
 // ── In-memory cache ───────────────────────────────────────────
 let _cache: ClipItem[] | null = null;
 let _cacheTime = 0;
@@ -125,11 +143,11 @@ export async function getClipItems(): Promise<ClipItem[]> {
                     type:         (row.get('type')         || 'interview')   as ClipType,
                     subtype:      (row.get('subtype')      || 'post_match')  as ClipSubtype,
 
-                    start_sec: parseFloat(row.get('start_sec') || '0'),
-                    end_sec:   parseFloat(row.get('end_sec')   || '0'),
+                    start_sec: parseSeconds(row.get('start_sec')),
+                    end_sec:   parseSeconds(row.get('end_sec')),
 
                     speak_mode:    speakMode,
-                    pause_at:      parseFloat(row.get('pause_at') || '0'),
+                    pause_at:      parseSeconds(row.get('pause_at')),
                     target_phrase: row.get('target_phrase') || '',
 
                     nuance_desc:           row.get('nuance_desc')           || '',

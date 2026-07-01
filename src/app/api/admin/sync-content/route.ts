@@ -8,10 +8,17 @@ const pad2 = (num: number) => num.toString().padStart(2, '0');
 
 export async function POST(req: Request) {
     try {
+        // ADMIN_TOKEN이 설정되어 있지 않으면 인증을 건너뛰던 이전 로직은
+        // 배포 환경에 이 환경변수가 누락되는 순간 시트 쓰기 API가 완전히
+        // 공개되는 위험이 있었다. 미설정 시에도 인증 실패로 막는다.
+        if (!process.env.ADMIN_TOKEN) {
+            console.error('[admin/sync-content] ADMIN_TOKEN is not configured — refusing request.');
+            return NextResponse.json({ error: 'Server misconfigured: ADMIN_TOKEN not set' }, { status: 500 });
+        }
         const token = req.headers.get('x-admin-token');
-        if (token !== process.env.ADMIN_TOKEN && process.env.ADMIN_TOKEN) {
+        if (token !== process.env.ADMIN_TOKEN) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        } // Allow if ADMIN_TOKEN is not set for local dev
+        }
 
         const intakeSheet = await getSheet('ContentIntake');
         const logSheet = await getSheet('SyncLog');

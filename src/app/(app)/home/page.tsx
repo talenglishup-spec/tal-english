@@ -503,11 +503,10 @@ export default function HomePage() {
       const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
       const formData = new FormData();
       formData.append('audio', audioBlob, 'speech.webm');
-      formData.append('target_phrase', clip.target_phrase);
       formData.append('clip_id', clip.clip_id);
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3500);
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
 
       const res = await fetch('/api/train/speak-score', {
         method: 'POST',
@@ -554,18 +553,9 @@ export default function HomePage() {
       }, 1500);
 
     } catch (err) {
-      console.warn('STT score evaluation timeout/failed, fallback to pass.', err);
-      setSeqResult(prev => ({ ...prev, [clipId]: 'pass' }));
-      setSuccessCounts(prev => ({ ...prev, [clipId]: (prev[clipId] || 0) + 1 }));
-      setScores(prev => ({ ...prev, [clipId]: 92 }));
+      console.warn('STT score evaluation timeout/failed.', err);
+      setSeqResult(prev => ({ ...prev, [clipId]: 'fail' }));
 
-      if (playerId) {
-        fetch('/api/train/complete', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ clip_id: clip.clip_id, card_id: clip.player_name })
-        }).then(() => setXpToastVisible(true)).catch(() => {});
-      }
       setTimeout(() => {
         setSpeakSeqSteps(prev => ({ ...prev, [clipId]: 5 }));
         setTimeout(() => {
