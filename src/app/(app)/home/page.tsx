@@ -309,6 +309,15 @@ export default function HomePage() {
       const player = playerRefs.current[clipId];
       if (!player || !player.getCurrentTime) return;
 
+      // 1. 버퍼링(3) 또는 미시작(-1) 상태일 때는 시간 판독 보정 스킵
+      let playerState = -1;
+      try {
+        playerState = player.getPlayerState();
+      } catch (e) {}
+      if (playerState === 3 || playerState === -1) {
+        return;
+      }
+
       const currTime = player.getCurrentTime();
       setCurrentTimes(prev => ({ ...prev, [clipId]: currTime }));
 
@@ -361,8 +370,8 @@ export default function HomePage() {
         return;
       }
 
-      // 만약 seek 미달 시 보정
-      if (currTime < start) {
+      // 만약 재생 시간이 설정된 start_sec에 미달할 때만 정확하게 보정 점프 (안전 오차범위 0.5초 부여로 무한루프 방지)
+      if (currTime < start - 0.5) {
         try {
           player.seekTo(start, true);
         } catch (e) {}
