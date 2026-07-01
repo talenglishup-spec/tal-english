@@ -327,51 +327,45 @@ export default function HomePage() {
         return;
       }
 
-      // 배속 루프
-      if (currentPhase === 1) {
-        player.setPlaybackRate(1.0);
-        setPlaybackRates(prev => ({ ...prev, [clipId]: 1.0 }));
-
-        if (currTime >= end) {
-          setPhases(prev => ({ ...prev, [clipId]: 2 }));
-          player.seekTo(start, true);
-          setTimeout(() => {
-            player.setPlaybackRate(0.75);
-            setPlaybackRates(prev => ({ ...prev, [clipId]: 0.75 }));
-          }, 100);
+      // 배속 루프 단계 전이 감지 (끝점에 도달 시 단 한 번 실행)
+      if (currTime >= end) {
+        stopMonitoring();
+        
+        let nextPhase = 1;
+        let nextRate = 1.0;
+        
+        if (currentPhase === 1) {
+          nextPhase = 2;
+          nextRate = 0.75;
+        } else if (currentPhase === 2) {
+          nextPhase = 3;
+          nextRate = 0.5;
+        } else {
+          nextPhase = 1;
+          nextRate = 1.0;
         }
-      } 
-      else if (currentPhase === 2) {
-        player.setPlaybackRate(0.75);
-        setPlaybackRates(prev => ({ ...prev, [clipId]: 0.75 }));
-
-        if (currTime < start) {
+        
+        setPhases(prev => ({ ...prev, [clipId]: nextPhase }));
+        setPlaybackRates(prev => ({ ...prev, [clipId]: nextRate }));
+        
+        try {
           player.seekTo(start, true);
+          player.setPlaybackRate(nextRate);
+        } catch (e) {
+          console.error(e);
         }
+        
+        setTimeout(() => {
+          startMonitoring(clipId);
+        }, 150);
+        return;
+      }
 
-        if (currTime >= end) {
-          setPhases(prev => ({ ...prev, [clipId]: 3 }));
+      // 만약 seek 미달 시 보정
+      if (currTime < start) {
+        try {
           player.seekTo(start, true);
-          setTimeout(() => {
-            player.setPlaybackRate(0.5);
-            setPlaybackRates(prev => ({ ...prev, [clipId]: 0.5 }));
-          }, 100);
-        }
-      } 
-      else if (currentPhase === 3) {
-        player.setPlaybackRate(0.5);
-        setPlaybackRates(prev => ({ ...prev, [clipId]: 0.5 }));
-
-        if (currTime < start) {
-          player.seekTo(start, true);
-        }
-
-        if (currTime >= end) {
-          player.seekTo(start, true);
-          setPhases(prev => ({ ...prev, [clipId]: 1 }));
-          player.setPlaybackRate(1.0);
-          setPlaybackRates(prev => ({ ...prev, [clipId]: 1.0 }));
-        }
+        } catch (e) {}
       }
     }, 50);
   };
