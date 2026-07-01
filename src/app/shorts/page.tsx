@@ -861,11 +861,7 @@ export default function ShortsPage() {
                             )}
 
                             <div className={styles.actionArea}>
-                              {activeTab === 'shorts' ? (
-                                <div style={{ fontSize: '11px', color: '#94a3b8', textAlign: 'center', width: '100%', fontWeight: 700, background: 'rgba(255,255,255,0.05)', padding: '8px', borderRadius: '8px' }}>
-                                  📺 쇼츠 감상 중 (감속 관찰 쉐도잉)
-                                </div>
-                              ) : (
+                              {activeTab === 'shorts' ? null : (
                                 <button
                                   type="button"
                                   className={styles.speakButton}

@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAttempts, updateAttempt } from '@/utils/sheets';
+import { requireStaffAuth } from '@/utils/supabaseServer';
 
 export async function GET() {
+    const auth = await requireStaffAuth();
+    if (!auth.ok) {
+        return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
+
     try {
         const attempts = await getAttempts();
         return NextResponse.json({ attempts });
@@ -12,6 +18,11 @@ export async function GET() {
 }
 
 export async function PUT(req: NextRequest) {
+    const auth = await requireStaffAuth();
+    if (!auth.ok) {
+        return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
+
     try {
         const body = await req.json();
         const { attempt_id, coach_score, coach_feedback } = body;

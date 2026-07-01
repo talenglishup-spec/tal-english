@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getMaterials, addMaterial } from '@/utils/sheets';
 import { v4 as uuidv4 } from 'uuid';
+import { requireStaffAuth } from '@/utils/supabaseServer';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
+    const auth = await requireStaffAuth();
+    if (!auth.ok) {
+        return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
+
     try {
         const materials = await getMaterials();
         return NextResponse.json({ materials });
@@ -15,6 +21,11 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+    const auth = await requireStaffAuth();
+    if (!auth.ok) {
+        return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
+
     try {
         const body = await req.json();
         const { title, url, type, note } = body;

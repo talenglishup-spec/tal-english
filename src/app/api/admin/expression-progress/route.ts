@@ -2,11 +2,17 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAllExpressionProgress, getExpressions } from '@/utils/sheets';
+import { requireStaffAuth } from '@/utils/supabaseServer';
 
 // GET /api/admin/expression-progress?lessonId=xxx
 // Returns all players' expression progress grouped by player.
 // Admin-only: cloze_score and speaking_audio_url are included.
 export async function GET(req: NextRequest) {
+    const auth = await requireStaffAuth();
+    if (!auth.ok) {
+        return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
+
     const { searchParams } = new URL(req.url);
     const lessonId = searchParams.get('lessonId') || undefined;
 

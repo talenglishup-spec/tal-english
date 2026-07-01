@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSheet } from '../../../../utils/sheets';
+import { requireStaffAuth } from '@/utils/supabaseServer';
 
 const MATCHER_API = process.env.TAL_MATCHER_URL || 'http://localhost:8502';
 
@@ -37,6 +38,11 @@ async function fetchMatchedQuestion(
 }
 
 export async function POST(req: Request) {
+    const auth = await requireStaffAuth();
+    if (!auth.ok) {
+        return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
+
     try {
         const body = await req.json();
         const { rows } = body;

@@ -5,8 +5,14 @@ import { getOpenAI } from '@/utils/openai';
 import { updateItem, getItems } from '@/utils/sheets';
 import { createHash } from 'crypto';
 import { TTS_CONFIG } from '@/utils/config';
+import { requireStaffAuth } from '@/utils/supabaseServer';
 
 export async function POST(req: NextRequest) {
+    const auth = await requireStaffAuth();
+    if (!auth.ok) {
+        return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
+
     // Initialize clients inside handler to avoid build-time errors (missing env vars during static analysis)
     const supabase = getSupabaseAdmin();
     const openai = getOpenAI();

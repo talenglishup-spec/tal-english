@@ -1,9 +1,15 @@
 import { NextResponse } from 'next/server';
 import { getAttempts, getItems } from '@/utils/sheets';
+import { requireStaffAuth } from '@/utils/supabaseServer';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
+    const auth = await requireStaffAuth();
+    if (!auth.ok) {
+        return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
+
     try {
         const attempts = await getAttempts();
         const items = await getItems();
