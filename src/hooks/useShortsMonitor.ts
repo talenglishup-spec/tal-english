@@ -73,6 +73,13 @@ export function useShortsMonitor(): ShortsMonitorHandle {
         // 오인식되어 seekTo가 무한 반복되는 것을 막는 유효성 가드.
         const hasValidRange = endSec > startSec;
 
+        // 구간 끝 전이를 막 실행한 직후에는 seekTo(start)가 아직 적용되지
+        // 않아 getCurrentTime()이 잠깐 end 근처 값을 계속 돌려준다. 이 짧은
+        // 창에서 "또 end 도달"로 오인되어 다음 회차(예: 3회차)가 즉시
+        // 건너뛰어지던 버그가 있었다. 재생 위치가 end 구간을 확실히 벗어난
+        // 뒤에야 다시 전이를 허용하도록 래치(armedForEnd)를 둔다.
+        let armedForEnd = true;
+
         const tick = () => {
             const player = cfg.getPlayer();
             if (!player || !player.getCurrentTime) {
@@ -98,18 +105,25 @@ export function useShortsMonitor(): ShortsMonitorHandle {
 
             const currentPhase = cfg.getPhase();
 
-            // 스픽 자동 정지: pause_at 도달 시 영상을 멈추고 발화 시퀀스 트리거
+            // 재생 위치가 end 구간을 확실히 벗어나면 다음 전이를 재무장
+            if (currTime < endSec - 0.4) {
+                armedForEnd = true;
+            }
+
+            // 스픽 자동 정지: pause_at 도달 시 영상을 멈추고 루프를 종료한다.
+            // (발화가 끝나면 페이지가 startMonitoring으로 루프를 다시 시작)
             if (pauseAt > 0 && currTime >= pauseAt && cfg.shouldAutoPause()) {
                 try {
                     player.pauseVideo();
                 } catch (e) {}
+                rafRef.current = null;
                 cfg.onAutoPause(currentPhase);
-                rafRef.current = requestAnimationFrame(tick);
                 return;
             }
 
             // 구간 끝 도달 → 다음 회차로 전이 (배속 감속 후 시작점으로 되감기)
-            if (hasValidRange && currTime >= endSec) {
+            if (hasValidRange && armedForEnd && currTime >= endSec) {
+                armedForEnd = false; // seek 적용 확인 전까지 재전이 잠금
                 const nextPhase = nextPhaseOf(currentPhase);
                 const nextRate = PHASE_RATES[nextPhase] ?? 1.0;
                 try {

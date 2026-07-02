@@ -211,9 +211,11 @@
 }
 
 .overlayPaused {
-  background: rgba(7, 14, 23, 0.75) !important;
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  /* 정지 시 YouTube 자체 재생 버튼(iframe 내부)이 비쳐 이중으로 보이던 것을
+     가리기 위해 거의 불투명하게 덮는다. */
+  background: rgba(7, 14, 23, 0.94) !important;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
 .topSection {
@@ -275,6 +277,7 @@
   justify-content: center;
   align-items: center;
   height: 60%;
+  cursor: pointer;
 }
 
 .playPauseBtn {
@@ -371,6 +374,49 @@
 
 .speakButton:hover {
   background: #2563eb;
+}
+
+/* 스픽 모드 하단 안내 문구 */
+.speakHintText {
+  font-size: 11px;
+  color: #94a3b8;
+  text-align: center;
+  width: 100%;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 8px;
+  border-radius: 8px;
+  line-height: 1.4;
+}
+
+/* 리뷰 화면: 내 발음 / 모범 답안 듣기 버튼 행 */
+.reviewBtnRow {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  margin-top: 18px;
+}
+
+.reviewBtn {
+  flex: 1;
+  padding: 12px 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.reviewBtn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.reviewBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 /* 5단계 시퀀스 락 레이아웃 */

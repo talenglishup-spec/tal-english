@@ -13,6 +13,13 @@ import styles from './ShortsPage.module.css';
 // 커지므로, 활성 ± WINDOW 범위만 유지하고 나머지는 destroy한다.
 const PLAYER_WINDOW = 1;
 
+// 스픽 훈련 진행 단계 (clipId별)
+//   armed     : pause_at에서 영상이 멈추고 "말하기 시작" 버튼 대기
+//   recording : 마이크 녹음 중
+//   review    : 녹음 완료 → 내 발음 듣기 / 모범 답안 듣기 / 넘어가기
+type SpeakStage = 'armed' | 'recording' | 'review';
+const REC_MAX_SEC = 12; // 녹음 안전 상한 (자동 종료)
+
 function getYoutubeId(url: string) {
   if (!url) return '';
   const regExp = /^.*(?:(?:youtu\.be\/|v\/|vi\/|u\/\w\/|embed\/|shorts\/)|(?:(?:watch)?\?v(?:i)?=|\&v(?:i)?=))([^#\&\?]*).*/;
@@ -39,12 +46,13 @@ export default function ShortsPage() {
   const [isAdvanced, setIsAdvanced] = useState(false);
   const [selectedClub, setSelectedClub] = useState<'tottenham' | 'mancity' | 'realmadrid'>('tottenham');
 
-  // 5단계 스피킹 시퀀스 상태
-  const [speakSeqSteps, setSpeakSeqSteps] = useState<{ [presetId: string]: number }>({});
-  const [countdownNum, setCountdownNum] = useState<number>(3);
-  const [recordProgress, setRecordProgress] = useState<number>(0);
+  // 스픽 훈련 상태 (clipId별)
+  const [speakStage, setSpeakStage] = useState<Record<string, SpeakStage>>({});
+  const [recElapsed, setRecElapsed] = useState<number>(0);
+  const [myAudioUrl, setMyAudioUrl] = useState<string | null>(null);
   const [seqResult, setSeqResult] = useState<{ [presetId: string]: 'pass' | 'fail' | null }>({});
-  const [seqDoneThisPhase, setSeqDoneThisPhase] = useState<{ [key: string]: boolean }>({});
+  // clipId별 "이번 클립 스픽 완료" 여부 — 완료 후엔 pause_at 자동정지를 재발동하지 않는다
+  const [spokenDone, setSpokenDone] = useState<Record<string, boolean>>({});
 
   // Collection 해금 보상 상태 카운트
   const [successCounts, setSuccessCounts] = useState<Record<string, number>>({});
@@ -57,8 +65,9 @@ export default function ShortsPage() {
   // 재생 감시 엔진 (배속 3단계 전이 · pause_at 자동 정지 · 버퍼링 가드)
   const monitor = useShortsMonitor();
 
-  const activeCountdownIntervalRef = useRef<any>(null);
   const activeRecordIntervalRef = useRef<any>(null);
+  const modelWatchRef = useRef<any>(null);      // 모범 답안(영상 구간) 재생 감시 인터벌
+  const myAudioElRef = useRef<HTMLAudioElement | null>(null); // 내 발음 재생 엘리먼트
 
   // 녹음 관련 Refs
   const streamRef = useRef<MediaStream | null>(null);
@@ -73,14 +82,14 @@ export default function ShortsPage() {
   // 감시 루프 콜백은 항상 아래 ref들을 통해 최신값을 읽는다 (stale closure 방지).
   const phasesRef = useRef<Record<string, number>>({});
   const activeTabRef = useRef(activeTab);
-  const speakSeqStepsRef = useRef<{ [presetId: string]: number }>({});
-  const seqDoneThisPhaseRef = useRef<{ [key: string]: boolean }>({});
+  const speakStageRef = useRef<Record<string, SpeakStage>>({});
+  const spokenDoneRef = useRef<Record<string, boolean>>({});
   const clipsRef = useRef<any[]>([]);
 
   useEffect(() => { phasesRef.current = phases; }, [phases]);
   useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
-  useEffect(() => { speakSeqStepsRef.current = speakSeqSteps; }, [speakSeqSteps]);
-  useEffect(() => { seqDoneThisPhaseRef.current = seqDoneThisPhase; }, [seqDoneThisPhase]);
+  useEffect(() => { speakStageRef.current = speakStage; }, [speakStage]);
+  useEffect(() => { spokenDoneRef.current = spokenDone; }, [spokenDone]);
   useEffect(() => { clipsRef.current = clips; }, [clips]);
 
   // 활성 클립 기준 윈도우 안에 들어오는 clip_id 집합 (플레이어 생성 대상)
@@ -167,8 +176,8 @@ export default function ShortsPage() {
     return () => {
       (window as any).onYouTubeIframeAPIReady = null;
       stopMonitoring();
-      if (activeCountdownIntervalRef.current) clearInterval(activeCountdownIntervalRef.current);
       if (activeRecordIntervalRef.current) clearInterval(activeRecordIntervalRef.current);
+      if (modelWatchRef.current) clearInterval(modelWatchRef.current);
     };
   }, []);
 
@@ -233,7 +242,11 @@ export default function ShortsPage() {
             if (clip.clip_id === activePresetIdRef.current) {
               if (state === YT.PlayerState.PLAYING) {
                 setIsPlaying(true);
-                startMonitoring(clip.clip_id);
+                // 스픽 오버레이(모범 답안 재생 등)가 떠 있는 중엔 감시 루프를
+                // 재가동하지 않는다 — 발화 종료(넘어가기) 시 명시적으로 재시작.
+                if (!speakStageRef.current[clip.clip_id]) {
+                  startMonitoring(clip.clip_id);
+                }
               } else if (state === YT.PlayerState.PAUSED ||
                          state === YT.PlayerState.ENDED) {
                 setIsPlaying(false);
@@ -303,6 +316,7 @@ export default function ShortsPage() {
   useEffect(() => {
     if (activeTab !== 'shorts' && activeTab !== 'speak') {
       stopMonitoring();
+      resetSpeakArtifacts(activePresetIdRef.current);
       clips.forEach((clip) => {
         const player = playerRefs.current[clip.clip_id];
         if (player && player.pauseVideo) {
@@ -311,6 +325,8 @@ export default function ShortsPage() {
       });
       setIsPlaying(false);
     } else {
+      // 스픽 오버레이가 떠 있는 중이면 자동 재생하지 않는다 (사용자 입력 대기)
+      if (speakStageRef.current[activePresetIdRef.current]) return;
       const player = playerRefs.current[activePresetIdRef.current];
       if (player && player.playVideo) {
         try {
@@ -320,10 +336,13 @@ export default function ShortsPage() {
         } catch (e) {}
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, clips]);
 
   const handlePresetTransition = (nextClipId: string) => {
     stopMonitoring();
+    // 이전 클립의 진행 중이던 스픽 훈련(녹음/타이머 등)을 정리
+    resetSpeakArtifacts(activePresetIdRef.current);
 
     clips.forEach((clip) => {
       if (clip.clip_id !== nextClipId) {
@@ -339,12 +358,12 @@ export default function ShortsPage() {
 
     setActivePresetId(nextClipId);
     activePresetIdRef.current = nextClipId;
-    // ref도 즉시 동기화 — 새 활성 클립은 1회차부터 다시 시작
+    // ref도 즉시 동기화 — 새 활성 클립은 1회차부터 다시 시작, 스픽 미완료 상태
     phasesRef.current = { ...phasesRef.current, [nextClipId]: 1 };
-    speakSeqStepsRef.current = { ...speakSeqStepsRef.current, [nextClipId]: 0 };
+    spokenDoneRef.current = { ...spokenDoneRef.current, [nextClipId]: false };
     setPhases(prev => ({ ...prev, [nextClipId]: 1 }));
     setPlaybackRates(prev => ({ ...prev, [nextClipId]: 1.0 }));
-    setSpeakSeqSteps(prev => ({ ...prev, [nextClipId]: 0 }));
+    setSpokenDone(prev => ({ ...prev, [nextClipId]: false }));
     setSeqResult(prev => ({ ...prev, [nextClipId]: null }));
 
     const nextPlayer = playerRefs.current[nextClipId];
@@ -383,17 +402,18 @@ export default function ShortsPage() {
       pauseAt,
       getPhase: () => phasesRef.current[clipId] || 1,
       shouldAutoPause: () => {
-        const phase = phasesRef.current[clipId] || 1;
-        const phaseKey = `${clipId}_${phase}`;
+        // 스픽 탭 & 이번 클립 미완료 & 스픽 오버레이가 떠있지 않을 때만
         return (
           activeTabRef.current === 'speak' &&
-          !seqDoneThisPhaseRef.current[phaseKey] &&
-          (!speakSeqStepsRef.current[clipId] || speakSeqStepsRef.current[clipId] === 0)
+          !spokenDoneRef.current[clipId] &&
+          !speakStageRef.current[clipId]
         );
       },
-      onAutoPause: (phase) => {
+      onAutoPause: () => {
+        // pause_at 도달: 영상은 이미 멈춤. 마이크를 바로 켜지 않고
+        // "말하기 시작" 버튼을 띄운 채 사용자 입력을 기다린다.
         setIsPlaying(false);
-        triggerSpeakSequence(clipId, phase);
+        armSpeak(clipId);
       },
       onPhaseChange: (nextPhase, nextRate) => {
         // ref를 즉시 갱신 — useEffect 동기화를 기다리지 않고 다음 프레임부터
@@ -436,110 +456,119 @@ export default function ShortsPage() {
     }
   };
 
-  // 5단계 스픽 시퀀스 전동 제어 핸들러
-  const triggerSpeakSequence = async (clipId: string, currentPhase: number) => {
-    const phaseKey = `${clipId}_${currentPhase}`;
-    const clip = clips.find(c => c.clip_id === clipId);
-    if (!clip) return;
+  // ── 스픽 훈련 상태 헬퍼 ──────────────────────────────────────
+  const setStage = (clipId: string, stage: SpeakStage) => {
+    speakStageRef.current = { ...speakStageRef.current, [clipId]: stage };
+    setSpeakStage(prev => ({ ...prev, [clipId]: stage }));
+  };
+  const clearStage = (clipId: string) => {
+    const nextRef = { ...speakStageRef.current };
+    delete nextRef[clipId];
+    speakStageRef.current = nextRef;
+    setSpeakStage(prev => {
+      const n = { ...prev };
+      delete n[clipId];
+      return n;
+    });
+  };
 
-    // ref를 즉시 갱신 — 모니터링 루프가 setState 반영(useEffect)을 기다리지
-    // 않고 바로 다음 프레임부터 "이미 스픽 시퀀스 진행 중"임을 인지하도록
-    // 하여 동일 구간에서 트리거가 중복 발화되는 것을 막는다.
-    speakSeqStepsRef.current = { ...speakSeqStepsRef.current, [clipId]: 1 };
-    setSpeakSeqSteps(prev => ({ ...prev, [clipId]: 1 }));
+  // 진행 중이던 녹음/타이머/모범답안 재생/오디오를 모두 정리
+  const resetSpeakArtifacts = (clipId?: string) => {
+    if (activeRecordIntervalRef.current) { clearInterval(activeRecordIntervalRef.current); activeRecordIntervalRef.current = null; }
+    if (modelWatchRef.current) { clearInterval(modelWatchRef.current); modelWatchRef.current = null; }
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      try { mediaRecorderRef.current.onstop = null as any; mediaRecorderRef.current.stop(); } catch (e) {}
+    }
+    mediaRecorderRef.current = null;
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
+    }
+    if (myAudioElRef.current) { try { myAudioElRef.current.pause(); } catch (e) {} myAudioElRef.current = null; }
+    setMyAudioUrl(prev => { if (prev) URL.revokeObjectURL(prev); return null; });
+    if (clipId) clearStage(clipId);
+  };
 
+  // 1) pause_at 자동 정지 → "말하기 시작" 버튼 대기 (armed)
+  const armSpeak = (clipId: string) => {
+    setSeqResult(prev => ({ ...prev, [clipId]: null }));
+    setMyAudioUrl(null);
+    setStage(clipId, 'armed');
+  };
+
+  // 2) "말하기 시작" 클릭 → 즉시 녹음 시작 (카운트다운 없음)
+  const startSpeaking = async (clipId: string) => {
+    let stream: MediaStream;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
     } catch (err) {
-      console.warn('Microphone access denied, skipping speak sequence evaluation', err);
-      handleSkipSequence(clipId, phaseKey);
+      console.warn('Microphone access denied', err);
+      alert('마이크 접근이 거부되었습니다. 브라우저 마이크 권한을 허용해 주세요.');
       return;
     }
 
-    setTimeout(() => {
-      setSpeakSeqSteps(prev => ({ ...prev, [clipId]: 2 }));
-      setCountdownNum(3);
-      
-      let count = 3;
-      const countdownInterval = setInterval(() => {
-        count -= 1;
-        if (count > 0) {
-          setCountdownNum(count);
-        } else {
-          clearInterval(countdownInterval);
-          setSpeakSeqSteps(prev => ({ ...prev, [clipId]: 3 }));
-          setRecordProgress(0);
-          startMicrophoneRecording(clipId, phaseKey);
-        }
-      }, 1000);
-      
-      activeCountdownIntervalRef.current = countdownInterval;
-    }, 200);
-  };
-
-  const startMicrophoneRecording = (clipId: string, phaseKey: string) => {
-    if (!streamRef.current) return;
     try {
       audioChunksRef.current = [];
-      const recorder = new MediaRecorder(streamRef.current, { mimeType: 'audio/webm' });
+      const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
       mediaRecorderRef.current = recorder;
 
       recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
-          audioChunksRef.current.push(e.data);
-        }
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
       };
-
-      recorder.onstop = async () => {
+      recorder.onstop = () => {
         if (streamRef.current) {
-          streamRef.current.getTracks().forEach(track => track.stop());
+          streamRef.current.getTracks().forEach(t => t.stop());
+          streamRef.current = null;
         }
-        await evaluateSpeechScore(clipId, phaseKey);
+        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const url = URL.createObjectURL(blob);
+        setMyAudioUrl(prev => { if (prev) URL.revokeObjectURL(prev); return url; });
+        setStage(clipId, 'review');
+        scoreRecording(clipId, blob);
       };
 
       recorder.start();
+      setRecElapsed(0);
+      setStage(clipId, 'recording');
 
-      let recTime = 0;
-      const recordInterval = setInterval(() => {
-        recTime += 1;
-        setRecordProgress(recTime);
-        if (recTime >= 5) {
-          clearInterval(recordInterval);
-          if (recorder.state !== 'inactive') {
-            recorder.stop();
-          }
+      let elapsed = 0;
+      activeRecordIntervalRef.current = setInterval(() => {
+        elapsed += 1;
+        setRecElapsed(elapsed);
+        if (elapsed >= REC_MAX_SEC) {
+          clearInterval(activeRecordIntervalRef.current);
+          activeRecordIntervalRef.current = null;
+          if (recorder.state !== 'inactive') recorder.stop();
         }
       }, 1000);
-
-      activeRecordIntervalRef.current = recordInterval;
-
     } catch (err) {
-      console.error('Microphone recorder boot error:', err);
-      handleSkipSequence(clipId, phaseKey);
+      console.error('Recorder boot error:', err);
+      alert('녹음을 시작할 수 없습니다.');
     }
   };
 
-  const evaluateSpeechScore = async (clipId: string, phaseKey: string) => {
-    const clip = clips.find(c => c.clip_id === clipId);
+  // 3) "말하기 완료" 클릭 → 녹음 종료 (onstop이 채점/리뷰 전환 처리)
+  const stopSpeaking = () => {
+    if (activeRecordIntervalRef.current) { clearInterval(activeRecordIntervalRef.current); activeRecordIntervalRef.current = null; }
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+  };
+
+  // 4) 백그라운드 채점 (리뷰 화면은 이미 떠 있음)
+  const scoreRecording = async (clipId: string, blob: Blob) => {
+    const clip = clipsRef.current.find(c => c.clip_id === clipId);
     if (!clip) return;
 
-    setSpeakSeqSteps(prev => ({ ...prev, [clipId]: 4 }));
-
     try {
-      const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
       const formData = new FormData();
-      formData.append('audio', audioBlob, 'speech.webm');
+      formData.append('audio', blob, 'speech.webm');
       formData.append('clip_id', clip.clip_id);
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 8000);
-
-      const res = await fetch('/api/train/speak-score', {
-        method: 'POST',
-        body: formData,
-        signal: controller.signal
-      });
+      const res = await fetch('/api/train/speak-score', { method: 'POST', body: formData, signal: controller.signal });
       clearTimeout(timeoutId);
 
       if (!res.ok) throw new Error('Speech API failed');
@@ -552,89 +581,83 @@ export default function ShortsPage() {
       if (passed) {
         setSuccessCounts(prev => ({ ...prev, [clipId]: (prev[clipId] || 0) + 1 }));
         setScores(prev => ({ ...prev, [clipId]: scoreVal }));
-
         if (playerId) {
           try {
             const syncRes = await fetch('/api/train/complete', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                clip_id: clip.clip_id,
-                card_id: clip.player_name
-              })
+              body: JSON.stringify({ clip_id: clip.clip_id, card_id: clip.player_name })
             });
-            if (syncRes.ok) {
-              setXpToastVisible(true);
-            }
+            if (syncRes.ok) setXpToastVisible(true);
           } catch (e) {
             console.error('[Complete API Sync Error]:', e);
           }
         }
       }
-
-      setTimeout(() => {
-        setSpeakSeqSteps(prev => ({ ...prev, [clipId]: 5 }));
-        setTimeout(() => {
-          clearSequenceAndResume(clipId, phaseKey);
-        }, 200);
-      }, 1500);
-
     } catch (err) {
-      // STT 채점 실패/타임아웃을 자동 합격으로 처리하면 오디오 업로드를
-      // 일부러 실패시켜 보상을 받는 우회가 가능해지므로, 실패는 실패로
-      // 처리하고 유저가 다시 도전하도록 한다 (보상은 지급하지 않음).
-      console.warn('STT score evaluation timeout/failed.', err);
+      console.warn('STT score evaluation failed.', err);
       setSeqResult(prev => ({ ...prev, [clipId]: 'fail' }));
-
-      setTimeout(() => {
-        setSpeakSeqSteps(prev => ({ ...prev, [clipId]: 5 }));
-        setTimeout(() => {
-          clearSequenceAndResume(clipId, phaseKey);
-        }, 200);
-      }, 1500);
     }
   };
 
-  const clearSequenceAndResume = (clipId: string, phaseKey: string) => {
-    // 모니터링 루프는 스픽 시퀀스 중에도 멈추지 않고 계속 돌고 있으므로
-    // (더 이상 stopMonitoring/재시작하지 않음), ref를 먼저 즉시 갱신해
-    // 재개 직후 같은 틱에서 다시 트리거되지 않도록 한다.
-    speakSeqStepsRef.current = { ...speakSeqStepsRef.current, [clipId]: 0 };
-    seqDoneThisPhaseRef.current = { ...seqDoneThisPhaseRef.current, [phaseKey]: true };
+  // 리뷰: 내 발음 듣기
+  const playMyRecording = () => {
+    if (!myAudioUrl) return;
+    try {
+      if (myAudioElRef.current) myAudioElRef.current.pause();
+      const audio = new Audio(myAudioUrl);
+      myAudioElRef.current = audio;
+      audio.play().catch(() => {});
+    } catch (e) {}
+  };
 
-    setSpeakSeqSteps(prev => ({ ...prev, [clipId]: 0 }));
+  // 리뷰: 모범 답안 듣기 — 영상의 해당 구간(start~pause_at)을 소리와 함께 재생
+  const playModelAnswer = (clipId: string) => {
+    const player = playerRefs.current[clipId];
+    const clip = clipsRef.current.find(c => c.clip_id === clipId);
+    if (!player || !clip) return;
+
+    const start = Number(clip.start_sec || 0);
+    const pauseAt = Number(clip.pause_at || start + 2.5);
+
+    if (modelWatchRef.current) { clearInterval(modelWatchRef.current); modelWatchRef.current = null; }
+    try {
+      player.setPlaybackRate(1.0);
+      player.unMute();
+      player.seekTo(start, true);
+      player.playVideo();
+    } catch (e) {}
+
+    modelWatchRef.current = setInterval(() => {
+      const p = playerRefs.current[clipId];
+      if (!p || !p.getCurrentTime) return;
+      let t = 0;
+      try { t = p.getCurrentTime() || 0; } catch (e) {}
+      if (t >= pauseAt) {
+        clearInterval(modelWatchRef.current);
+        modelWatchRef.current = null;
+        try { p.pauseVideo(); } catch (e) {}
+      }
+    }, 80);
+  };
+
+  // 5) "넘어가기" — 스픽 종료 후 영상 재개 (이 클립은 스픽 완료 처리)
+  const finishSpeak = (clipId: string) => {
+    resetSpeakArtifacts(clipId);
+
+    spokenDoneRef.current = { ...spokenDoneRef.current, [clipId]: true };
+    setSpokenDone(prev => ({ ...prev, [clipId]: true }));
     setSeqResult(prev => ({ ...prev, [clipId]: null }));
-    setSeqDoneThisPhase(prev => ({ ...prev, [phaseKey] : true }));
 
     const player = playerRefs.current[clipId];
     if (player && player.playVideo) {
-      player.playVideo();
-      setIsPlaying(true);
-    }
-  };
-
-  const handleSkipSequence = (clipId: string, phaseKey: string) => {
-    if (activeCountdownIntervalRef.current) clearInterval(activeCountdownIntervalRef.current);
-    if (activeRecordIntervalRef.current) clearInterval(activeRecordIntervalRef.current);
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop();
-    }
-
-    setSpeakSeqSteps(prev => ({ ...prev, [clipId]: 5 }));
-    setTimeout(() => {
-      speakSeqStepsRef.current = { ...speakSeqStepsRef.current, [clipId]: 0 };
-      seqDoneThisPhaseRef.current = { ...seqDoneThisPhaseRef.current, [phaseKey]: true };
-
-      setSpeakSeqSteps(prev => ({ ...prev, [clipId]: 0 }));
-      setSeqResult(prev => ({ ...prev, [clipId]: null }));
-      setSeqDoneThisPhase(prev => ({ ...prev, [phaseKey]: true }));
-
-      const player = playerRefs.current[clipId];
-      if (player && player.playVideo) {
+      try {
+        player.unMute();
         player.playVideo();
         setIsPlaying(true);
-      }
-    }, 200);
+        startMonitoring(clipId);
+      } catch (e) {}
+    }
   };
 
   const scrollToPreset = (clipId: string) => {
@@ -751,47 +774,63 @@ export default function ShortsPage() {
                           <div id={`yt-host-${clip.clip_id}`} className={styles.youtubeIframe}></div>
                         </div>
 
-                        {/* 5단계 스피킹 챌린지 가림막 오버레이 */}
-                        {isCurrentActive && speakSeqSteps[clip.clip_id] >= 1 && speakSeqSteps[clip.clip_id] <= 4 && (
-                          <div className={`${styles.lockOverlay} ${speakSeqSteps[clip.clip_id] >= 1 ? styles.overlayBlurActive : ''}`}>
+                        {/* 스픽 훈련 오버레이 (armed → recording → review) */}
+                        {isCurrentActive && speakStage[clip.clip_id] && (
+                          <div className={`${styles.lockOverlay} ${styles.overlayBlurActive}`}>
                             <div className={styles.lockContent}>
-                              
-                              {/* STEP 1: 자동 정지 가림막 */}
-                              {speakSeqSteps[clip.clip_id] === 1 && (
+
+                              {/* ARMED: pause_at 자동 정지 → 말하기 시작 대기 */}
+                              {speakStage[clip.clip_id] === 'armed' && (
                                 <>
-                                  <span className={styles.lockIcon}>🚨</span>
-                                  <h3 className={styles.lockTitle}>맥락 정지 스피킹 단계</h3>
-                                  <p className={styles.lockSubtitle}>선수 뒤에 숨겨진 자막을 직접 말해 통과하세요!</p>
+                                  <span className={styles.lockIcon}>🎙️</span>
+                                  <h3 className={styles.lockTitle}>지금 말할 차례!</h3>
+                                  <p className={styles.lockSubtitle}>영상 속 선수처럼 문장을 직접 말해보세요.</p>
+                                  <button
+                                    type="button"
+                                    className={styles.speakButton}
+                                    onClick={() => startSpeaking(clip.clip_id)}
+                                  >
+                                    🎙️ 말하기 시작
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className={styles.skipSeqBtn}
+                                    style={{ marginTop: 14 }}
+                                    onClick={() => finishSpeak(clip.clip_id)}
+                                  >
+                                    넘어가기 →
+                                  </button>
                                 </>
                               )}
 
-                              {/* STEP 2: 3초 카운트다운 */}
-                              {speakSeqSteps[clip.clip_id] === 2 && (
-                                <div className={styles.countdownBox}>
-                                  <div className={styles.countdownPulseNum}>{countdownNum}</div>
-                                  <p className={styles.speakStageText}>선수 대신 네가 말해봐!</p>
-                                </div>
-                              )}
-
-                              {/* STEP 3: 5초 레코딩 */}
-                              {speakSeqSteps[clip.clip_id] === 3 && (
-                                <div className={styles.recordingBox}>
-                                  <div className={styles.micCircleActive}>🎙️</div>
-                                  <div className={styles.recTimerBar}>
-                                    <div className={styles.recTimerProgress} style={{ width: `${(recordProgress / 5) * 100}%` }} />
+                              {/* RECORDING: 즉시 녹음 중 */}
+                              {speakStage[clip.clip_id] === 'recording' && (
+                                <>
+                                  <div className={styles.recordingBox}>
+                                    <div className={styles.micCircleActive}>🎙️</div>
+                                    <p className={styles.speakStageText} style={{ color: '#ef4444' }}>
+                                      녹음 중... {recElapsed}초
+                                    </p>
                                   </div>
-                                  <p className={styles.speakStageText} style={{ color: '#ef4444' }}>지금 말하세요! ({5 - recordProgress}초)</p>
-                                </div>
+                                  <button
+                                    type="button"
+                                    className={styles.speakButton}
+                                    style={{ background: '#ef4444', boxShadow: '0 4px 12px rgba(239,68,68,0.3)' }}
+                                    onClick={stopSpeaking}
+                                  >
+                                    ■ 말하기 완료
+                                  </button>
+                                </>
                               )}
 
-                              {/* STEP 4: 판정 */}
-                              {speakSeqSteps[clip.clip_id] === 4 && (
-                                <div className={styles.evaluationBox}>
-                                  {seqResult[clip.clip_id] === null ? (
-                                    <>
+                              {/* REVIEW: 결과 + 내 발음/모범 답안 듣기 + 넘어가기 */}
+                              {speakStage[clip.clip_id] === 'review' && (
+                                <>
+                                  {seqResult[clip.clip_id] == null ? (
+                                    <div className={styles.evaluationBox}>
                                       <div className={styles.analyzingSpinner} />
                                       <p className={styles.speakStageText}>AI 발음 분석 중...</p>
-                                    </>
+                                    </div>
                                   ) : seqResult[clip.clip_id] === 'pass' ? (
                                     <div className={styles.evaluationSuccess}>
                                       <span className={styles.evalIcon}>✓</span>
@@ -800,19 +839,38 @@ export default function ShortsPage() {
                                   ) : (
                                     <div className={styles.evaluationFail}>
                                       <span className={styles.evalIcon}>✗</span>
-                                      <p className={styles.speakStageText}>TRY AGAIN! 불합격</p>
+                                      <p className={styles.speakStageText}>다시 도전해볼까요?</p>
                                     </div>
                                   )}
-                                </div>
-                              )}
 
-                              <button 
-                                type="button" 
-                                className={styles.skipSeqBtn}
-                                onClick={() => handleSkipSequence(clip.clip_id, `${clip.clip_id}_${currentPhase}`)}
-                              >
-                                SKIP ➔
-                              </button>
+                                  <div className={styles.reviewBtnRow}>
+                                    <button
+                                      type="button"
+                                      className={styles.reviewBtn}
+                                      disabled={!myAudioUrl}
+                                      onClick={playMyRecording}
+                                    >
+                                      🔊 내 발음 듣기
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className={styles.reviewBtn}
+                                      onClick={() => playModelAnswer(clip.clip_id)}
+                                    >
+                                      ⭐ 모범 답안 듣기
+                                    </button>
+                                  </div>
+
+                                  <button
+                                    type="button"
+                                    className={styles.skipSeqBtn}
+                                    style={{ marginTop: 14 }}
+                                    onClick={() => finishSpeak(clip.clip_id)}
+                                  >
+                                    넘어가기 →
+                                  </button>
+                                </>
+                              )}
                             </div>
                           </div>
                         )}
@@ -836,16 +894,18 @@ export default function ShortsPage() {
                             </div>
                           </div>
 
-                          {/* 중앙 재생 컨트롤러 */}
-                          <div className={styles.centerSection}>
-                            {isCurrentActive && (
-                              <button 
-                                type="button" 
-                                onClick={() => togglePlay(clip.clip_id)} 
-                                className={styles.playPauseBtn}
-                              >
-                                {isPlaying ? '⏸' : '▶'}
-                              </button>
+                          {/* 중앙 재생 컨트롤러 (탭하여 재생/정지 — YouTube 자체
+                              컨트롤은 controls:0 + pointer-events:none로 숨김.
+                              재생 중엔 버튼을 숨겨 이중 버튼이 보이지 않게 한다) */}
+                          <div
+                            className={styles.centerSection}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (isCurrentActive && !speakStage[clip.clip_id]) togglePlay(clip.clip_id);
+                            }}
+                          >
+                            {isCurrentActive && !isPlaying && !speakStage[clip.clip_id] && (
+                              <div className={styles.playPauseBtn}>▶</div>
                             )}
                           </div>
 
@@ -877,29 +937,15 @@ export default function ShortsPage() {
                               </div>
                             )}
 
-                            <div className={styles.actionArea}>
-                              {activeTab === 'shorts' ? null : (
-                                <button
-                                  type="button"
-                                  className={styles.speakButton}
-                                  style={{
-                                    background: isPlaying ? '#0f1e30' : '#3b82f6',
-                                    color: '#ffffff',
-                                    border: isPlaying ? '1px solid rgba(255,255,255,0.1)' : 'none'
-                                  }}
-                                  onClick={() => {
-                                    if (isPlaying) {
-                                      togglePlay(clip.clip_id);
-                                    } else {
-                                      const activePhase = phases[clip.clip_id] || 1;
-                                      triggerSpeakSequence(clip.clip_id, activePhase);
-                                    }
-                                  }}
-                                >
-                                  {isPlaying ? '⏸ 훈련 일시정지' : '▶ 실전 스피킹 훈련 시작'}
-                                </button>
-                              )}
-                            </div>
+                            {activeTab === 'speak' && (
+                              <div className={styles.actionArea}>
+                                <div className={styles.speakHintText}>
+                                  {spokenDone[clip.clip_id]
+                                    ? '✅ 이 클립 스픽 완료 — 감속 반복 재생 중'
+                                    : '🎙️ 재생 중 지정 시점에서 자동으로 멈추면 말하기가 시작됩니다'}
+                                </div>
+                              </div>
+                            )}
                           </div>
 
                         </div>
