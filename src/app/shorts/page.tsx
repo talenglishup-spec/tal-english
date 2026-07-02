@@ -1,10 +1,17 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { getSupabase } from '@/utils/supabase';
 import XPToast from '@/components/XPToast';
+import ClipProgressBar from '@/components/ClipProgressBar';
+import { useShortsMonitor } from '@/hooks/useShortsMonitor';
 import styles from './ShortsPage.module.css';
+
+// 활성 클립 기준 앞뒤 몇 개까지 YouTube Player 인스턴스를 살려둘지.
+// 피드의 모든 클립에 대해 플레이어를 한꺼번에 만들면 메모리/쿼터 부담이
+// 커지므로, 활성 ± WINDOW 범위만 유지하고 나머지는 destroy한다.
+const PLAYER_WINDOW = 1;
 
 function getYoutubeId(url: string) {
   if (!url) return '';
@@ -45,8 +52,10 @@ export default function ShortsPage() {
 
   const activePresetIdRef = useRef<string>('');
   const playerRefs = useRef<Record<string, any>>({});
-  const monitorIntervalRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+
+  // 재생 감시 엔진 (배속 3단계 전이 · pause_at 자동 정지 · 버퍼링 가드)
+  const monitor = useShortsMonitor();
 
   const activeCountdownIntervalRef = useRef<any>(null);
   const activeRecordIntervalRef = useRef<any>(null);
@@ -56,23 +65,35 @@ export default function ShortsPage() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
-  // 배속 및 타임
+  // 배속 (현재 재생 위치 currentTime은 더 이상 부모 state로 두지 않는다 —
+  // 진행바는 ClipProgressBar가 자체 rAF로 폴링하므로 매 프레임 리렌더 제거)
   const [phases, setPhases] = useState<Record<string, number>>({});
   const [playbackRates, setPlaybackRates] = useState<Record<string, number>>({});
-  const [currentTimes, setCurrentTimes] = useState<Record<string, number>>({});
 
-  // startMonitoring의 setInterval 콜백은 최초 바인딩 시점의 클로저를 재귀적으로
-  // 재사용하므로, 이후 상태 갱신이 반영되지 않는 stale closure 문제가 있었음.
-  // 폴링 루프 내부에서는 항상 아래 ref들을 통해 최신값을 읽는다.
+  // 감시 루프 콜백은 항상 아래 ref들을 통해 최신값을 읽는다 (stale closure 방지).
   const phasesRef = useRef<Record<string, number>>({});
   const activeTabRef = useRef(activeTab);
   const speakSeqStepsRef = useRef<{ [presetId: string]: number }>({});
   const seqDoneThisPhaseRef = useRef<{ [key: string]: boolean }>({});
+  const clipsRef = useRef<any[]>([]);
 
   useEffect(() => { phasesRef.current = phases; }, [phases]);
   useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
   useEffect(() => { speakSeqStepsRef.current = speakSeqSteps; }, [speakSeqSteps]);
   useEffect(() => { seqDoneThisPhaseRef.current = seqDoneThisPhase; }, [seqDoneThisPhase]);
+  useEffect(() => { clipsRef.current = clips; }, [clips]);
+
+  // 활성 클립 기준 윈도우 안에 들어오는 clip_id 집합 (플레이어 생성 대상)
+  const mountedIds = useMemo(() => {
+    const ids = new Set<string>();
+    if (clips.length === 0) return ids;
+    const idx = clips.findIndex(c => c.clip_id === activePresetId);
+    const center = idx < 0 ? 0 : idx;
+    for (let i = center - PLAYER_WINDOW; i <= center + PLAYER_WINDOW; i++) {
+      if (clips[i]) ids.add(clips[i].clip_id);
+    }
+    return ids;
+  }, [clips, activePresetId]);
 
   const supabase = getSupabase();
 
@@ -101,20 +122,18 @@ export default function ShortsPage() {
           // 초기 배속 및 경험치 카운트 맵 설정
           const initPhases: Record<string, number> = {};
           const initRates: Record<string, number> = {};
-          const initTimes: Record<string, number> = {};
           const initSuccess: Record<string, number> = {};
           const initScores: Record<string, number> = {};
-          
+
           items.forEach((item: any) => {
             initPhases[item.clip_id] = 1;
             initRates[item.clip_id] = 1.0;
-            initTimes[item.clip_id] = 0;
             initSuccess[item.clip_id] = 0;
             initScores[item.clip_id] = 0;
           });
+          phasesRef.current = initPhases;
           setPhases(initPhases);
           setPlaybackRates(initRates);
-          setCurrentTimes(initTimes);
           setSuccessCounts(initSuccess);
           setScores(initScores);
         }
@@ -153,16 +172,31 @@ export default function ShortsPage() {
     };
   }, []);
 
-  // 3. 다중 유튜브 플레이어 동적 바인딩
+  // 3. 윈도우 기반 유튜브 플레이어 생성/파괴 (활성 ± PLAYER_WINDOW만 유지)
+  //    React가 관리하는 host div(<div id="yt-host-...">)는 항상 렌더링되고,
+  //    그 안에 imperative하게 자식 div를 만들어 YT.Player를 붙인다. React는
+  //    host의 자식을 JSX로 관리하지 않으므로, 플레이어를 destroy할 때
+  //    React 재조정과 YT의 DOM 조작이 충돌하지 않는다.
   useEffect(() => {
-    if (!isApiReady || clips.length === 0) return;
+    if (!isApiReady) return;
 
-    clips.forEach((clip) => {
-      const elementId = `youtube-player-${clip.clip_id}`;
+    const YT = (window as any).YT;
+
+    // (a) 윈도우 안에 있는데 아직 플레이어가 없는 클립 → 생성
+    mountedIds.forEach((clipId) => {
+      if (playerRefs.current[clipId]) return;
+      const clip = clips.find(c => c.clip_id === clipId);
+      if (!clip) return;
       const vId = getYoutubeId(clip.youtube_url);
-      if (!vId || playerRefs.current[clip.clip_id]) return;
+      const host = document.getElementById(`yt-host-${clipId}`);
+      if (!vId || !host) return;
 
-      playerRefs.current[clip.clip_id] = new (window as any).YT.Player(elementId, {
+      const mountDiv = document.createElement('div');
+      mountDiv.style.width = '100%';
+      mountDiv.style.height = '100%';
+      host.appendChild(mountDiv);
+
+      playerRefs.current[clipId] = new YT.Player(mountDiv, {
         videoId: vId,
         playerVars: {
           autoplay: 0,
@@ -177,10 +211,10 @@ export default function ShortsPage() {
         },
         events: {
           onReady: (event: any) => {
-            event.target.mute(); 
+            event.target.mute();
             const startSec = Number(clip.start_sec || 0);
             event.target.seekTo(startSec, true);
-            
+
             if (clip.clip_id === activePresetIdRef.current) {
               setTimeout(() => {
                 event.target.mute();
@@ -189,7 +223,7 @@ export default function ShortsPage() {
                   try {
                     event.target.playVideo();
                     setIsPlaying(true);
-                  } catch(e){}
+                  } catch (e) {}
                 }, 150);
               }, 1000);
             }
@@ -197,11 +231,11 @@ export default function ShortsPage() {
           onStateChange: (event: any) => {
             const state = event.data;
             if (clip.clip_id === activePresetIdRef.current) {
-              if (state === (window as any).YT.PlayerState.PLAYING) {
+              if (state === YT.PlayerState.PLAYING) {
                 setIsPlaying(true);
                 startMonitoring(clip.clip_id);
-              } else if (state === (window as any).YT.PlayerState.PAUSED || 
-                         state === (window as any).YT.PlayerState.ENDED) {
+              } else if (state === YT.PlayerState.PAUSED ||
+                         state === YT.PlayerState.ENDED) {
                 setIsPlaying(false);
               }
             }
@@ -210,10 +244,27 @@ export default function ShortsPage() {
       });
     });
 
+    // (b) 윈도우 밖으로 나갔는데 아직 살아있는 플레이어 → 파괴
+    Object.keys(playerRefs.current).forEach((clipId) => {
+      if (mountedIds.has(clipId)) return;
+      try { playerRefs.current[clipId].destroy(); } catch (e) {}
+      delete playerRefs.current[clipId];
+      const host = document.getElementById(`yt-host-${clipId}`);
+      if (host) host.innerHTML = '';
+    });
+  }, [isApiReady, clips, mountedIds]);
+
+  // 언마운트 시 감시 루프 및 전 플레이어 정리
+  useEffect(() => {
     return () => {
       stopMonitoring();
+      Object.keys(playerRefs.current).forEach((clipId) => {
+        try { playerRefs.current[clipId].destroy(); } catch (e) {}
+      });
+      playerRefs.current = {};
     };
-  }, [isApiReady, clips]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // 4. 세로 스크롤 스냅 감지
   useEffect(() => {
@@ -288,6 +339,9 @@ export default function ShortsPage() {
 
     setActivePresetId(nextClipId);
     activePresetIdRef.current = nextClipId;
+    // ref도 즉시 동기화 — 새 활성 클립은 1회차부터 다시 시작
+    phasesRef.current = { ...phasesRef.current, [nextClipId]: 1 };
+    speakSeqStepsRef.current = { ...speakSeqStepsRef.current, [nextClipId]: 0 };
     setPhases(prev => ({ ...prev, [nextClipId]: 1 }));
     setPlaybackRates(prev => ({ ...prev, [nextClipId]: 1.0 }));
     setSpeakSeqSteps(prev => ({ ...prev, [nextClipId]: 0 }));
@@ -312,95 +366,47 @@ export default function ShortsPage() {
     }
   };
 
+  // 재생 감시 시작 — 실제 루프 로직은 useShortsMonitor 훅이 소유한다.
+  // 페이지는 "어떤 값을 읽고, 전이 시 무엇을 갱신할지"만 콜백으로 넘긴다.
   const startMonitoring = (clipId: string) => {
-    stopMonitoring();
-
-    const clip = clips.find(c => c.clip_id === clipId);
+    const clip = clipsRef.current.find(c => c.clip_id === clipId);
     if (!clip) return;
 
-    monitorIntervalRef.current = setInterval(() => {
-      const player = playerRefs.current[clipId];
-      if (!player || !player.getCurrentTime) return;
+    const start = Number(clip.start_sec || 0);
+    const end = Number(clip.end_sec || 0);
+    const pauseAt = Number(clip.pause_at || start + 2.5);
 
-      // 1. 버퍼링(3) 또는 미시작(-1) 상태일 때는 시간 판독 보정 스킵
-      let playerState = -1;
-      try {
-        playerState = player.getPlayerState();
-      } catch (e) {}
-      if (playerState === 3 || playerState === -1) {
-        return;
-      }
-
-      const currTime = player.getCurrentTime();
-      setCurrentTimes(prev => ({ ...prev, [clipId]: currTime }));
-
-      const start = Number(clip.start_sec || 0);
-      const end = Number(clip.end_sec || 0);
-      // start_sec/end_sec 시트 데이터 누락(0 또는 역전) 시 매 틱마다 즉시
-      // "구간 끝 도달"로 오인식되어 재생이 시작되자마자 seekTo가 무한 반복되며
-      // 영상이 멈춘 것처럼 보이는 문제를 방지하기 위한 유효성 가드.
-      const hasValidRange = end > start;
-      const pauseAt = Number(clip.pause_at || start + 2.5);
-      const currentPhase = phasesRef.current[clipId] || 1;
-      const phaseKey = `${clipId}_${currentPhase}`;
-
-      // 스픽 모드 탭일 때만 멈춤 시퀀스 트리거
-      if (activeTabRef.current === 'speak' && currTime >= pauseAt && !seqDoneThisPhaseRef.current[phaseKey] && (!speakSeqStepsRef.current[clipId] || speakSeqStepsRef.current[clipId] === 0)) {
-        stopMonitoring();
-        player.pauseVideo();
+    monitor.start({
+      getPlayer: () => playerRefs.current[clipId],
+      start,
+      end,
+      pauseAt,
+      getPhase: () => phasesRef.current[clipId] || 1,
+      shouldAutoPause: () => {
+        const phase = phasesRef.current[clipId] || 1;
+        const phaseKey = `${clipId}_${phase}`;
+        return (
+          activeTabRef.current === 'speak' &&
+          !seqDoneThisPhaseRef.current[phaseKey] &&
+          (!speakSeqStepsRef.current[clipId] || speakSeqStepsRef.current[clipId] === 0)
+        );
+      },
+      onAutoPause: (phase) => {
         setIsPlaying(false);
-        triggerSpeakSequence(clipId, Number(currentPhase));
-        return;
-      }
-
-      // 배속 루프 단계 전이 감지 (끝점에 도달 시 단 한 번 실행)
-      if (hasValidRange && currTime >= end) {
-        stopMonitoring();
-        
-        let nextPhase = 1;
-        let nextRate = 1.0;
-        
-        if (currentPhase === 1) {
-          nextPhase = 2;
-          nextRate = 0.75;
-        } else if (currentPhase === 2) {
-          nextPhase = 3;
-          nextRate = 0.5;
-        } else {
-          nextPhase = 1;
-          nextRate = 1.0;
-        }
-        
+        triggerSpeakSequence(clipId, phase);
+      },
+      onPhaseChange: (nextPhase, nextRate) => {
+        // ref를 즉시 갱신 — useEffect 동기화를 기다리지 않고 다음 프레임부터
+        // 새 phase가 반영되도록 하여 2회차→3회차 전이 누락을 막는다.
+        phasesRef.current = { ...phasesRef.current, [clipId]: nextPhase };
         setPhases(prev => ({ ...prev, [clipId]: nextPhase }));
         setPlaybackRates(prev => ({ ...prev, [clipId]: nextRate }));
-        
-        try {
-          player.seekTo(start, true);
-          player.setPlaybackRate(nextRate);
-        } catch (e) {
-          console.error(e);
-        }
-        
-        setTimeout(() => {
-          startMonitoring(clipId);
-        }, 150);
-        return;
-      }
-
-      // 만약 재생 시간이 설정된 start_sec에 미달할 때만 정확하게 보정 점프 (안전 오차범위 0.5초 부여로 무한루프 방지)
-      if (currTime < start - 0.5) {
-        try {
-          player.seekTo(start, true);
-        } catch (e) {}
-      }
-    }, 50);
+      },
+    });
   };
 
   const stopMonitoring = () => {
-    if (monitorIntervalRef.current) {
-      clearInterval(monitorIntervalRef.current);
-      monitorIntervalRef.current = null;
-    }
+    monitor.stop();
   };
 
   const handleGlobalInteraction = () => {
@@ -436,8 +442,12 @@ export default function ShortsPage() {
     const clip = clips.find(c => c.clip_id === clipId);
     if (!clip) return;
 
+    // ref를 즉시 갱신 — 모니터링 루프가 setState 반영(useEffect)을 기다리지
+    // 않고 바로 다음 프레임부터 "이미 스픽 시퀀스 진행 중"임을 인지하도록
+    // 하여 동일 구간에서 트리거가 중복 발화되는 것을 막는다.
+    speakSeqStepsRef.current = { ...speakSeqStepsRef.current, [clipId]: 1 };
     setSpeakSeqSteps(prev => ({ ...prev, [clipId]: 1 }));
-    
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
@@ -586,6 +596,12 @@ export default function ShortsPage() {
   };
 
   const clearSequenceAndResume = (clipId: string, phaseKey: string) => {
+    // 모니터링 루프는 스픽 시퀀스 중에도 멈추지 않고 계속 돌고 있으므로
+    // (더 이상 stopMonitoring/재시작하지 않음), ref를 먼저 즉시 갱신해
+    // 재개 직후 같은 틱에서 다시 트리거되지 않도록 한다.
+    speakSeqStepsRef.current = { ...speakSeqStepsRef.current, [clipId]: 0 };
+    seqDoneThisPhaseRef.current = { ...seqDoneThisPhaseRef.current, [phaseKey]: true };
+
     setSpeakSeqSteps(prev => ({ ...prev, [clipId]: 0 }));
     setSeqResult(prev => ({ ...prev, [clipId]: null }));
     setSeqDoneThisPhase(prev => ({ ...prev, [phaseKey] : true }));
@@ -594,7 +610,6 @@ export default function ShortsPage() {
     if (player && player.playVideo) {
       player.playVideo();
       setIsPlaying(true);
-      startMonitoring(clipId);
     }
   };
 
@@ -607,15 +622,17 @@ export default function ShortsPage() {
 
     setSpeakSeqSteps(prev => ({ ...prev, [clipId]: 5 }));
     setTimeout(() => {
+      speakSeqStepsRef.current = { ...speakSeqStepsRef.current, [clipId]: 0 };
+      seqDoneThisPhaseRef.current = { ...seqDoneThisPhaseRef.current, [phaseKey]: true };
+
       setSpeakSeqSteps(prev => ({ ...prev, [clipId]: 0 }));
       setSeqResult(prev => ({ ...prev, [clipId]: null }));
       setSeqDoneThisPhase(prev => ({ ...prev, [phaseKey]: true }));
-      
+
       const player = playerRefs.current[clipId];
       if (player && player.playVideo) {
         player.playVideo();
         setIsPlaying(true);
-        startMonitoring(clipId);
       }
     }, 200);
   };
@@ -716,15 +733,11 @@ export default function ShortsPage() {
                 clips.map((clip) => {
                   const currentPhase = phases[clip.clip_id] || 1;
                   const rate = playbackRates[clip.clip_id] || 1.0;
-                  const time = currentTimes[clip.clip_id] || 0;
                   const isCurrentActive = activePresetId === clip.clip_id;
 
-                  // 재생바 비율
+                  // 재생바 구간 (진행률 계산/갱신은 ClipProgressBar가 자체 담당)
                   const startSec = Number(clip.start_sec || 0);
                   const endSec = Number(clip.end_sec || 0);
-                  const duration = Math.max(1, endSec - startSec);
-                  const elapsed = Math.max(0, time - startSec);
-                  const progressPercent = Math.min(100, (elapsed / duration) * 100);
 
                   return (
                     <div 
@@ -735,7 +748,7 @@ export default function ShortsPage() {
                     >
                       <div className={styles.videoArea}>
                         <div className={styles.youtubeWrapper}>
-                          <div id={`youtube-player-${clip.clip_id}`} className={styles.youtubeIframe}></div>
+                          <div id={`yt-host-${clip.clip_id}`} className={styles.youtubeIframe}></div>
                         </div>
 
                         {/* 5단계 스피킹 챌린지 가림막 오버레이 */}
@@ -846,11 +859,15 @@ export default function ShortsPage() {
                                   {clip.target_phrase}
                                 </p>
                                 
-                                <div className={styles.timelineContainer}>
-                                  <div className={styles.timelineBar}>
-                                    <div className={styles.timelineProgress} style={{ width: `${progressPercent}%` }}></div>
-                                  </div>
-                                </div>
+                                <ClipProgressBar
+                                  getPlayer={() => playerRefs.current[clip.clip_id]}
+                                  startSec={startSec}
+                                  endSec={endSec}
+                                  active={isCurrentActive}
+                                  containerClassName={styles.timelineContainer}
+                                  barClassName={styles.timelineBar}
+                                  progressClassName={styles.timelineProgress}
+                                />
                               </div>
                             ) : (
                               <div className={styles.captionCard}>
