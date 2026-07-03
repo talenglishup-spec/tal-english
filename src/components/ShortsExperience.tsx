@@ -1054,7 +1054,9 @@ export default function ShortsPage() {
                             
                             {!isAdvanced ? (
                               <div className={styles.captionCard}>
-                                <p className={styles.captionKr}>"{clip.translation}"</p>
+                                {clip.translation && clip.translation.trim() !== '' && (
+                                  <p className={styles.captionKr}>"{clip.translation}"</p>
+                                )}
                                 <p className={styles.captionEn}>
                                   {clip.target_phrase}
                                 </p>
