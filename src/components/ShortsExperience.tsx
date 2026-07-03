@@ -39,7 +39,10 @@ export default function ShortsPage() {
   const router = useRouter();
   const [clips, setClips] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'shorts' | 'speak' | 'oneday' | 'collection'>('shorts');
+  const [activeTab, setActiveTab] = useState<'shorts' | 'speak' | 'oneday' | 'collection' | 'my'>('shorts');
+  const [myStats, setMyStats] = useState<any>(null);
+  const [myLoading, setMyLoading] = useState<boolean>(false);
+  const [shareMsg, setShareMsg] = useState<string>('');
   const [activePresetId, setActivePresetId] = useState<string>('');
   const [playerId, setPlayerId] = useState<string | null>(null);
   
@@ -760,6 +763,46 @@ export default function ShortsPage() {
     window.location.href = '/login';
   };
 
+  // ── 마이 탭: 내 레벨/스트릭/구독 정보 로드 (player_dashboard 뷰) ──
+  const loadMyStats = async () => {
+    if (!playerId) return;
+    setMyLoading(true);
+    try {
+      const { data } = await supabase
+        .from('player_dashboard')
+        .select('*')
+        .eq('player_id', playerId)
+        .maybeSingle();
+      setMyStats(data || null);
+    } catch (e) {
+      console.error('[MyTab] load error:', e);
+    } finally {
+      setMyLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'my') loadMyStats();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, playerId]);
+
+  // 공유: Web Share API → 실패 시 클립보드 복사
+  const handleShare = async () => {
+    const shareUrl = typeof window !== 'undefined' ? window.location.origin : 'https://tal-english.vercel.app';
+    const text = 'TAL English Up — 축구로 배우는 실전 영어 훈련소 ⚽️';
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'TAL English Up', text, url: shareUrl });
+        return;
+      }
+      await navigator.clipboard.writeText(`${text} ${shareUrl}`);
+      setShareMsg('링크가 복사되었습니다!');
+      setTimeout(() => setShareMsg(''), 2000);
+    } catch (e) {
+      // 사용자가 공유 취소한 경우 등 — 무시
+    }
+  };
+
   if (loading) {
     return (
       <div className={styles.container} style={{ justifyContent: 'center', alignItems: 'center' }}>
@@ -1234,6 +1277,100 @@ export default function ShortsPage() {
             </div>
           )}
 
+          {/* 마이 탭 — 내 레벨/학습/공유 */}
+          {activeTab === 'my' && (() => {
+            const s = myStats || {};
+            const level = s.level ?? 1;
+            const xp = s.xp ?? 0;
+            const xpToNext = s.xp_to_next ?? 3000;
+            const xpPct = Math.min(100, Math.round((xp / Math.max(1, xpToNext)) * 100));
+            const streakDays = s.streak_days ?? 0;
+            const week: boolean[] = Array.isArray(s.streak_week) ? s.streak_week : [false, false, false, false, false, false, false];
+            const dayLabels = ['월', '화', '수', '목', '금', '토', '일'];
+            const displayName = s.display_name || '풋볼러';
+            const email = s.email || '';
+            const sub = s.subscription_status || 'free';
+            const totalClips = clips.length;
+            const doneCount = Object.values(spokenDone).filter(Boolean).length;
+            const unlockedCards = Object.values(successCounts).filter(v => (v as number) > 0).length;
+
+            return (
+              <div className={styles.myTab}>
+                {/* 프로필 헤더 */}
+                <div className={styles.myHeader}>
+                  <div className={styles.myAvatar}>
+                    {s.avatar_url ? <img src={s.avatar_url} alt="" className={styles.myAvatarImg} /> : '⚽️'}
+                  </div>
+                  <div className={styles.myName}>{displayName}</div>
+                  {email && <div className={styles.myEmail}>{email}</div>}
+                  <span className={styles.mySubBadge}>{sub === 'free' ? '무료 플랜' : sub.toUpperCase()}</span>
+                </div>
+
+                {myLoading && <div className={styles.myHint}>내 정보를 불러오는 중...</div>}
+
+                {/* 레벨 & XP */}
+                <div className={styles.myCard}>
+                  <div className={styles.myCardRow}>
+                    <span className={styles.myLevelBadge}>Lv.{level}</span>
+                    <span className={styles.myXpText}>{xp.toLocaleString()} / {xpToNext.toLocaleString()} XP</span>
+                  </div>
+                  <div className={styles.myXpBar}>
+                    <div className={styles.myXpFill} style={{ width: `${xpPct}%` }} />
+                  </div>
+                </div>
+
+                {/* 요일 스트릭 */}
+                <div className={styles.myCard}>
+                  <div className={styles.myCardTitle}>🔥 연속 학습 {streakDays}일</div>
+                  <div className={styles.myWeekRow}>
+                    {dayLabels.map((d, i) => (
+                      <div key={i} className={styles.myDayCol}>
+                        <span className={`${styles.myDayDot} ${week[i] ? styles.myDayDotOn : ''}`}>
+                          {week[i] ? '✓' : ''}
+                        </span>
+                        <span className={styles.myDayLabel}>{d}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 학습 콘텐츠 요약 */}
+                <div className={styles.myCard}>
+                  <div className={styles.myCardTitle}>📚 내 학습 콘텐츠</div>
+                  <div className={styles.myStatGrid}>
+                    <div className={styles.myStatItem}>
+                      <div className={styles.myStatNum}>{totalClips}</div>
+                      <div className={styles.myStatLabel}>훈련 영상</div>
+                    </div>
+                    <div className={styles.myStatItem}>
+                      <div className={styles.myStatNum}>{doneCount}</div>
+                      <div className={styles.myStatLabel}>오늘 스픽 완료</div>
+                    </div>
+                    <div className={styles.myStatItem}>
+                      <div className={styles.myStatNum}>{unlockedCards}</div>
+                      <div className={styles.myStatLabel}>획득 카드</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 공유 */}
+                <div className={styles.myCard}>
+                  <div className={styles.myCardTitle}>🎁 친구에게 공유</div>
+                  <p className={styles.myHint}>친구를 초대하고 함께 축구 영어를 훈련하세요.</p>
+                  <button type="button" className={styles.speakButton} onClick={handleShare}>
+                    📤 앱 공유하기
+                  </button>
+                  {shareMsg && <div className={styles.myShareMsg}>{shareMsg}</div>}
+                </div>
+
+                {/* 로그아웃 */}
+                <button type="button" className={styles.myLogoutBtn} onClick={handleLogout}>
+                  로그아웃 (Sign Out)
+                </button>
+              </div>
+            );
+          })()}
+
           {/* 하단 고정 탭 바 */}
           <div className={styles.bottomTabBar}>
             <button 
@@ -1257,12 +1394,19 @@ export default function ShortsPage() {
               <span className={styles.tabIcon}>📅</span>
               <span className={styles.tabLabel}>One Day</span>
             </button>
-            <button 
+            <button
               className={`${styles.tabItem} ${activeTab === 'collection' ? styles.tabItemActive : ''}`}
               onClick={() => setActiveTab('collection')}
             >
               <span className={styles.tabIcon}>📦</span>
               <span className={styles.tabLabel}>Collection</span>
+            </button>
+            <button
+              className={`${styles.tabItem} ${activeTab === 'my' ? styles.tabItemActive : ''}`}
+              onClick={() => setActiveTab('my')}
+            >
+              <span className={styles.tabIcon}>👤</span>
+              <span className={styles.tabLabel}>마이</span>
             </button>
           </div>
 

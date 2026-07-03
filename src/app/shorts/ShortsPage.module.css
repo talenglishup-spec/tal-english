@@ -1123,3 +1123,202 @@
 .tabItem:hover {
   color: #ffffff;
 }
+
+/* ── 마이 탭 ────────────────────────────────────────────────── */
+.myTab {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 16px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: #070e17;
+}
+
+.myHeader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 0 4px;
+}
+
+.myAvatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: rgba(59, 130, 246, 0.15);
+  border: 2px solid rgba(59, 130, 246, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 34px;
+  overflow: hidden;
+}
+
+.myAvatarImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.myName {
+  font-size: 18px;
+  font-weight: 800;
+  color: #ffffff;
+  margin-top: 6px;
+}
+
+.myEmail {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.mySubBadge {
+  margin-top: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  color: #93c5fd;
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  padding: 3px 10px;
+  border-radius: 10px;
+}
+
+.myHint {
+  font-size: 12px;
+  color: #94a3b8;
+  margin: 4px 0 8px;
+}
+
+.myCard {
+  background: rgba(15, 30, 48, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.myCardTitle {
+  font-size: 13px;
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 12px;
+}
+
+.myCardRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.myLevelBadge {
+  font-size: 16px;
+  font-weight: 900;
+  color: #fbbf24;
+}
+
+.myXpText {
+  font-size: 12px;
+  font-weight: 700;
+  color: #cbd5e1;
+}
+
+.myXpBar {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.myXpFill {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.myWeekRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.myDayCol {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+
+.myDayDot {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  color: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.myDayDotOn {
+  background: #22c55e;
+  color: #ffffff;
+}
+
+.myDayLabel {
+  font-size: 10px;
+  font-weight: 700;
+  color: #94a3b8;
+}
+
+.myStatGrid {
+  display: flex;
+  gap: 10px;
+}
+
+.myStatItem {
+  flex: 1;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+  padding: 12px 6px;
+}
+
+.myStatNum {
+  font-size: 22px;
+  font-weight: 900;
+  color: #3b82f6;
+}
+
+.myStatLabel {
+  font-size: 10px;
+  font-weight: 700;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+.myShareMsg {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #22c55e;
+  margin-top: 8px;
+}
+
+.myLogoutBtn {
+  margin-top: 4px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+  padding: 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
