@@ -447,6 +447,8 @@ export default function ShortsPage() {
       end,
       pauseAt,
       getPhase: () => phasesRef.current[clipId] || 1,
+      // 스픽 모드는 3회차 감속 없이 1회차(1.0x)만 반복 (탭 전환에도 실시간 반영)
+      advancePhases: () => activeTabRef.current !== 'speak',
       shouldAutoPause: () => {
         // 스픽 탭 & 이번 클립 미완료 & 스픽 오버레이가 떠있지 않을 때만
         return (
@@ -1021,8 +1023,11 @@ export default function ShortsPage() {
                           
                           {/* 상단 메타 바 - 배속 및 Advanced 토글 영상 상단 정렬 복원 */}
                           <div className={styles.topSection}>
-                            <span className={styles.phaseBadge}>🔥 {currentPhase}회차 ({rate.toFixed(2)}x)</span>
-                            
+                            {/* 스픽 모드는 1회차(1.0x)만 진행 → 감속 회차 배지 대신 실전 라벨 */}
+                            <span className={styles.phaseBadge}>
+                              {activeTab === 'speak' ? '🎙️ 실전 스피킹' : `🔥 ${currentPhase}회차 (${rate.toFixed(2)}x)`}
+                            </span>
+
                             <div 
                               onClick={() => setIsAdvanced(!isAdvanced)} 
                               className={`${styles.advToggle} ${isAdvanced ? styles.advActive : ''}`}

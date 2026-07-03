@@ -42,6 +42,12 @@ export interface ShortsMonitorConfig {
     onAutoPause: (phase: number) => void;
     /** 구간 끝 도달 → 다음 회차로 전이됐을 때 (state/UI 갱신용) */
     onPhaseChange: (phase: number, rate: number) => void;
+    /**
+     * 구간 끝 도달 시 다음 회차(감속)로 진행할지 여부. false면 1회차(1.0x)로
+     * 고정 반복한다. 스픽 모드는 발화가 목적이라 3회차 감속 루프를 쓰지 않고
+     * 1회차만 반복하도록 false를 넘긴다. (미지정 시 기본 true = 3회차 감속)
+     */
+    advancePhases?: () => boolean;
     /** 매 프레임 현재 재생 위치 (선택) */
     onTimeUpdate?: (t: number) => void;
 }
@@ -124,8 +130,10 @@ export function useShortsMonitor(): ShortsMonitorHandle {
             // 구간 끝 도달 → 다음 회차로 전이 (배속 감속 후 시작점으로 되감기)
             if (hasValidRange && armedForEnd && currTime >= endSec) {
                 armedForEnd = false; // seek 적용 확인 전까지 재전이 잠금
-                const nextPhase = nextPhaseOf(currentPhase);
-                const nextRate = PHASE_RATES[nextPhase] ?? 1.0;
+                // 스픽 모드 등 advancePhases()가 false면 1회차(1.0x) 고정 반복
+                const advance = cfg.advancePhases ? cfg.advancePhases() : true;
+                const nextPhase = advance ? nextPhaseOf(currentPhase) : 1;
+                const nextRate = advance ? (PHASE_RATES[nextPhase] ?? 1.0) : 1.0;
                 try {
                     player.seekTo(startSec, true);
                     player.setPlaybackRate(nextRate);
