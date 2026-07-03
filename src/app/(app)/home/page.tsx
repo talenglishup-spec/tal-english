@@ -639,53 +639,7 @@ export default function HomePage() {
         <div className={styles.phoneScreen} onClick={handleGlobalInteraction}>
           
           <div style={{ display: (activeTab === 'shorts' || activeTab === 'speak') ? 'flex' : 'none', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
-            {/* 상단 카테고리 필터바 */}
-            <div className={styles.presetBar}>
-              <div className={styles.presetHeaderRow}>
-                <div className={styles.presetTitle}>
-                  {activeTab === 'shorts' ? '쇼츠 감상 목록' : '실전 스피킹 훈련 목록'}
-                </div>
-                <button 
-                  type="button"
-                  className={styles.listToggleBtn}
-                  onClick={() => setIsListOpen(!isListOpen)}
-                >
-                  {isListOpen ? '필터 닫기 ▲' : '카테고리 필터 ☰'}
-                </button>
-              </div>
-              
-              {isListOpen ? (
-                <div className={styles.verticalPresetList}>
-                  {['ALL', 'tactical', 'post_match', 'press_conference', 'training'].map((tab) => (
-                    <button
-                      key={tab}
-                      type="button"
-                      onClick={() => {
-                        setIsListOpen(false);
-                      }}
-                      className={styles.verticalPresetItem}
-                    >
-                      <span className={styles.situationNameText}>
-                        {tab === 'ALL' ? '전체 훈련' : tab.toUpperCase().replace('_', ' ')}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <div className={styles.presets}>
-                  {clips.map((clip) => (
-                    <button
-                      key={clip.clip_id}
-                      type="button"
-                      onClick={() => scrollToPreset(clip.clip_id)}
-                      className={`${styles.presetBtn} ${activePresetId === clip.clip_id ? styles.presetBtnActive : ''}`}
-                    >
-                      {clip.player_name}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+            {/* 상단 카테고리 필터바 제거 - 네이티브 숏폼 뷰 확보 */}
 
             {/* 수직 스냅 스크롤링 쇼츠 피드 */}
             <div 
@@ -787,20 +741,8 @@ export default function HomePage() {
                         {/* 메인 투명 오버레이 패널 */}
                         <div className={`${styles.overlay} ${!isPlaying ? styles.overlayPaused : ''}`}>
                           
-                          {/* 상단 메타 바 */}
+                          {/* 상단 메타 바 - 여백 확보 및 깔끔한 비주얼 확보 */}
                           <div className={styles.topSection}>
-                            <span className={styles.badge}>{clip.player_name} ({clip.position_tag})</span>
-                            <span className={styles.phaseBadge}>{currentPhase}회차: {rate.toFixed(2)}x</span>
-                            
-                            {/* Advanced 모드 토글 */}
-                            <div 
-                              onClick={() => setIsAdvanced(!isAdvanced)} 
-                              className={`${styles.advToggle} ${isAdvanced ? styles.advActive : ''}`}
-                            >
-                              <span className={styles.advLabel}>
-                                Advanced {isAdvanced ? 'ON' : 'OFF'}
-                              </span>
-                            </div>
                           </div>
 
                           {/* 중앙 재생 컨트롤러 */}
@@ -819,6 +761,19 @@ export default function HomePage() {
                           {/* 하단 훈련 자막 및 컨트롤러 */}
                           <div className={styles.bottomSection}>
                             
+                            {/* 배속 회차 및 Advanced 토글을 자막 영역 바로 위에 고급스러운 반투명 뱃지로 모아둠 */}
+                            <div className={styles.controlMetaRow}>
+                              <span className={styles.phaseBadge}>🔥 {currentPhase}회차 학습 ({rate.toFixed(2)}x)</span>
+                              <div 
+                                onClick={() => setIsAdvanced(!isAdvanced)} 
+                                className={`${styles.advToggle} ${isAdvanced ? styles.advActive : ''}`}
+                              >
+                                <span className={styles.advLabel}>
+                                  Advanced {isAdvanced ? 'ON' : 'OFF'}
+                                </span>
+                              </div>
+                            </div>
+
                             {!isAdvanced ? (
                               <div className={styles.captionCard}>
                                 <p className={styles.captionKr}>"{clip.translation}"</p>

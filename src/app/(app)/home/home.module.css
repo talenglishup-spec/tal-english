@@ -233,41 +233,59 @@
   font-weight: 800;
 }
 
+.controlMetaRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 0 4px;
+}
+
 .phaseBadge {
-  background: rgba(245, 158, 11, 0.2);
-  border: 1px solid rgba(245, 158, 11, 0.4);
-  color: #fbbf24;
-  padding: 4px 10px;
-  border-radius: 8px;
-  font-size: 10px;
+  background: rgba(0, 75, 135, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 11px;
   font-weight: 800;
+  letter-spacing: -0.01em;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(0, 75, 135, 0.2);
 }
 
 .advToggle {
   display: flex;
   align-items: center;
   gap: 6px;
-  background: #0f1e30;
-  padding: 5px 10px;
+  background: rgba(15, 30, 48, 0.6);
+  padding: 6px 12px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   cursor: pointer;
-  transition: all 0.12s;
+  transition: all 0.15s ease;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .advLabel {
   font-size: 10px;
   font-weight: 800;
-  color: #94a3b8;
+  color: #ffffff;
+  opacity: 0.9;
 }
 
 .advActive {
   border-color: #ef4444;
   background: rgba(239, 68, 68, 0.2);
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.35);
 }
 
 .advActive .advLabel {
-  color: #ef4444;
+  color: #ff8a8a;
+  opacity: 1;
 }
 
 .centerSection {
