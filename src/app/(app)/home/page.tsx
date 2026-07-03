@@ -652,7 +652,7 @@ export default function HomePage() {
                 </button>
               </div>
               
-              {isListOpen ? (
+              {isListOpen && (
                 <div className={styles.verticalPresetList}>
                   {['ALL', 'tactical', 'post_match', 'press_conference', 'training'].map((tab) => (
                     <button
@@ -666,19 +666,6 @@ export default function HomePage() {
                       <span className={styles.situationNameText}>
                         {tab === 'ALL' ? '전체 훈련' : tab.toUpperCase().replace('_', ' ')}
                       </span>
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <div className={styles.presets}>
-                  {clips.map((clip) => (
-                    <button
-                      key={clip.clip_id}
-                      type="button"
-                      onClick={() => scrollToPreset(clip.clip_id)}
-                      className={`${styles.presetBtn} ${activePresetId === clip.clip_id ? styles.presetBtnActive : ''}`}
-                    >
-                      {clip.title_ko || clip.player_name}
                     </button>
                   ))}
                 </div>
