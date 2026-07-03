@@ -2,22 +2,21 @@ import { NextResponse } from 'next/server';
 import { getSheet } from '../../../../utils/sheets';
 import crypto from 'crypto';
 import { findBestMatch, recordCandidate } from '../../../../utils/question-matcher';
+import { requireStaffAuth } from '@/utils/supabaseServer';
 
 // Function to safely pad numbers
 const pad2 = (num: number) => num.toString().padStart(2, '0');
 
 export async function POST(req: Request) {
     try {
-        // ADMIN_TOKEN이 설정되어 있지 않으면 인증을 건너뛰던 이전 로직은
-        // 배포 환경에 이 환경변수가 누락되는 순간 시트 쓰기 API가 완전히
-        // 공개되는 위험이 있었다. 미설정 시에도 인증 실패로 막는다.
-        if (!process.env.ADMIN_TOKEN) {
-            console.error('[admin/sync-content] ADMIN_TOKEN is not configured — refusing request.');
-            return NextResponse.json({ error: 'Server misconfigured: ADMIN_TOKEN not set' }, { status: 500 });
-        }
-        const token = req.headers.get('x-admin-token');
-        if (token !== process.env.ADMIN_TOKEN) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        // 인증: (1) 로그인한 관리자 세션이면 통과 → 어드민 페이지의 원클릭 버튼.
+        //       (2) 세션이 아니면 x-admin-token 헤더 폴백 → n8n 등 서버-서버 호출.
+        const auth = await requireStaffAuth();
+        if (!auth.ok) {
+            const token = req.headers.get('x-admin-token');
+            if (!process.env.ADMIN_TOKEN || token !== process.env.ADMIN_TOKEN) {
+                return NextResponse.json({ error: 'Unauthorized' }, { status: auth.status });
+            }
         }
 
         const intakeSheet = await getSheet('ContentIntake');

@@ -36,10 +36,51 @@ type PlayerExprSummary = {
     completion_rate: number;
 };
 
-type AdminTab = 'attempts' | 'expressions';
+type AdminTab = 'players' | 'attempts' | 'expressions';
+
+type PlayerRow = {
+    player_id: string;
+    email: string;
+    display_name: string;
+    level: number;
+    xp: number;
+    xp_to_next: number;
+    streak_days: number;
+    streak_week: boolean[];
+    subscription_status: string;
+    last_active_date: string | null;
+};
 
 export default function AdminPage() {
-    const [activeTab,  setActiveTab]  = useState<AdminTab>('attempts');
+    const [activeTab,  setActiveTab]  = useState<AdminTab>('players');
+
+    // ── 학습자 대시보드 state ─────────────────────────────────────────────
+    const [players, setPlayers] = useState<PlayerRow[]>([]);
+    const [playersLoading, setPlayersLoading] = useState(false);
+    const [playersError, setPlayersError] = useState<string>('');
+    const [syncing, setSyncing] = useState(false);
+
+    const fetchPlayers = async () => {
+        setPlayersLoading(true);
+        setPlayersError('');
+        try {
+            const res = await fetch('/api/admin/players');
+            const data = await res.json();
+            if (!res.ok) {
+                setPlayersError(res.status === 401 || res.status === 403
+                    ? '관리자 권한이 필요합니다. 관리자 계정으로 로그인해 주세요.'
+                    : (data.error || '학습자 데이터를 불러오지 못했습니다.'));
+                setPlayers([]);
+                return;
+            }
+            setPlayers(data.players || []);
+        } catch (err) {
+            console.error(err);
+            setPlayersError('학습자 데이터를 불러오지 못했습니다.');
+        } finally {
+            setPlayersLoading(false);
+        }
+    };
 
     // ── Attempts state ────────────────────────────────────────────────────
     const [attempts, setAttempts] = useState<Attempt[]>([]);
@@ -93,24 +134,26 @@ export default function AdminPage() {
     };
 
     useEffect(() => {
-        fetchAttempts();
+        // 기본 탭이 학습자 대시보드 → 첫 로드 시 학습자 데이터 조회
+        fetchPlayers();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const handleSync = async () => {
-        setLoading(true);
+        setSyncing(true);
         try {
             const res = await fetch('/api/admin/sync-content', { method: 'POST' });
             const data = await res.json();
             if (res.ok) {
-                alert('Sync complete: ' + data.message);
+                alert('동기화 완료: ' + (data.message || '성공'));
             } else {
-                alert('Sync failed: ' + data.error);
+                alert('동기화 실패: ' + (data.error || res.status));
             }
         } catch (err) {
             console.error(err);
-            alert('Error triggering sync.');
+            alert('동기화 요청 중 오류가 발생했습니다.');
         } finally {
-            setLoading(false);
+            setSyncing(false);
         }
     };
 
@@ -169,6 +212,12 @@ export default function AdminPage() {
         if (tab === 'expressions' && exprSummary.length === 0) {
             fetchExpressionProgress();
         }
+        if (tab === 'players') {
+            fetchPlayers();
+        }
+        if (tab === 'attempts' && attempts.length === 0) {
+            fetchAttempts();
+        }
     };
 
     return (
@@ -183,16 +232,16 @@ export default function AdminPage() {
                     >
                         🚀 Smart Intake Tool
                     </button>
-                    <button onClick={handleSync} className={styles.refreshButton} style={{ background: '#6366f1' }}>
-                        🔄 Sync Content Intakes
+                    <button onClick={handleSync} disabled={syncing} className={styles.refreshButton} style={{ background: '#6366f1', opacity: syncing ? 0.6 : 1 }}>
+                        {syncing ? '⏳ 동기화 중…' : '🔄 시트 동기화'}
                     </button>
-                    <button onClick={fetchAttempts} className={styles.refreshButton}>Refresh</button>
+                    <button onClick={() => (activeTab === 'players' ? fetchPlayers() : fetchAttempts())} className={styles.refreshButton}>새로고침</button>
                 </div>
             </header>
 
             {/* Tab bar */}
             <div style={{ display: 'flex', gap: '0.75rem', padding: '0 1.5rem', marginBottom: '1rem' }}>
-                {(['attempts', 'expressions'] as AdminTab[]).map(tab => (
+                {(['players', 'attempts', 'expressions'] as AdminTab[]).map(tab => (
                     <button
                         key={tab}
                         onClick={() => handleTabChange(tab)}
@@ -208,10 +257,74 @@ export default function AdminPage() {
                             fontSize: '0.85rem',
                         }}
                     >
-                        {tab === 'attempts' ? '🎙️ Attempts' : '📌 Expression Progress'}
+                        {tab === 'players' ? '👥 학습자 대시보드' : tab === 'attempts' ? '🎙️ Attempts' : '📌 Expression Progress'}
                     </button>
                 ))}
             </div>
+
+            {/* ── 학습자 대시보드 (요일 스트릭) Tab ─────────────────────────── */}
+            {activeTab === 'players' && (
+                <div style={{ padding: '0 1.5rem 2rem' }}>
+                    {playersError && (
+                        <p style={{ color: '#dc2626', textAlign: 'center', fontWeight: 600, padding: '1rem' }}>{playersError}</p>
+                    )}
+                    {playersLoading ? (
+                        <p style={{ color: '#888', textAlign: 'center' }}>불러오는 중…</p>
+                    ) : !playersError && players.length === 0 ? (
+                        <p style={{ color: '#888', textAlign: 'center' }}>학습자가 없습니다.</p>
+                    ) : (
+                        <div style={{ overflowX: 'auto' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                                <thead>
+                                    <tr style={{ borderBottom: '2px solid #eee', textAlign: 'left', color: '#555' }}>
+                                        <th style={{ padding: '0.6rem 0.5rem' }}>학습자</th>
+                                        <th style={{ padding: '0.6rem 0.5rem' }}>Lv / XP</th>
+                                        <th style={{ padding: '0.6rem 0.5rem' }}>스트릭</th>
+                                        <th style={{ padding: '0.6rem 0.5rem' }}>이번 주 (월→일)</th>
+                                        <th style={{ padding: '0.6rem 0.5rem' }}>최근 활동</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {players.map(p => {
+                                        const week = Array.isArray(p.streak_week) ? p.streak_week : [];
+                                        const dayLabels = ['월', '화', '수', '목', '금', '토', '일'];
+                                        return (
+                                            <tr key={p.player_id} style={{ borderBottom: '1px solid #f0f0f0' }}>
+                                                <td style={{ padding: '0.6rem 0.5rem' }}>
+                                                    <div style={{ fontWeight: 700 }}>{p.display_name || '풋볼러'}</div>
+                                                    <div style={{ color: '#999', fontSize: '0.75rem' }}>{p.email}</div>
+                                                </td>
+                                                <td style={{ padding: '0.6rem 0.5rem', whiteSpace: 'nowrap' }}>
+                                                    <span style={{ fontWeight: 800, color: '#f59e0b' }}>Lv.{p.level ?? 1}</span>
+                                                    <span style={{ color: '#888', marginLeft: 6 }}>{(p.xp ?? 0).toLocaleString()} XP</span>
+                                                </td>
+                                                <td style={{ padding: '0.6rem 0.5rem', fontWeight: 800, color: '#ef4444' }}>🔥 {p.streak_days ?? 0}일</td>
+                                                <td style={{ padding: '0.6rem 0.5rem' }}>
+                                                    <div style={{ display: 'flex', gap: 4 }}>
+                                                        {dayLabels.map((d, i) => (
+                                                            <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                                                                <span style={{
+                                                                    width: 22, height: 22, borderRadius: '50%',
+                                                                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                                                                    fontSize: '0.7rem', fontWeight: 800,
+                                                                    background: week[i] ? '#22c55e' : '#e5e7eb',
+                                                                    color: week[i] ? '#fff' : 'transparent',
+                                                                }}>✓</span>
+                                                                <span style={{ fontSize: '0.65rem', color: '#999' }}>{d}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </td>
+                                                <td style={{ padding: '0.6rem 0.5rem', color: '#666', whiteSpace: 'nowrap' }}>{p.last_active_date || '-'}</td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* ── Expression Progress Tab ──────────────────────────────────── */}
             {activeTab === 'expressions' && (
