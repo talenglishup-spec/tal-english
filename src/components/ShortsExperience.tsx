@@ -1038,20 +1038,16 @@ export default function ShortsPage() {
                             </div>
                           </div>
 
-                          {/* 중앙 재생 컨트롤러 (탭하여 재생/정지 — YouTube 자체
-                              컨트롤은 controls:0 + pointer-events:none로 숨김.
-                              재생 중엔 버튼을 숨겨 이중 버튼이 보이지 않게 한다) */}
+                          {/* 중앙 탭 영역 — 화면을 탭하면 재생/정지. 별도의
+                              재생/정지 버튼은 표시하지 않는다(영상 위 버튼 제거).
+                              YouTube 자체 컨트롤도 controls:0 + pointer-events:none로 숨김. */}
                           <div
                             className={styles.centerSection}
                             onClick={(e) => {
                               e.stopPropagation();
                               if (isCurrentActive && !speakStage[clip.clip_id]) togglePlay(clip.clip_id);
                             }}
-                          >
-                            {isCurrentActive && !isPlaying && !speakStage[clip.clip_id] && (
-                              <div className={styles.playPauseBtn}>▶</div>
-                            )}
-                          </div>
+                          />
 
                           {/* 하단 훈련 자막 및 컨트롤러 */}
                           <div className={styles.bottomSection}>
