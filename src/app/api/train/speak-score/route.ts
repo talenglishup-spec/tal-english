@@ -34,6 +34,45 @@ function getSimilarityScore(s1: string, s2: string): number {
   return Math.round(((maxLen - dist) / maxLen) * 100);
 }
 
+const normWord = (w: string) => w.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+/**
+ * target 문장의 각 단어가 사용자가 말한 문장(spoken)에 (순서를 지키며)
+ * 포함됐는지 LCS(최장 공통 부분수열)로 정렬해 표시한다.
+ * SPEAK식 단어별 초록/회색 피드백을 위한 데이터.
+ * 반환: target 단어 순서대로 [{ w: 원본단어, ok: boolean }]
+ */
+function wordDiff(target: string, spoken: string): { w: string; ok: boolean }[] {
+  const targetWords = target.split(/\s+/).filter(Boolean);
+  const t = targetWords.map(normWord);
+  const s = spoken.split(/\s+/).map(normWord).filter(Boolean);
+
+  const n = t.length;
+  const m = s.length;
+  // LCS DP
+  const dp: number[][] = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
+  for (let i = n - 1; i >= 0; i--) {
+    for (let j = m - 1; j >= 0; j--) {
+      dp[i][j] = t[i] && t[i] === s[j]
+        ? dp[i + 1][j + 1] + 1
+        : Math.max(dp[i + 1][j], dp[i][j + 1]);
+    }
+  }
+  // backtrack: LCS에 포함된 target 인덱스 = 정답(초록)
+  const ok = new Array(n).fill(false);
+  let i = 0, j = 0;
+  while (i < n && j < m) {
+    if (t[i] && t[i] === s[j]) {
+      ok[i] = true; i++; j++;
+    } else if (dp[i + 1][j] >= dp[i][j + 1]) {
+      i++;
+    } else {
+      j++;
+    }
+  }
+  return targetWords.map((w, idx) => ({ w, ok: ok[idx] }));
+}
+
 export async function POST(req: NextRequest) {
   try {
     const data = await req.formData();
@@ -78,6 +117,7 @@ export async function POST(req: NextRequest) {
 
     const score = getSimilarityScore(transcript, target_phrase);
     const passed = score >= 80;
+    const words = wordDiff(target_phrase, transcript);
 
     // RLS Rerouting using @supabase/ssr Server Client
     const supabase = await createClient();
@@ -101,7 +141,7 @@ export async function POST(req: NextRequest) {
       console.warn('[speak-score API] Anonymous session, DB write skipped.');
     }
 
-    return NextResponse.json({ passed }, { status: 200 });
+    return NextResponse.json({ passed, score, transcript, words }, { status: 200 });
 
   } catch (err: any) {
     console.error('[speak-score API Error]:', err);

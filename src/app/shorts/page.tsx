@@ -20,6 +20,14 @@ const PLAYER_WINDOW = 1;
 type SpeakStage = 'armed' | 'recording' | 'review';
 const REC_MAX_SEC = 12; // 녹음 안전 상한 (자동 종료)
 
+// ⑥ 연속 학습: 오늘의 스픽 훈련 목표 시청 시간(초)
+const DAILY_GOAL_SEC = 120;
+// 오늘 날짜 키 (KST 기준 로컬 저장용)
+function todayKey() {
+  const kst = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+  return `${kst.getFullYear()}-${String(kst.getMonth() + 1).padStart(2, '0')}-${String(kst.getDate()).padStart(2, '0')}`;
+}
+
 function getYoutubeId(url: string) {
   if (!url) return '';
   const regExp = /^.*(?:(?:youtu\.be\/|v\/|vi\/|u\/\w\/|embed\/|shorts\/)|(?:(?:watch)?\?v(?:i)?=|\&v(?:i)?=))([^#\&\?]*).*/;
@@ -51,8 +59,22 @@ export default function ShortsPage() {
   const [recElapsed, setRecElapsed] = useState<number>(0);
   const [myAudioUrl, setMyAudioUrl] = useState<string | null>(null);
   const [seqResult, setSeqResult] = useState<{ [presetId: string]: 'pass' | 'fail' | null }>({});
+  // 채점 단어별 피드백 (clipId별): target 단어 순서대로 [{w, ok}]
+  const [wordFeedback, setWordFeedback] = useState<Record<string, { w: string; ok: boolean }[]>>({});
   // clipId별 "이번 클립 스픽 완료" 여부 — 완료 후엔 pause_at 자동정지를 재발동하지 않는다
   const [spokenDone, setSpokenDone] = useState<Record<string, boolean>>({});
+
+  // 핸즈프리: 합격 후 자동으로 다음 클립으로 넘어감
+  const [handsFree, setHandsFree] = useState<boolean>(false);
+  const handsFreeRef = useRef(false);
+  useEffect(() => { handsFreeRef.current = handsFree; }, [handsFree]);
+
+  // ⑥ 연속 학습 카운트다운 (오늘 스픽 활성 시청 누적초 → 일일 목표)
+  const [dailyStudied, setDailyStudied] = useState<number>(0);
+  const [goalCelebrated, setGoalCelebrated] = useState<boolean>(false);
+  const dailyStudiedRef = useRef(0);
+  const isPlayingRef = useRef(false);
+  useEffect(() => { isPlayingRef.current = isPlaying; }, [isPlaying]);
 
   // Collection 해금 보상 상태 카운트
   const [successCounts, setSuccessCounts] = useState<Record<string, number>>({});
@@ -91,6 +113,30 @@ export default function ShortsPage() {
   useEffect(() => { speakStageRef.current = speakStage; }, [speakStage]);
   useEffect(() => { spokenDoneRef.current = spokenDone; }, [spokenDone]);
   useEffect(() => { clipsRef.current = clips; }, [clips]);
+
+  // ⑥ 오늘 스픽 활성 시청 누적초 로드 + 1초 틱 (스픽 탭 재생 중일 때만 증가)
+  useEffect(() => {
+    const key = `tal_speak_secs_${todayKey()}`;
+    const goalKey = `tal_speak_goal_${todayKey()}`;
+    const saved = Number(localStorage.getItem(key) || '0');
+    dailyStudiedRef.current = saved;
+    setDailyStudied(saved);
+    setGoalCelebrated(localStorage.getItem(goalKey) === '1');
+
+    const id = setInterval(() => {
+      if (activeTabRef.current === 'speak' && isPlayingRef.current) {
+        const v = dailyStudiedRef.current + 1;
+        dailyStudiedRef.current = v;
+        setDailyStudied(v);
+        localStorage.setItem(key, String(v));
+        if (v >= DAILY_GOAL_SEC && localStorage.getItem(goalKey) !== '1') {
+          localStorage.setItem(goalKey, '1');
+          setGoalCelebrated(true);
+        }
+      }
+    }, 1000);
+    return () => clearInterval(id);
+  }, []);
 
   // 활성 클립 기준 윈도우 안에 들어오는 clip_id 집합 (플레이어 생성 대상)
   const mountedIds = useMemo(() => {
@@ -492,8 +538,24 @@ export default function ShortsPage() {
   // 1) pause_at 자동 정지 → "말하기 시작" 버튼 대기 (armed)
   const armSpeak = (clipId: string) => {
     setSeqResult(prev => ({ ...prev, [clipId]: null }));
-    setMyAudioUrl(null);
+    setWordFeedback(prev => { const n = { ...prev }; delete n[clipId]; return n; });
+    setMyAudioUrl(prev => { if (prev) URL.revokeObjectURL(prev); return null; });
     setStage(clipId, 'armed');
+  };
+
+  // 리뷰 → "다시하기": 결과/녹음을 버리고 다시 말하기 대기 단계로
+  const retrySpeak = (clipId: string) => {
+    if (myAudioElRef.current) { try { myAudioElRef.current.pause(); } catch (e) {} myAudioElRef.current = null; }
+    if (modelWatchRef.current) { clearInterval(modelWatchRef.current); modelWatchRef.current = null; }
+    // 모범답안 재생 등으로 영상이 움직였을 수 있으니 pause_at 지점으로 되돌린다
+    const clip = clipsRef.current.find(c => c.clip_id === clipId);
+    const player = playerRefs.current[clipId];
+    if (player && clip) {
+      const start = Number(clip.start_sec || 0);
+      const pauseAt = Number(clip.pause_at || start + 2.5);
+      try { player.pauseVideo(); player.seekTo(pauseAt, true); } catch (e) {}
+    }
+    armSpeak(clipId);
   };
 
   // 2) "말하기 시작" 클릭 → 즉시 녹음 시작 (카운트다운 없음)
@@ -577,6 +639,10 @@ export default function ShortsPage() {
       const scoreVal = data.score || 85;
 
       setSeqResult(prev => ({ ...prev, [clipId]: passed ? 'pass' : 'fail' }));
+      // ① 단어별 색상 피드백 데이터 저장 (서버 wordDiff)
+      if (Array.isArray(data.words)) {
+        setWordFeedback(prev => ({ ...prev, [clipId]: data.words }));
+      }
 
       if (passed) {
         setSuccessCounts(prev => ({ ...prev, [clipId]: (prev[clipId] || 0) + 1 }));
@@ -593,11 +659,29 @@ export default function ShortsPage() {
             console.error('[Complete API Sync Error]:', e);
           }
         }
+
+        // ⑦ 핸즈프리: 합격 시 잠시 후 자동으로 다음 클립으로 이동
+        if (handsFreeRef.current) {
+          setTimeout(() => {
+            if (speakStageRef.current[clipId] === 'review') {
+              finishSpeak(clipId);
+              goNextClip(clipId);
+            }
+          }, 2500);
+        }
       }
     } catch (err) {
       console.warn('STT score evaluation failed.', err);
       setSeqResult(prev => ({ ...prev, [clipId]: 'fail' }));
     }
+  };
+
+  // ⑦ 다음 클립으로 스크롤 이동 (스냅 → IntersectionObserver가 전환 처리)
+  const goNextClip = (fromClipId: string) => {
+    const list = clipsRef.current;
+    const idx = list.findIndex(c => c.clip_id === fromClipId);
+    const next = idx >= 0 ? list[idx + 1] : null;
+    if (next) scrollToPreset(next.clip_id);
   };
 
   // 리뷰: 내 발음 듣기
@@ -648,6 +732,7 @@ export default function ShortsPage() {
     spokenDoneRef.current = { ...spokenDoneRef.current, [clipId]: true };
     setSpokenDone(prev => ({ ...prev, [clipId]: true }));
     setSeqResult(prev => ({ ...prev, [clipId]: null }));
+    setWordFeedback(prev => { const n = { ...prev }; delete n[clipId]; return n; });
 
     const player = playerRefs.current[clipId];
     if (player && player.playVideo) {
@@ -732,9 +817,53 @@ export default function ShortsPage() {
               )}
             </div>
 
+            {/* 스픽 모드 전용 상단 스트립: 세션 진행(⑧) · 연속 학습 게이지(⑥) · 핸즈프리(⑦) */}
+            {activeTab === 'speak' && clips.length > 0 && (() => {
+              const sessionClips = clips.slice(0, 8);
+              const doneCount = sessionClips.filter(c => spokenDone[c.clip_id]).length;
+              const remaining = Math.max(0, DAILY_GOAL_SEC - dailyStudied);
+              const goalPct = Math.min(100, (dailyStudied / DAILY_GOAL_SEC) * 100);
+              return (
+                <div className={styles.speakStrip}>
+                  {/* ⑧ 세션 진행 세그먼트 */}
+                  <div className={styles.sessionRow}>
+                    <span className={styles.sessionLabel}>오늘의 스픽 {doneCount}/{sessionClips.length}</span>
+                    <div className={styles.segmentBar}>
+                      {sessionClips.map((c) => (
+                        <span
+                          key={c.clip_id}
+                          className={`${styles.segment} ${spokenDone[c.clip_id] ? styles.segmentDone : ''} ${activePresetId === c.clip_id ? styles.segmentActive : ''}`}
+                        />
+                      ))}
+                    </div>
+                    {/* ⑦ 핸즈프리 토글 */}
+                    <button
+                      type="button"
+                      className={`${styles.handsFreeBtn} ${handsFree ? styles.handsFreeOn : ''}`}
+                      onClick={() => setHandsFree(v => !v)}
+                    >
+                      핸즈프리 {handsFree ? 'ON' : 'OFF'}
+                    </button>
+                  </div>
+
+                  {/* ⑥ 연속 학습 불꽃 게이지 */}
+                  <div className={styles.fireRow}>
+                    <span className={styles.fireLabel}>
+                      {goalCelebrated || remaining === 0
+                        ? '🔥 오늘의 훈련 완료!'
+                        : `🔥 오늘의 훈련 완료까지 ${remaining}초`}
+                    </span>
+                    <div className={styles.fireBar}>
+                      <div className={styles.fireProgress} style={{ width: `${goalPct}%` }} />
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* 수직 스냅 스크롤링 쇼츠 피드 */}
-            <div 
-              ref={containerRef} 
+            <div
+              ref={containerRef}
               className={styles.shortsContainer}
             >
               {clips.length > 0 ? (
@@ -769,7 +898,8 @@ export default function ShortsPage() {
                                 <>
                                   <span className={styles.lockIcon}>🎙️</span>
                                   <h3 className={styles.lockTitle}>지금 말할 차례!</h3>
-                                  <p className={styles.lockSubtitle}>영상 속 선수처럼 문장을 직접 말해보세요.</p>
+                                  {/* ④ 말할 문장 힌트 — 흐리게 표시 */}
+                                  <p className={styles.targetFaded}>{clip.target_phrase}</p>
                                   <button
                                     type="button"
                                     className={styles.speakButton}
@@ -788,9 +918,10 @@ export default function ShortsPage() {
                                 </>
                               )}
 
-                              {/* RECORDING: 즉시 녹음 중 */}
+                              {/* RECORDING: 즉시 녹음 중 (④ 문장 흐리게 유지) */}
                               {speakStage[clip.clip_id] === 'recording' && (
                                 <>
+                                  <p className={styles.targetFaded}>{clip.target_phrase}</p>
                                   <div className={styles.recordingBox}>
                                     <div className={styles.micCircleActive}>🎙️</div>
                                     <p className={styles.speakStageText} style={{ color: '#ef4444' }}>
@@ -808,9 +939,23 @@ export default function ShortsPage() {
                                 </>
                               )}
 
-                              {/* REVIEW: 결과 + 내 발음/모범 답안 듣기 + 넘어가기 */}
+                              {/* REVIEW: ① 단어별 색상 피드백 + 결과 + 듣기 + ② 다시하기 + 넘어가기 */}
                               {speakStage[clip.clip_id] === 'review' && (
                                 <>
+                                  {/* ① target 각 단어를 맞음(초록)/틀림(회색)으로 표시 */}
+                                  <p className={styles.targetWords}>
+                                    {(wordFeedback[clip.clip_id] ??
+                                      clip.target_phrase.split(' ').map((w: string) => ({ w, ok: false }))
+                                    ).map((tok: { w: string; ok: boolean }, i: number) => (
+                                      <span
+                                        key={i}
+                                        className={`${styles.wordChip} ${tok.ok ? styles.wordChipOk : styles.wordChipBad}`}
+                                      >
+                                        {tok.w}
+                                      </span>
+                                    ))}
+                                  </p>
+
                                   {seqResult[clip.clip_id] == null ? (
                                     <div className={styles.evaluationBox}>
                                       <div className={styles.analyzingSpinner} />
@@ -846,14 +991,25 @@ export default function ShortsPage() {
                                     </button>
                                   </div>
 
-                                  <button
-                                    type="button"
-                                    className={styles.skipSeqBtn}
-                                    style={{ marginTop: 14 }}
-                                    onClick={() => finishSpeak(clip.clip_id)}
-                                  >
-                                    넘어가기 →
-                                  </button>
+                                  {/* ② 다시하기 */}
+                                  <div className={styles.reviewBtnRow}>
+                                    <button
+                                      type="button"
+                                      className={styles.reviewBtn}
+                                      style={{ borderColor: 'rgba(59,130,246,0.5)', color: '#93c5fd' }}
+                                      onClick={() => retrySpeak(clip.clip_id)}
+                                    >
+                                      ↺ 다시하기
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className={styles.reviewBtn}
+                                      style={{ background: '#3b82f6', border: 'none' }}
+                                      onClick={() => finishSpeak(clip.clip_id)}
+                                    >
+                                      넘어가기 →
+                                    </button>
+                                  </div>
                                 </>
                               )}
                             </div>
