@@ -23,7 +23,7 @@
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #f1f5f9 0%, #cbd5e1 100%);
+  background: #ffffff;
   color: var(--text-dark);
   font-family: 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -1478,17 +1478,17 @@
   padding: 15px;
   border-radius: 14px;
   border: none;
-  background: #3b82f6;
+  background: var(--tal-blue);
   color: #ffffff;
   font-size: 15px;
   font-weight: 800;
   cursor: pointer;
-  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.35);
+  box-shadow: 0 6px 20px rgba(10, 34, 143, 0.35);
   transition: background 0.15s;
 }
 
 .homeStartBtn:hover {
-  background: #2563eb;
+  background: var(--tal-blue-hover);
 }
 
 /* ── AI 코치 도슨트 가이드 (홈 탭) ────────────────────────────── */
