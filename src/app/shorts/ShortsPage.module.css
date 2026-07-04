@@ -6,9 +6,9 @@
  */
 
 :root {
-  --tal-blue: #0052B4;
-  --tal-blue-light: rgba(0, 82, 180, 0.08);
-  --tal-blue-hover: #003e8a;
+  --tal-blue: #0A228F;
+  --tal-blue-light: rgba(10, 34, 143, 0.08);
+  --tal-blue-hover: #081a6f;
   --text-dark: #001C3D;
   --text-muted: #475569;
   --text-light: #ffffff;

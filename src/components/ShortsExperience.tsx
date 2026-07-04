@@ -1093,7 +1093,7 @@ export default function ShortsPage() {
                                     <button
                                       type="button"
                                       className={styles.reviewBtn}
-                                      style={{ borderColor: 'rgba(0,82,180,0.4)', color: '#0052B4' }}
+                                      style={{ borderColor: 'rgba(10,34,143,0.4)', color: '#0A228F' }}
                                       onClick={() => retrySpeak(clip.clip_id)}
                                     >
                                       ↺ 다시하기
@@ -1101,7 +1101,7 @@ export default function ShortsPage() {
                                     <button
                                       type="button"
                                       className={styles.reviewBtn}
-                                      style={{ background: '#0052B4', border: 'none', color: '#ffffff' }}
+                                      style={{ background: '#0A228F', border: 'none', color: '#ffffff' }}
                                       onClick={() => finishSpeak(clip.clip_id)}
                                     >
                                       넘어가기 →
