@@ -108,6 +108,11 @@ let _cache: ClipItem[] | null = null;
 let _cacheTime = 0;
 const CACHE_TTL = 60 * 1000; // 60초 인스턴스 캐시
 
+export function clearSheetCache() {
+    _cache = null;
+    _cacheTime = 0;
+}
+
 // ── getClipItems ──────────────────────────────────────────────
 export async function getClipItems(): Promise<ClipItem[]> {
     if (_cache && Date.now() - _cacheTime < CACHE_TTL) {
