@@ -248,6 +248,7 @@ export type ClipRow = {
     start_sec: number;
     end_sec: number;
     video_url: string;
+    translation?: string;
     tags: string;
     notes: string;
 };
@@ -1129,6 +1130,7 @@ export async function getClips() {
         start_sec: parseSeconds(r.get('start_sec')),
         end_sec: parseSeconds(r.get('end_sec')),
         video_url: r.get('video_url') || '',
+        translation: r.get('translation') || '',
         tags: r.get('tags') || '',
         notes: r.get('notes') || ''
     })).filter(c => c.active);

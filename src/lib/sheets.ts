@@ -78,6 +78,7 @@ export type ClipItem = {
     nuance_desc:           string;  // 한국어 뉘앙스 설명
     similar_expressions:   string;  // 유사 표현 (콤마 구분)
     audio_explanation_url: string;  // ElevenLabs TTS 오디오 URL
+    translation:           string;  // 한국어 번역 (Sheets 'translation' 컬럼)
 
     // 메타
     tags:  string;
@@ -153,6 +154,7 @@ export async function getClipItems(): Promise<ClipItem[]> {
                     nuance_desc:           row.get('nuance_desc')           || '',
                     similar_expressions:   row.get('similar_expressions')   || '',
                     audio_explanation_url: row.get('audio_explanation_url') || '',
+                    translation:           row.get('translation')           || '',
 
                     tags:  row.get('tags')  || '',
                     notes: row.get('notes') || '',
@@ -238,6 +240,7 @@ export async function addClipItem(item: Omit<ClipItem, 'speak_mode'> & { speak_m
             nuance_desc: item.nuance_desc,
             similar_expressions: item.similar_expressions,
             audio_explanation_url: item.audio_explanation_url,
+            translation: item.translation,
             tags: item.tags,
             notes: item.notes
         });

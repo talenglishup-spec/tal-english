@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
       nuance_desc,
       similar_expressions,
       audio_explanation_url,
+      translation,
       tags,
       notes
     } = await req.json();
@@ -54,6 +55,7 @@ export async function POST(req: NextRequest) {
       nuance_desc: nuance_desc || '',
       similar_expressions: similar_expressions || '',
       audio_explanation_url: audio_explanation_url || '',
+      translation: translation || '',
       tags: tags || 'AI_Callback',
       notes: notes || 'Callback processed successfully'
     };
