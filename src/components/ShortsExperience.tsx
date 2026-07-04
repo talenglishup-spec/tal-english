@@ -39,7 +39,7 @@ export default function ShortsPage() {
   const router = useRouter();
   const [clips, setClips] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'shorts' | 'oneday' | 'collection' | 'my'>('shorts');
+  const [activeTab, setActiveTab] = useState<'home' | 'shorts' | 'collection' | 'my'>('home');
 
   // 클립별 스픽 모드 (1회성): 쇼츠 피드에서 🎙️ 버튼을 누른 영상만 true.
   // true인 동안 1회차·1배속 고정 + pause_at 자동 정지가 활성화되고,
@@ -1210,19 +1210,63 @@ export default function ShortsPage() {
             </div>
           </div>
 
-          {/* One Day 모드 데모 영역 */}
-          {activeTab === 'oneday' && (
-            <div className={styles.modePlaceholder}>
-              <div className={styles.placeholderIcon}>📅</div>
-              <h2>One Day 모드</h2>
-              <p>매일 새롭게 주어지는 단 한 문장!<br/>하루 한 표현씩 핵심 축구 표현을 완전히 마스터합니다.</p>
-              <button 
+          {/* 홈 탭 — 앱 활용 가이드 */}
+          {activeTab === 'home' && (
+            <div className={styles.homeTab}>
+              <div className={styles.homeHero}>
+                <div className={styles.homeHeroIcon}>⚽️</div>
+                <h1 className={styles.homeHeroTitle}>TAL English Up</h1>
+                <p className={styles.homeHeroSub}>축구 인터뷰로 배우는 실전 영어 훈련소</p>
+              </div>
+
+              <div className={styles.homeSectionTitle}>이렇게 활용하세요</div>
+
+              <div className={styles.homeStep}>
+                <div className={styles.homeStepIcon}>🎬</div>
+                <div className={styles.homeStepBody}>
+                  <div className={styles.homeStepTitle}>쇼츠 모드로 귀 트기</div>
+                  <div className={styles.homeStepDesc}>
+                    프로 선수·감독의 실제 인터뷰가 <b>1배속 → 0.75배속 → 0.5배속</b>으로 감속 반복됩니다. 자막을 보며 소리 내어 따라 말하는 쉐도잉으로 발음과 리듬을 익히세요.
+                  </div>
+                </div>
+              </div>
+
+              <div className={styles.homeStep}>
+                <div className={styles.homeStepIcon}>🎙️</div>
+                <div className={styles.homeStepBody}>
+                  <div className={styles.homeStepTitle}>Speak 버튼으로 발화 훈련</div>
+                  <div className={styles.homeStepDesc}>
+                    준비가 되면 영상 <b>우하단 🎙️ Speak 버튼</b>을 누르세요. 지정 시점에서 영상이 자동으로 멈추고, 직접 말하면 AI가 발음을 단어별로 채점합니다. <b>내 발음</b>과 <b>모범 답안</b>을 바로 비교해 들을 수 있어요.
+                  </div>
+                </div>
+              </div>
+
+              <div className={styles.homeStep}>
+                <div className={styles.homeStepIcon}>📦</div>
+                <div className={styles.homeStepBody}>
+                  <div className={styles.homeStepTitle}>선수 카드 수집</div>
+                  <div className={styles.homeStepDesc}>
+                    발음 채점을 통과하면 손흥민·홀란드 등 <b>FUT 스타일 선수 카드</b>가 잠금 해제됩니다. 좋아하는 구단 테마로 커스텀도 가능해요.
+                  </div>
+                </div>
+              </div>
+
+              <div className={styles.homeStep}>
+                <div className={styles.homeStepIcon}>🔥</div>
+                <div className={styles.homeStepBody}>
+                  <div className={styles.homeStepTitle}>매일 훈련하고 성장</div>
+                  <div className={styles.homeStepDesc}>
+                    훈련할수록 <b>XP·레벨·연속 학습 스트릭</b>이 쌓입니다. <b>마이</b> 탭에서 내 성장 기록과 오늘의 목표 달성 현황을 확인하세요.
+                  </div>
+                </div>
+              </div>
+
+              <button
                 type="button"
-                className={styles.speakButton}
-                onClick={() => router.push('/workout')}
-                style={{ width: 'auto', padding: '12px 24px' }}
+                className={styles.homeStartBtn}
+                onClick={() => setActiveTab('shorts')}
               >
-                하루 4단계 루틴 시작하기
+                🎬 지금 훈련 시작하기
               </button>
             </div>
           )}
@@ -1437,19 +1481,19 @@ export default function ShortsPage() {
 
           {/* 하단 고정 탭 바 */}
           <div className={styles.bottomTabBar}>
-            <button 
+            <button
+              className={`${styles.tabItem} ${activeTab === 'home' ? styles.tabItemActive : ''}`}
+              onClick={() => setActiveTab('home')}
+            >
+              <span className={styles.tabIcon}>🏠</span>
+              <span className={styles.tabLabel}>홈</span>
+            </button>
+            <button
               className={`${styles.tabItem} ${activeTab === 'shorts' ? styles.tabItemActive : ''}`}
               onClick={() => setActiveTab('shorts')}
             >
               <span className={styles.tabIcon}>🎬</span>
               <span className={styles.tabLabel}>쇼츠 모드</span>
-            </button>
-            <button
-              className={`${styles.tabItem} ${activeTab === 'oneday' ? styles.tabItemActive : ''}`}
-              onClick={() => setActiveTab('oneday')}
-            >
-              <span className={styles.tabIcon}>📅</span>
-              <span className={styles.tabLabel}>One Day</span>
             </button>
             <button
               className={`${styles.tabItem} ${activeTab === 'collection' ? styles.tabItemActive : ''}`}

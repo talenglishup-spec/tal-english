@@ -1346,6 +1346,109 @@
   transform: scale(1.05);
 }
 
+/* ── 홈 탭 (앱 활용 가이드) ────────────────────────────────────── */
+.homeTab {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 18px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: #070e17;
+}
+
+.homeHero {
+  text-align: center;
+  padding: 12px 0 6px;
+}
+
+.homeHeroIcon {
+  font-size: 44px;
+  line-height: 1;
+}
+
+.homeHeroTitle {
+  font-size: 24px;
+  font-weight: 900;
+  color: #ffffff;
+  margin: 10px 0 4px;
+  letter-spacing: -0.02em;
+}
+
+.homeHeroSub {
+  font-size: 13px;
+  color: #94a3b8;
+  font-weight: 600;
+  margin: 0;
+}
+
+.homeSectionTitle {
+  font-size: 12px;
+  font-weight: 800;
+  color: #3b82f6;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 10px 2px 2px;
+}
+
+.homeStep {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  background: rgba(15, 30, 48, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 14px;
+}
+
+.homeStepIcon {
+  font-size: 24px;
+  line-height: 1.2;
+  flex-shrink: 0;
+}
+
+.homeStepBody {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.homeStepTitle {
+  font-size: 14px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.homeStepDesc {
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: #cbd5e1;
+}
+
+.homeStepDesc b {
+  color: #93c5fd;
+  font-weight: 800;
+}
+
+.homeStartBtn {
+  margin-top: 8px;
+  width: 100%;
+  padding: 15px;
+  border-radius: 14px;
+  border: none;
+  background: #3b82f6;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.35);
+  transition: background 0.15s;
+}
+
+.homeStartBtn:hover {
+  background: #2563eb;
+}
+
 .myLogoutBtn {
   margin-top: 4px;
   background: rgba(239, 68, 68, 0.08);
