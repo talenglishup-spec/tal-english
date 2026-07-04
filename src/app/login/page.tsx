@@ -10,9 +10,30 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleKakaoLogin = () => {
-    // 백엔드 카카오 OAuth 리다이렉션 라우트 실행
-    window.location.href = '/api/auth/kakao/login';
+  const handleKakaoLogin = async () => {
+    // 카카오 OAuth는 반드시 브라우저에서 시작해야 한다.
+    // getSupabase()는 브라우저에서 createBrowserClient(@supabase/ssr)를 반환하며,
+    // 이 클라이언트가 PKCE code_verifier를 "쿠키"에 저장한다. 그래야 콜백
+    // 라우트의 exchangeCodeForSession이 그 쿠키를 읽어 세션 교환에 성공한다.
+    // (이전엔 서버 라우트에서 쿠키 없는 클라이언트로 시작해 verifier가 유실됨)
+    setError(null);
+    try {
+      const supabase = getSupabase();
+      const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: 'kakao',
+        options: {
+          redirectTo: `${window.location.origin}/api/auth/kakao/callback`,
+          scopes: 'profile_nickname profile_image',
+          skipBrowserRedirect: true,
+        },
+      });
+      if (oauthError) throw oauthError;
+      if (!data?.url) throw new Error('카카오 로그인 URL 생성에 실패했습니다.');
+      window.location.href = data.url;
+    } catch (err: any) {
+      console.error('[Kakao Login] error:', err);
+      setError(err.message || '카카오 로그인에 실패했습니다.');
+    }
   };
 
   const handleEmailLogin = async (e: React.FormEvent) => {
