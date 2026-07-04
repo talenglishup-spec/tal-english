@@ -360,20 +360,21 @@
   box-shadow: 0 8px 32px 0 rgba(0, 75, 135, 0.1);
 }
 
-.captionKr {
-  font-size: 13px;
-  color: var(--text-muted);
-  margin-bottom: 8px;
-  font-weight: 600;
-  line-height: 1.4;
-}
-
 .captionEn {
   font-size: 18px;
   font-weight: 800;
   color: var(--tal-blue);
   line-height: 1.45;
   letter-spacing: -0.02em;
+  margin-bottom: 6px;
+}
+
+.captionKr {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0;
+  font-weight: 600;
+  line-height: 1.4;
 }
 
 .timelineContainer {
@@ -1488,6 +1489,57 @@
 
 .homeStartBtn:hover {
   background: #2563eb;
+}
+
+/* 표현 레벨 — 현재 레벨의 5개 표현 목록 */
+.exprList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.exprItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--bg-slate);
+  border: 1px solid var(--border-color);
+}
+
+.exprCheck {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(0, 75, 135, 0.08);
+  border: 1px solid var(--border-color);
+  color: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.exprCheckDone {
+  background: #22c55e;
+  border-color: #22c55e;
+  color: #ffffff;
+}
+
+.exprText {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+  line-height: 1.35;
+  text-align: left;
+}
+
+.exprTextDone {
+  color: var(--text-dark);
 }
 
 .myLogoutBtn {

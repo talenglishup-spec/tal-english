@@ -53,6 +53,8 @@ export default function ShortsPage() {
   const [myStats, setMyStats] = useState<any>(null);
   const [myLoading, setMyLoading] = useState<boolean>(false);
   const [shareMsg, setShareMsg] = useState<string>('');
+  // 스픽 성공한 clip_id 집합 (표현 레벨 계산용)
+  const [passedClips, setPassedClips] = useState<Set<string>>(new Set());
   const [activePresetId, setActivePresetId] = useState<string>('');
   const [playerId, setPlayerId] = useState<string | null>(null);
   
@@ -64,7 +66,7 @@ export default function ShortsPage() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
   const [isListOpen, setIsListOpen] = useState(false);
-  const [isAdvanced, setIsAdvanced] = useState(false);
+  const [subtitleOn, setSubtitleOn] = useState(true);
   const [selectedClub, setSelectedClub] = useState<'tottenham' | 'mancity' | 'realmadrid'>('tottenham');
 
   // 스픽 훈련 상태 (clipId별)
@@ -826,6 +828,13 @@ export default function ShortsPage() {
         .eq('player_id', playerId)
         .maybeSingle();
       setMyStats(data || null);
+
+      // 스픽 성공 이력(표현 레벨 계산) — RLS로 본인 행만 조회됨
+      const { data: attempts } = await supabase
+        .from('speak_attempts_log')
+        .select('clip_id')
+        .eq('passed', true);
+      setPassedClips(new Set((attempts || []).map((a: any) => a.clip_id)));
     } catch (e) {
       console.error('[MyTab] load error:', e);
     } finally {
@@ -1123,12 +1132,12 @@ export default function ShortsPage() {
                               {speakMode[clip.clip_id] ? '🎙️ 실전 스피킹' : `🔥 ${currentPhase}회차 (${rate.toFixed(2)}x)`}
                             </span>
 
-                            <div 
-                              onClick={() => setIsAdvanced(!isAdvanced)} 
-                              className={`${styles.advToggle} ${isAdvanced ? styles.advActive : ''}`}
+                            <div
+                              onClick={() => setSubtitleOn(!subtitleOn)}
+                              className={`${styles.advToggle} ${subtitleOn ? styles.advActive : ''}`}
                             >
                               <span className={styles.advLabel}>
-                                Advanced {isAdvanced ? 'ON' : 'OFF'}
+                                자막 {subtitleOn ? 'ON' : 'OFF'}
                               </span>
                             </div>
                           </div>
@@ -1147,32 +1156,29 @@ export default function ShortsPage() {
                           {/* 하단 훈련 자막 및 컨트롤러 */}
                           <div className={styles.bottomSection}>
                             
-                            {!isAdvanced ? (
-                              <div className={styles.captionCard}>
-                                {clip.translation && clip.translation.trim() !== '' && (
-                                  <p className={styles.captionKr}>"{clip.translation}"</p>
-                                )}
-                                <p className={styles.captionEn}>
-                                  {clip.target_phrase}
-                                </p>
-                                
-                                <ClipProgressBar
-                                  getPlayer={() => playerRefs.current[clip.clip_id]}
-                                  startSec={startSec}
-                                  endSec={endSec}
-                                  active={isCurrentActive}
-                                  containerClassName={styles.timelineContainer}
-                                  barClassName={styles.timelineBar}
-                                  progressClassName={styles.timelineProgress}
-                                />
-                              </div>
-                            ) : (
-                              <div className={styles.captionCard}>
-                                <p className={styles.captionEn} style={{ color: '#ef4444', fontSize: '13px', fontWeight: 800 }}>
-                                  🚫 Advanced 모드: 자막 없이 상황에 맞춰 발화하세요!
-                                </p>
-                              </div>
-                            )}
+                            <div className={styles.captionCard}>
+                              {subtitleOn && (
+                                <>
+                                  {/* 영어(위) → 한글 번역(아래) */}
+                                  <p className={styles.captionEn}>
+                                    {clip.target_phrase}
+                                  </p>
+                                  {clip.translation && clip.translation.trim() !== '' && (
+                                    <p className={styles.captionKr}>"{clip.translation}"</p>
+                                  )}
+                                </>
+                              )}
+
+                              <ClipProgressBar
+                                getPlayer={() => playerRefs.current[clip.clip_id]}
+                                startSec={startSec}
+                                endSec={endSec}
+                                active={isCurrentActive}
+                                containerClassName={styles.timelineContainer}
+                                barClassName={styles.timelineBar}
+                                progressClassName={styles.timelineProgress}
+                              />
+                            </div>
 
                             {speakMode[clip.clip_id] && !speakStage[clip.clip_id] && (
                               <div className={styles.actionArea}>
@@ -1388,18 +1394,30 @@ export default function ShortsPage() {
           {/* 마이 탭 — 내 레벨/학습/공유 */}
           {activeTab === 'my' && (() => {
             const s = myStats || {};
-            const level = s.level ?? 1;
             const xp = s.xp ?? 0;
-            const xpToNext = s.xp_to_next ?? 3000;
-            const xpPct = Math.min(100, Math.round((xp / Math.max(1, xpToNext)) * 100));
             const streakDays = s.streak_days ?? 0;
+
+            // ── 표현 레벨: 레벨당 5개 표현(=스픽 클립)을 모두 통과하면 다음 레벨 ──
+            const EXPR_PER_LEVEL = 5;
+            const MAX_LEVEL = 20;
+            const expressions = clips; // 스픽 클립(순서 = 표현 순서)
+            let exprLevel = 1;
+            for (let L = 1; L <= MAX_LEVEL; L++) {
+              const grp = expressions.slice((L - 1) * EXPR_PER_LEVEL, L * EXPR_PER_LEVEL);
+              exprLevel = L;
+              if (grp.length === 0) break; // 더 이상 표현 없음
+              if (!grp.every((c: any) => passedClips.has(c.clip_id))) break; // 이 레벨 미완료 = 현재 레벨
+              // 이 레벨 완료 → 다음 레벨 확인 (마지막 레벨이면 유지)
+            }
+            const curGroup = expressions.slice((exprLevel - 1) * EXPR_PER_LEVEL, exprLevel * EXPR_PER_LEVEL);
+            const doneInLevel = curGroup.filter((c: any) => passedClips.has(c.clip_id)).length;
+            const levelPct = curGroup.length > 0 ? Math.round((doneInLevel / curGroup.length) * 100) : 100;
+            const remainInLevel = Math.max(0, curGroup.length - doneInLevel);
             const week: boolean[] = Array.isArray(s.streak_week) ? s.streak_week : [false, false, false, false, false, false, false];
             const dayLabels = ['월', '화', '수', '목', '금', '토', '일'];
             const displayName = s.display_name || '풋볼러';
             const email = s.email || '';
             const sub = s.subscription_status || 'free';
-            const totalClips = clips.length;
-            const doneCount = Object.values(spokenDone).filter(Boolean).length;
             const unlockedCards = Object.values(successCounts).filter(v => (v as number) > 0).length;
 
             return (
@@ -1416,15 +1434,43 @@ export default function ShortsPage() {
 
                 {myLoading && <div className={styles.myHint}>내 정보를 불러오는 중...</div>}
 
-                {/* 레벨 & XP */}
+                {/* 표현 레벨 — 레벨당 5개 표현 완료 시 다음 레벨 */}
                 <div className={styles.myCard}>
                   <div className={styles.myCardRow}>
-                    <span className={styles.myLevelBadge}>Lv.{level}</span>
-                    <span className={styles.myXpText}>{xp.toLocaleString()} / {xpToNext.toLocaleString()} XP</span>
+                    <span className={styles.myLevelBadge}>레벨 {exprLevel} / {MAX_LEVEL}</span>
+                    <span className={styles.myXpText}>이번 레벨 {doneInLevel} / {curGroup.length || EXPR_PER_LEVEL} 완료</span>
                   </div>
                   <div className={styles.myXpBar}>
-                    <div className={styles.myXpFill} style={{ width: `${xpPct}%` }} />
+                    <div className={styles.myXpFill} style={{ width: `${levelPct}%` }} />
                   </div>
+
+                  <div className={styles.exprList}>
+                    {curGroup.length === 0 ? (
+                      <div className={styles.myHint} style={{ textAlign: 'center' }}>🎉 모든 표현을 완료했어요!</div>
+                    ) : (
+                      curGroup.map((c: any) => {
+                        const done = passedClips.has(c.clip_id);
+                        return (
+                          <div key={c.clip_id} className={styles.exprItem}>
+                            <span className={`${styles.exprCheck} ${done ? styles.exprCheckDone : ''}`}>
+                              {done ? '✓' : ''}
+                            </span>
+                            <span className={`${styles.exprText} ${done ? styles.exprTextDone : ''}`}>
+                              {c.target_phrase || c.title_ko || c.clip_id}
+                            </span>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+
+                  {curGroup.length > 0 && (
+                    <div className={styles.myHint} style={{ marginTop: 10, marginBottom: 0 }}>
+                      {remainInLevel > 0
+                        ? `다음 레벨까지 ${remainInLevel}개 표현 남았어요`
+                        : '이 레벨 완료! 다음 레벨로 이동합니다'}
+                    </div>
+                  )}
                 </div>
 
                 {/* 요일 스트릭 */}
@@ -1447,12 +1493,12 @@ export default function ShortsPage() {
                   <div className={styles.myCardTitle}>📚 내 학습 콘텐츠</div>
                   <div className={styles.myStatGrid}>
                     <div className={styles.myStatItem}>
-                      <div className={styles.myStatNum}>{totalClips}</div>
-                      <div className={styles.myStatLabel}>훈련 영상</div>
+                      <div className={styles.myStatNum}>{passedClips.size}</div>
+                      <div className={styles.myStatLabel}>완료 표현</div>
                     </div>
                     <div className={styles.myStatItem}>
-                      <div className={styles.myStatNum}>{doneCount}</div>
-                      <div className={styles.myStatLabel}>오늘 스픽 완료</div>
+                      <div className={styles.myStatNum}>{xp.toLocaleString()}</div>
+                      <div className={styles.myStatLabel}>누적 XP</div>
                     </div>
                     <div className={styles.myStatItem}>
                       <div className={styles.myStatNum}>{unlockedCards}</div>
