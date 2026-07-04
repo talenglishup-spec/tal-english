@@ -6,14 +6,14 @@
  */
 
 :root {
-  --tal-blue: #004b87;
-  --tal-blue-light: rgba(0, 75, 135, 0.1);
-  --tal-blue-hover: #003663;
-  --text-dark: #0f172a;
+  --tal-blue: #0052B4;
+  --tal-blue-light: rgba(0, 82, 180, 0.08);
+  --tal-blue-hover: #003e8a;
+  --text-dark: #001C3D;
   --text-muted: #475569;
   --text-light: #ffffff;
   --bg-white: #ffffff;
-  --bg-slate: #f8fafc;
+  --bg-slate: #f2f6fa;
   --border-color: #e2e8f0;
 }
 
