@@ -1,11 +1,30 @@
+/*
+ * TAL — CSS Module
+ * Path: src/app/shorts/ShortsPage.module.css
+ *
+ * Theme: Premium Light Mode (TAL White & Blue)
+ */
+
+:root {
+  --tal-blue: #004b87;
+  --tal-blue-light: rgba(0, 75, 135, 0.1);
+  --tal-blue-hover: #003663;
+  --text-dark: #0f172a;
+  --text-muted: #475569;
+  --text-light: #ffffff;
+  --bg-white: #ffffff;
+  --bg-slate: #f8fafc;
+  --border-color: #e2e8f0;
+}
+
 .container {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #050b14 0%, #0c1829 100%);
-  color: #ffffff;
+  background: linear-gradient(135deg, #f1f5f9 0%, #cbd5e1 100%);
+  color: var(--text-dark);
   font-family: 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;
   padding: 20px;
@@ -19,7 +38,7 @@
 .header h1 {
   font-size: 28px;
   font-weight: 900;
-  color: #3b82f6;
+  color: var(--tal-blue);
   margin: 0 0 6px 0;
   letter-spacing: -0.02em;
 }
@@ -27,7 +46,7 @@
 .header p {
   font-size: 13px;
   font-weight: 500;
-  color: #64748b;
+  color: var(--text-muted);
   margin: 0;
 }
 
@@ -37,10 +56,10 @@
   max-width: 375px;
   height: 80vh;
   max-height: 680px;
-  background: #050a14;
-  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  background: var(--bg-white);
+  border: 1.5px solid var(--tal-blue);
   border-radius: 44px;
-  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 50px rgba(59, 130, 246, 0.12);
+  box-shadow: 0 25px 60px -15px rgba(0, 75, 135, 0.15), 0 0 30px rgba(0, 75, 135, 0.08);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -68,7 +87,7 @@
   transform: translateX(-50%);
   width: 150px;
   height: 26px;
-  background: #1e293b;
+  background: #0f172a;
   border-bottom-left-radius: 20px;
   border-bottom-right-radius: 20px;
   z-index: 10;
@@ -80,20 +99,20 @@
   flex-direction: column;
   position: relative;
   overflow: hidden;
-  background: #070e17;
+  background: var(--bg-white);
 }
 
 .presetBar {
   padding: 26px 16px 12px 16px;
-  background: #0f1e30;
+  background: var(--bg-slate);
   z-index: 5;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .presetTitle {
   font-size: 10px;
   text-transform: uppercase;
-  color: #3b82f6;
+  color: var(--tal-blue);
   margin-bottom: 8px;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -111,16 +130,16 @@
 }
 
 .presets::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(0, 75, 135, 0.1);
   border-radius: 3px;
 }
 
 .presetBtn {
   padding: 6px 12px;
   border-radius: 12px;
-  background: #070e17;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #94a3b8;
+  background: var(--bg-white);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
@@ -129,11 +148,11 @@
 }
 
 .presetBtnActive {
-  background: #3b82f6;
-  border-color: #3b82f6;
-  color: #ffffff;
+  background: var(--tal-blue);
+  border-color: var(--tal-blue);
+  color: var(--text-light);
   font-weight: 700;
-  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 75, 135, 0.25);
 }
 
 .shortsContainer {
@@ -146,6 +165,7 @@
   scroll-behavior: smooth;
   -ms-overflow-style: none;
   scrollbar-width: none;
+  background: var(--bg-white);
 }
 
 .shortsContainer::-webkit-scrollbar {
@@ -160,6 +180,7 @@
   scroll-snap-align: start;
   scroll-snap-stop: always;
   overflow: hidden;
+  background: var(--bg-white);
 }
 
 .videoArea {
@@ -168,7 +189,7 @@
   position: absolute;
   top: 0;
   left: 0;
-  background: #070e17;
+  background: var(--bg-white);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -179,7 +200,7 @@
   height: 100%;
   position: relative;
   overflow: hidden;
-  background: #070e17;
+  background: var(--bg-white);
 }
 
 .youtubeIframe {
@@ -191,7 +212,7 @@
   transform: scale(1.85);
   transform-origin: center center;
   pointer-events: none;
-  background: #070e17;
+  background: var(--bg-white);
 }
 
 .overlay {
@@ -205,17 +226,15 @@
   justify-content: space-between;
   padding: 16px;
   box-sizing: border-box;
-  background: linear-gradient(to bottom, rgba(7, 14, 23, 0.2) 0%, rgba(255, 255, 255, 0) 50%, rgba(7, 14, 23, 0.85) 100%);
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 50%, rgba(255, 255, 255, 0.6) 100%);
   z-index: 2;
   transition: background 0.3s, backdrop-filter 0.3s;
 }
 
 .overlayPaused {
-  /* 정지 시 YouTube 자체 재생 버튼(iframe 내부)이 비쳐 이중으로 보이던 것을
-     가리기 위해 거의 불투명하게 덮는다. */
-  background: rgba(4, 9, 20, 0.72) !important;
-  backdrop-filter: blur(8px) brightness(60%);
-  -webkit-backdrop-filter: blur(8px) brightness(60%);
+  background: rgba(255, 255, 255, 0.82) !important;
+  backdrop-filter: blur(8px) brightness(95%);
+  -webkit-backdrop-filter: blur(8px) brightness(95%);
 }
 
 .topSection {
@@ -226,9 +245,9 @@
 }
 
 .badge {
-  background: rgba(59, 130, 246, 0.2);
-  border: 1px solid rgba(59, 130, 246, 0.4);
-  color: #93c5fd;
+  background: var(--tal-blue-light);
+  border: 1px solid rgba(0, 75, 135, 0.3);
+  color: var(--tal-blue);
   padding: 4px 10px;
   border-radius: 8px;
   font-size: 10px;
@@ -245,9 +264,9 @@
 }
 
 .phaseBadge {
-  background: rgba(0, 75, 135, 0.4);
+  background: var(--tal-blue);
   border: 1px solid rgba(255, 255, 255, 0.25);
-  color: #ffffff;
+  color: var(--text-light);
   padding: 6px 12px;
   border-radius: 12px;
   font-size: 11px;
@@ -262,27 +281,28 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  background: rgba(15, 30, 48, 0.6);
+  background: rgba(255, 255, 255, 0.8);
   padding: 6px 12px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid var(--border-color);
   cursor: pointer;
   transition: all 0.15s ease;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
 
 .advLabel {
   font-size: 10px;
   font-weight: 800;
-  color: #ffffff;
+  color: var(--text-dark);
   opacity: 0.9;
 }
 
 .advActive {
   border-color: #ef4444;
-  background: rgba(239, 68, 68, 0.2);
-  box-shadow: 0 0 10px rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.1);
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.2);
 }
 
 .advActive .advLabel {
@@ -301,25 +321,25 @@
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: rgba(8, 15, 29, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #ffffff;
+  background: var(--bg-white);
+  border: 1px solid var(--border-color);
+  color: var(--tal-blue);
   font-size: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 32px 0 rgba(0, 75, 135, 0.15);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
 }
 
 .playPauseBtn:hover {
   transform: scale(1.08);
-  background: rgba(8, 15, 29, 0.85);
-  border-color: #3b82f6;
-  box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
+  background: var(--bg-white);
+  border-color: var(--tal-blue);
+  box-shadow: 0 0 15px rgba(0, 75, 135, 0.25);
 }
 
 .bottomSection {
@@ -330,33 +350,30 @@
 }
 
 .captionCard {
-  background: rgba(8, 15, 29, 0.68);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 75, 135, 0.08);
   border-radius: 16px;
   padding: 16px;
   text-align: center;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.35);
+  box-shadow: 0 8px 32px 0 rgba(0, 75, 135, 0.1);
 }
 
 .captionKr {
   font-size: 13px;
-  color: #94a3b8;
+  color: var(--text-muted);
   margin-bottom: 8px;
   font-weight: 600;
   line-height: 1.4;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
-  opacity: 0.95;
 }
 
 .captionEn {
   font-size: 18px;
   font-weight: 800;
-  color: #ffffff;
+  color: var(--tal-blue);
   line-height: 1.45;
   letter-spacing: -0.02em;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.85);
 }
 
 .timelineContainer {
@@ -366,7 +383,7 @@
 .timelineBar {
   width: 100%;
   height: 3px;
-  background: rgba(255, 255, 255, 0.16);
+  background: rgba(0, 75, 135, 0.12);
   border-radius: 1.5px;
   overflow: hidden;
   position: relative;
@@ -374,9 +391,9 @@
 
 .timelineProgress {
   height: 100%;
-  background: linear-gradient(to right, #3b82f6, #10b981);
+  background: linear-gradient(to right, var(--tal-blue), #10b981);
   width: 0%;
-  box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+  box-shadow: 0 0 8px rgba(0, 75, 135, 0.3);
 }
 
 .actionArea {
@@ -389,8 +406,8 @@
   padding: 13px;
   border-radius: 14px;
   border: none;
-  background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%);
-  color: #ffffff;
+  background: linear-gradient(135deg, var(--tal-blue) 0%, #005fa9 100%);
+  color: var(--text-light);
   font-weight: 700;
   font-size: 15px;
   cursor: pointer;
@@ -399,12 +416,12 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  box-shadow: 0 4px 18px rgba(59, 130, 246, 0.35);
+  box-shadow: 0 4px 18px rgba(0, 75, 135, 0.25);
 }
 
 .speakButton:hover {
-  background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);
-  box-shadow: 0 6px 22px rgba(59, 130, 246, 0.5);
+  background: linear-gradient(135deg, var(--tal-blue-hover) 0%, var(--tal-blue) 100%);
+  box-shadow: 0 6px 22px rgba(0, 75, 135, 0.35);
   transform: translateY(-1px);
 }
 
@@ -412,20 +429,18 @@
   transform: scale(0.98);
 }
 
-/* 스픽 모드 하단 안내 문구 */
 .speakHintText {
   font-size: 11px;
-  color: #94a3b8;
+  color: var(--text-muted);
   text-align: center;
   width: 100%;
   font-weight: 700;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(0, 75, 135, 0.05);
   padding: 8px;
   border-radius: 8px;
   line-height: 1.4;
 }
 
-/* 리뷰 화면: 내 발음 / 모범 답안 듣기 버튼 행 */
 .reviewBtnRow {
   display: flex;
   gap: 10px;
@@ -437,9 +452,9 @@
   flex: 1;
   padding: 12px 8px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
+  border: 1px solid var(--border-color);
+  background: var(--bg-slate);
+  color: var(--text-dark);
   font-weight: 700;
   font-size: 13px;
   cursor: pointer;
@@ -447,7 +462,9 @@
 }
 
 .reviewBtn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.16);
+  background: var(--tal-blue-light);
+  color: var(--tal-blue);
+  border-color: rgba(0, 75, 135, 0.2);
 }
 
 .reviewBtn:disabled {
@@ -455,18 +472,16 @@
   cursor: not-allowed;
 }
 
-/* ④ 말할 문장 힌트 — 흐리게 */
 .targetFaded {
   font-size: 20px;
   font-weight: 800;
   line-height: 1.35;
-  color: rgba(255, 255, 255, 0.32);
+  color: rgba(0, 75, 135, 0.25);
   text-align: center;
   margin: 6px 0 20px 0;
   letter-spacing: -0.01em;
 }
 
-/* ① 채점 단어별 색상 피드백 */
 .targetWords {
   display: flex;
   flex-wrap: wrap;
@@ -487,17 +502,16 @@
 }
 
 .wordChipBad {
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(0, 75, 135, 0.35);
   text-decoration: underline;
   text-decoration-color: rgba(239, 68, 68, 0.6);
   text-underline-offset: 3px;
 }
 
-/* ⑥⑦⑧ 스픽 모드 상단 스트립 */
 .speakStrip {
   padding: 10px 14px 12px;
-  background: #070e17;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--bg-slate);
+  border-bottom: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -512,7 +526,7 @@
 .sessionLabel {
   font-size: 11px;
   font-weight: 800;
-  color: #cbd5e1;
+  color: var(--text-dark);
   white-space: nowrap;
 }
 
@@ -526,7 +540,7 @@
   flex: 1;
   height: 5px;
   border-radius: 3px;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.08);
   transition: background 0.2s;
 }
 
@@ -535,13 +549,13 @@
 }
 
 .segmentActive {
-  background: #3b82f6;
+  background: var(--tal-blue);
 }
 
 .handsFreeBtn {
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: #0f1e30;
-  color: #94a3b8;
+  border: 1px solid var(--border-color);
+  background: var(--bg-white);
+  color: var(--text-muted);
   border-radius: 10px;
   padding: 5px 9px;
   font-size: 10px;
@@ -551,10 +565,14 @@
   transition: all 0.15s;
 }
 
+.handsFreeBtn:hover {
+  background: var(--bg-slate);
+}
+
 .handsFreeOn {
-  border-color: #3b82f6;
-  background: rgba(59, 130, 246, 0.2);
-  color: #93c5fd;
+  border-color: var(--tal-blue);
+  background: var(--tal-blue-light);
+  color: var(--tal-blue);
 }
 
 .fireRow {
@@ -566,13 +584,13 @@
 .fireLabel {
   font-size: 11px;
   font-weight: 800;
-  color: #fbbf24;
+  color: #d97706;
 }
 
 .fireBar {
   width: 100%;
   height: 6px;
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.06);
   border-radius: 3px;
   overflow: hidden;
 }
@@ -584,14 +602,13 @@
   transition: width 0.3s ease;
 }
 
-/* 5단계 시퀀스 락 레이아웃 */
 .lockOverlay {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(7, 14, 23, 0.85);
+  background: rgba(255, 255, 255, 0.9);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -620,21 +637,21 @@
 .lockTitle {
   font-size: 20px;
   font-weight: 800;
-  color: #ffffff;
+  color: var(--text-dark);
   margin: 0 0 8px 0;
 }
 
 .lockSubtitle {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--text-muted);
   line-height: 1.5;
   margin: 0 0 24px 0;
 }
 
 .skipSeqBtn {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #cbd5e1;
+  background: var(--bg-slate);
+  border: 1px solid var(--border-color);
+  color: var(--text-dark);
   padding: 8px 16px;
   border-radius: 20px;
   font-size: 11px;
@@ -644,10 +661,10 @@
 }
 
 .skipSeqBtn:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--tal-blue-light);
+  color: var(--tal-blue);
 }
 
-/* 카운트다운 박스 */
 .countdownBox {
   display: flex;
   flex-direction: column;
@@ -658,7 +675,7 @@
 .countdownPulseNum {
   font-size: 64px;
   font-weight: 900;
-  color: #3b82f6;
+  color: var(--tal-blue);
   animation: pulseScale 1s infinite alternate;
 }
 
@@ -670,11 +687,10 @@
 .speakStageText {
   font-size: 13px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--text-dark);
   margin-top: 12px;
 }
 
-/* 레코딩 박스 */
 .recordingBox {
   display: flex;
   flex-direction: column;
@@ -687,17 +703,17 @@
   height: 70px;
   border-radius: 50%;
   background: #ef4444;
-  color: #ffffff;
+  color: var(--text-light);
   font-size: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
   animation: pulseBg 1.2s infinite;
 }
 
 @keyframes pulseBg {
-  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5); }
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
   70% { transform: scale(0.96); box-shadow: 0 0 0 12px rgba(239, 68, 68, 0); }
   100% { transform: scale(1); }
 }
@@ -705,7 +721,7 @@
 .recTimerBar {
   width: 150px;
   height: 4px;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.08);
   border-radius: 2px;
   overflow: hidden;
   margin-top: 16px;
@@ -718,7 +734,6 @@
   transition: width 1s linear;
 }
 
-/* 분석 및 평가 박스 */
 .evaluationBox {
   display: flex;
   flex-direction: column;
@@ -729,8 +744,8 @@
 .analyzingSpinner {
   width: 48px;
   height: 48px;
-  border: 4px solid rgba(255, 255, 255, 0.1);
-  border-left-color: #3b82f6;
+  border: 4px solid rgba(0, 75, 135, 0.08);
+  border-left-color: var(--tal-blue);
   border-radius: 50%;
   animation: spin 1s infinite linear;
 }
@@ -763,7 +778,6 @@
   color: #ef4444;
 }
 
-/* 상황 카테고리 리스트 */
 .presetHeaderRow {
   display: flex;
   justify-content: space-between;
@@ -771,19 +785,19 @@
 }
 
 .listToggleBtn {
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: #070e17;
+  border: 1px solid var(--border-color);
+  background: var(--bg-white);
   border-radius: 8px;
   padding: 6px 12px;
   font-size: 11px;
   font-weight: 700;
-  color: #3b82f6;
+  color: var(--tal-blue);
   cursor: pointer;
   transition: all 0.15s;
 }
 
 .listToggleBtn:hover {
-  background: #0f1e30;
+  background: var(--bg-slate);
 }
 
 .verticalPresetList {
@@ -791,7 +805,7 @@
   flex-direction: column;
   gap: 6px;
   margin-top: 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--border-color);
   padding-top: 10px;
   max-height: 160px;
   overflow-y: auto;
@@ -802,9 +816,9 @@
   justify-content: space-between;
   align-items: center;
   padding: 10px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-color);
   border-radius: 10px;
-  background: #070e17;
+  background: var(--bg-white);
   cursor: pointer;
   text-align: left;
   transition: all 0.12s;
@@ -812,21 +826,20 @@
 }
 
 .verticalPresetItem:hover {
-  background: #0f1e30;
+  background: var(--bg-slate);
 }
 
 .verticalPresetItemActive {
-  border-color: #3b82f6;
-  background: rgba(59, 130, 246, 0.15) !important;
+  border-color: var(--tal-blue);
+  background: var(--tal-blue-light) !important;
 }
 
 .situationNameText {
   font-size: 11.5px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--text-dark);
 }
 
-/* One Day / Mode Placeholder */
 .modePlaceholder {
   flex: 1;
   display: flex;
@@ -835,7 +848,7 @@
   justify-content: center;
   padding: 30px;
   text-align: center;
-  background: #070e17;
+  background: var(--bg-white);
 }
 
 .placeholderIcon {
@@ -852,23 +865,22 @@
 .modePlaceholder h2 {
   font-size: 20px;
   font-weight: 800;
-  color: #3b82f6;
+  color: var(--tal-blue);
   margin-bottom: 12px;
 }
 
 .modePlaceholder p {
   font-size: 13px;
-  color: #94a3b8;
+  color: var(--text-muted);
   line-height: 1.6;
   margin-bottom: 24px;
 }
 
-/* Collection 탭 레이아웃 */
 .collectionTab {
   flex: 1;
   padding: 16px;
   overflow-y: auto;
-  background: #070e17;
+  background: var(--bg-white);
 }
 
 .clubSelectorContainer {
@@ -878,7 +890,7 @@
 .clubSelectorLabel {
   font-size: 11px;
   text-transform: uppercase;
-  color: #3b82f6;
+  color: var(--tal-blue);
   font-weight: 800;
   margin-bottom: 8px;
 }
@@ -892,9 +904,9 @@
   flex: 1;
   padding: 8px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: #0f1e30;
-  color: #94a3b8;
+  border: 1px solid var(--border-color);
+  background: var(--bg-slate);
+  color: var(--text-muted);
   font-size: 11px;
   font-weight: 700;
   cursor: pointer;
@@ -905,20 +917,20 @@
 }
 
 .clubBtnActiveTottenham {
-  background: #ffffff;
-  color: #070e17;
-  border-color: #ffffff;
+  background: #f1f5f9;
+  color: #0f172a;
+  border-color: #0f172a;
 }
 
 .clubBtnActiveMancity {
-  background: #3b82f6;
+  background: #00b6f2;
   color: #ffffff;
-  border-color: #3b82f6;
+  border-color: #00b6f2;
 }
 
 .clubBtnActiveRealmadrid {
   background: #fbbf24;
-  color: #070e17;
+  color: #004b87;
   border-color: #fbbf24;
 }
 
@@ -929,7 +941,7 @@
 .cabinetTitle {
   font-size: 12px;
   font-weight: 800;
-  color: #ffffff;
+  color: var(--text-dark);
   margin-bottom: 12px;
 }
 
@@ -940,8 +952,8 @@
 }
 
 .badgeItem {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--bg-slate);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 12px 8px;
   text-align: center;
@@ -954,8 +966,8 @@
 
 .badgeItemActive {
   opacity: 1;
-  background: rgba(59, 130, 246, 0.1);
-  border-color: rgba(59, 130, 246, 0.3);
+  background: var(--tal-blue-light);
+  border-color: rgba(0, 75, 135, 0.25);
 }
 
 .badgeEmblem {
@@ -968,12 +980,13 @@
   font-weight: 700;
   display: block;
   margin-bottom: 4px;
+  color: var(--text-dark);
 }
 
 .badgeStatus {
   font-size: 8px;
   font-weight: 800;
-  color: #94a3b8;
+  color: var(--text-muted);
 }
 
 .badgeItemActive .badgeStatus {
@@ -986,11 +999,10 @@
   gap: 12px;
 }
 
-/* FUT Player Card Styling */
 .playerCard {
   position: relative;
-  background: linear-gradient(135deg, #1e293b, #0f172a);
-  border: 2px solid #334155;
+  background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+  border: 2px solid #cbd5e1;
   border-radius: 16px;
   padding: 16px;
   aspect-ratio: 2/3;
@@ -998,13 +1010,13 @@
   flex-direction: column;
   justify-content: space-between;
   overflow: hidden;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 10px 20px rgba(0, 75, 135, 0.05);
 }
 
 .playerCardActive {
-  background: linear-gradient(135deg, #1e3a8a, #0f172a);
-  border-color: #3b82f6;
-  box-shadow: 0 10px 25px rgba(59, 130, 246, 0.25);
+  background: linear-gradient(135deg, var(--tal-blue-light), var(--bg-white));
+  border-color: var(--tal-blue);
+  box-shadow: 0 10px 25px rgba(0, 75, 135, 0.12);
 }
 
 .cardLockMask {
@@ -1013,7 +1025,7 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(7, 14, 23, 0.85);
+  background: rgba(255, 255, 255, 0.9);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1029,7 +1041,7 @@
 .cardLockText {
   font-size: 9px;
   font-weight: 700;
-  color: #94a3b8;
+  color: var(--text-muted);
 }
 
 .playerCardHeader {
@@ -1041,13 +1053,13 @@
 .cardOvr {
   font-size: 24px;
   font-weight: 900;
-  color: #3b82f6;
+  color: var(--tal-blue);
 }
 
 .cardPos {
   font-size: 10px;
   font-weight: 800;
-  color: #94a3b8;
+  color: var(--text-muted);
 }
 
 .cardImagePlaceholder {
@@ -1058,33 +1070,32 @@
 
 .playerCardFooter {
   text-align: center;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid var(--border-color);
   padding-top: 8px;
 }
 
 .cardPlayerName {
   font-size: 11px;
   font-weight: 900;
-  color: #ffffff;
+  color: var(--text-dark);
 }
 
 .cardClubText {
   font-size: 8px;
-  color: #94a3b8;
+  color: var(--text-muted);
   font-weight: 700;
   margin-top: 2px;
 }
 
-/* Bottom Tab Bar */
 .bottomTabBar {
   display: flex;
   justify-content: space-around;
   align-items: center;
-  background: #0f1e30;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--bg-white);
+  border-top: 1px solid var(--border-color);
   padding: 10px 4px;
   z-index: 10;
-  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .tabItem {
@@ -1094,7 +1105,7 @@
   gap: 3px;
   background: none;
   border: none;
-  color: #94a3b8;
+  color: var(--text-muted);
   cursor: pointer;
   padding: 4px 2px;
   flex: 1;
@@ -1113,7 +1124,7 @@
 }
 
 .tabItemActive {
-  color: #3b82f6;
+  color: var(--tal-blue);
 }
 
 .tabItemActive .tabIcon {
@@ -1121,10 +1132,9 @@
 }
 
 .tabItem:hover {
-  color: #ffffff;
+  color: var(--tal-blue);
 }
 
-/* ── 마이 탭 ────────────────────────────────────────────────── */
 .myTab {
   flex: 1;
   overflow-y: auto;
@@ -1132,7 +1142,7 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
-  background: #070e17;
+  background: var(--bg-white);
 }
 
 .myHeader {
@@ -1147,8 +1157,8 @@
   width: 72px;
   height: 72px;
   border-radius: 50%;
-  background: rgba(59, 130, 246, 0.15);
-  border: 2px solid rgba(59, 130, 246, 0.4);
+  background: var(--tal-blue-light);
+  border: 2px solid rgba(0, 75, 135, 0.35);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1165,35 +1175,35 @@
 .myName {
   font-size: 18px;
   font-weight: 800;
-  color: #ffffff;
+  color: var(--text-dark);
   margin-top: 6px;
 }
 
 .myEmail {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--text-muted);
 }
 
 .mySubBadge {
   margin-top: 6px;
   font-size: 10px;
   font-weight: 800;
-  color: #93c5fd;
-  background: rgba(59, 130, 246, 0.15);
-  border: 1px solid rgba(59, 130, 246, 0.35);
+  color: var(--tal-blue);
+  background: var(--tal-blue-light);
+  border: 1px solid rgba(0, 75, 135, 0.25);
   padding: 3px 10px;
   border-radius: 10px;
 }
 
 .myHint {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--text-muted);
   margin: 4px 0 8px;
 }
 
 .myCard {
-  background: rgba(15, 30, 48, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--bg-slate);
+  border: 1px solid var(--border-color);
   border-radius: 16px;
   padding: 16px;
 }
@@ -1201,7 +1211,7 @@
 .myCardTitle {
   font-size: 13px;
   font-weight: 800;
-  color: #ffffff;
+  color: var(--text-dark);
   margin-bottom: 12px;
 }
 
@@ -1215,26 +1225,26 @@
 .myLevelBadge {
   font-size: 16px;
   font-weight: 900;
-  color: #fbbf24;
+  color: #d97706;
 }
 
 .myXpText {
   font-size: 12px;
   font-weight: 700;
-  color: #cbd5e1;
+  color: var(--text-dark);
 }
 
 .myXpBar {
   width: 100%;
   height: 8px;
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.06);
   border-radius: 4px;
   overflow: hidden;
 }
 
 .myXpFill {
   height: 100%;
-  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+  background: linear-gradient(90deg, var(--tal-blue), #60a5fa);
   border-radius: 4px;
   transition: width 0.3s ease;
 }
@@ -1257,7 +1267,7 @@
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.05);
   color: transparent;
   display: flex;
   align-items: center;
@@ -1268,13 +1278,13 @@
 
 .myDayDotOn {
   background: #22c55e;
-  color: #ffffff;
+  color: var(--text-light);
 }
 
 .myDayLabel {
   font-size: 10px;
   font-weight: 700;
-  color: #94a3b8;
+  color: var(--text-muted);
 }
 
 .myStatGrid {
@@ -1285,7 +1295,8 @@
 .myStatItem {
   flex: 1;
   text-align: center;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--bg-white);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 12px 6px;
 }
@@ -1293,13 +1304,13 @@
 .myStatNum {
   font-size: 22px;
   font-weight: 900;
-  color: #3b82f6;
+  color: var(--tal-blue);
 }
 
 .myStatLabel {
   font-size: 10px;
   font-weight: 700;
-  color: #94a3b8;
+  color: var(--text-muted);
   margin-top: 2px;
 }
 
@@ -1311,7 +1322,6 @@
   margin-top: 8px;
 }
 
-/* 우하단 스픽 FAB (쇼츠 → 1회성 스픽 모드 전환) */
 .speakFab {
   align-self: flex-end;
   display: inline-flex;
@@ -1319,27 +1329,27 @@
   gap: 6px;
   padding: 10px 18px;
   border-radius: 24px;
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  background: rgba(59, 130, 246, 0.9);
-  color: #ffffff;
+  border: 1px solid rgba(0, 75, 135, 0.2);
+  background: var(--tal-blue);
+  color: var(--text-light);
   font-size: 14px;
   font-weight: 800;
   cursor: pointer;
-  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.45);
+  box-shadow: 0 6px 20px rgba(0, 75, 135, 0.2);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   transition: all 0.15s ease;
 }
 
 .speakFab:hover {
-  background: #2563eb;
+  background: var(--tal-blue-hover);
   transform: scale(1.05);
 }
 
 .myLogoutBtn {
   margin-top: 4px;
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
   color: #ef4444;
   padding: 12px;
   border-radius: 12px;
