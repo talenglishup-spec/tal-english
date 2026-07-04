@@ -1346,6 +1346,47 @@
   transform: scale(1.05);
 }
 
+/* 원형 Speak 버튼 (armed 단계 — 눌러서 녹음 시작) */
+.speakCircleBtn {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  margin: 6px auto 0;
+  cursor: pointer;
+  box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.55);
+  animation: speakPulse 1.6s infinite;
+  transition: transform 0.15s ease;
+}
+
+.speakCircleBtn:hover {
+  transform: scale(1.06);
+}
+
+.speakCircleIcon {
+  font-size: 30px;
+  line-height: 1;
+}
+
+.speakCircleLabel {
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+}
+
+@keyframes speakPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.55); }
+  70%  { box-shadow: 0 0 0 18px rgba(59, 130, 246, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+}
+
 /* ── 홈 탭 (앱 활용 가이드) ────────────────────────────────────── */
 .homeTab {
   flex: 1;

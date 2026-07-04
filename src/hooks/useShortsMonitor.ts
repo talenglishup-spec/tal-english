@@ -86,6 +86,12 @@ export function useShortsMonitor(): ShortsMonitorHandle {
         // 뒤에야 다시 전이를 허용하도록 래치(armedForEnd)를 둔다.
         let armedForEnd = true;
 
+        // pause_at 자동 정지도 같은 seek-lag 문제가 있다: 스픽 모드 진입 시
+        // start로 되감아도 getCurrentTime()이 잠깐 이전 위치(pause_at 이후)를
+        // 반환해 되감기 재생 없이 즉시 정지되던 버그. 재생 위치가 pause_at
+        // "아래"에서 관측된 뒤에만(=아래→위로 통과할 때만) 정지를 허용한다.
+        let armedForPause = false;
+
         const tick = () => {
             const player = cfg.getPlayer();
             if (!player || !player.getCurrentTime) {
@@ -116,9 +122,14 @@ export function useShortsMonitor(): ShortsMonitorHandle {
                 armedForEnd = true;
             }
 
-            // 스픽 자동 정지: pause_at 도달 시 영상을 멈추고 루프를 종료한다.
+            // pause_at 아래에서 재생 중임이 확인되면 자동 정지를 무장
+            if (currTime < pauseAt - 0.15) {
+                armedForPause = true;
+            }
+
+            // 스픽 자동 정지: pause_at을 아래→위로 통과할 때만 멈추고 루프 종료.
             // (발화가 끝나면 페이지가 startMonitoring으로 루프를 다시 시작)
-            if (pauseAt > 0 && currTime >= pauseAt && cfg.shouldAutoPause()) {
+            if (pauseAt > 0 && armedForPause && currTime >= pauseAt && cfg.shouldAutoPause()) {
                 try {
                     player.pauseVideo();
                 } catch (e) {}

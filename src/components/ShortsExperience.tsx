@@ -990,24 +990,24 @@ export default function ShortsPage() {
                           <div className={`${styles.lockOverlay} ${styles.overlayBlurActive}`}>
                             <div className={styles.lockContent}>
 
-                              {/* ARMED: pause_at 자동 정지 → 말하기 시작 대기 */}
+                              {/* ARMED: pause_at 자동 정지 → 원형 Speak 버튼 대기 */}
                               {speakStage[clip.clip_id] === 'armed' && (
                                 <>
-                                  <span className={styles.lockIcon}>🎙️</span>
                                   <h3 className={styles.lockTitle}>지금 말할 차례!</h3>
                                   {/* ④ 말할 문장 힌트 — 흐리게 표시 */}
                                   <p className={styles.targetFaded}>{clip.target_phrase}</p>
                                   <button
                                     type="button"
-                                    className={styles.speakButton}
+                                    className={styles.speakCircleBtn}
                                     onClick={() => startSpeaking(clip.clip_id)}
                                   >
-                                    🎙️ 말하기 시작
+                                    <span className={styles.speakCircleIcon}>🎙️</span>
+                                    <span className={styles.speakCircleLabel}>Speak</span>
                                   </button>
                                   <button
                                     type="button"
                                     className={styles.skipSeqBtn}
-                                    style={{ marginTop: 14 }}
+                                    style={{ marginTop: 18 }}
                                     onClick={() => finishSpeak(clip.clip_id)}
                                   >
                                     넘어가기 →
