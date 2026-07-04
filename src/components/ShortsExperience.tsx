@@ -39,7 +39,17 @@ export default function ShortsPage() {
   const router = useRouter();
   const [clips, setClips] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'shorts' | 'speak' | 'oneday' | 'collection' | 'my'>('shorts');
+  const [activeTab, setActiveTab] = useState<'shorts' | 'oneday' | 'collection' | 'my'>('shorts');
+
+  // 클립별 스픽 모드 (1회성): 쇼츠 피드에서 🎙️ 버튼을 누른 영상만 true.
+  // true인 동안 1회차·1배속 고정 + pause_at 자동 정지가 활성화되고,
+  // 발화 종료(넘어가기)·다른 영상으로 스크롤 시 false(쇼츠 모드)로 복귀한다.
+  const [speakMode, setSpeakMode] = useState<Record<string, boolean>>({});
+  const speakModeRef = useRef<Record<string, boolean>>({});
+  const setClipSpeakMode = (clipId: string, on: boolean) => {
+    speakModeRef.current = { ...speakModeRef.current, [clipId]: on };
+    setSpeakMode(prev => ({ ...prev, [clipId]: on }));
+  };
   const [myStats, setMyStats] = useState<any>(null);
   const [myLoading, setMyLoading] = useState<boolean>(false);
   const [shareMsg, setShareMsg] = useState<string>('');
@@ -117,7 +127,7 @@ export default function ShortsPage() {
   useEffect(() => { spokenDoneRef.current = spokenDone; }, [spokenDone]);
   useEffect(() => { clipsRef.current = clips; }, [clips]);
 
-  // ⑥ 오늘 스픽 활성 시청 누적초 로드 + 1초 틱 (스픽 탭 재생 중일 때만 증가)
+  // ⑥ 오늘 훈련 활성 시청 누적초 로드 + 1초 틱 (통합 쇼츠 탭 재생 중일 때 증가)
   useEffect(() => {
     const key = `tal_speak_secs_${todayKey()}`;
     const goalKey = `tal_speak_goal_${todayKey()}`;
@@ -127,7 +137,7 @@ export default function ShortsPage() {
     setGoalCelebrated(localStorage.getItem(goalKey) === '1');
 
     const id = setInterval(() => {
-      if (activeTabRef.current === 'speak' && isPlayingRef.current) {
+      if (activeTabRef.current === 'shorts' && isPlayingRef.current) {
         const v = dailyStudiedRef.current + 1;
         dailyStudiedRef.current = v;
         setDailyStudied(v);
@@ -363,7 +373,7 @@ export default function ShortsPage() {
 
   // 탭 변경 시 정지 및 제어
   useEffect(() => {
-    if (activeTab !== 'shorts' && activeTab !== 'speak') {
+    if (activeTab !== 'shorts') {
       stopMonitoring();
       resetSpeakArtifacts(activePresetIdRef.current);
       clips.forEach((clip) => {
@@ -405,11 +415,18 @@ export default function ShortsPage() {
       }
     });
 
+    // 이전 활성 클립은 스픽 모드 해제 (다른 영상으로 넘어가면 자동 쇼츠 복귀)
+    const prevActiveId = activePresetIdRef.current;
+    if (prevActiveId && speakModeRef.current[prevActiveId]) {
+      setClipSpeakMode(prevActiveId, false);
+    }
+
     setActivePresetId(nextClipId);
     activePresetIdRef.current = nextClipId;
-    // ref도 즉시 동기화 — 새 활성 클립은 1회차부터 다시 시작, 스픽 미완료 상태
+    // ref도 즉시 동기화 — 새 활성 클립은 1회차부터 다시 시작, 기본 쇼츠 모드
     phasesRef.current = { ...phasesRef.current, [nextClipId]: 1 };
     spokenDoneRef.current = { ...spokenDoneRef.current, [nextClipId]: false };
+    setClipSpeakMode(nextClipId, false);
     setPhases(prev => ({ ...prev, [nextClipId]: 1 }));
     setPlaybackRates(prev => ({ ...prev, [nextClipId]: 1.0 }));
     setSpokenDone(prev => ({ ...prev, [nextClipId]: false }));
@@ -417,7 +434,7 @@ export default function ShortsPage() {
 
     const nextPlayer = playerRefs.current[nextClipId];
     const nextClip = clips.find(c => c.clip_id === nextClipId);
-    if (nextPlayer && nextPlayer.playVideo && nextClip && (activeTab === 'shorts' || activeTab === 'speak')) {
+    if (nextPlayer && nextPlayer.playVideo && nextClip && activeTab === 'shorts') {
       try {
         nextPlayer.unMute();
         const startSec = Number(nextClip.start_sec || 0);
@@ -450,12 +467,13 @@ export default function ShortsPage() {
       end,
       pauseAt,
       getPhase: () => phasesRef.current[clipId] || 1,
-      // 스픽 모드는 3회차 감속 없이 1회차(1.0x)만 반복 (탭 전환에도 실시간 반영)
-      advancePhases: () => activeTabRef.current !== 'speak',
+      // 이 클립이 스픽 모드면 3회차 감속 없이 1회차(1.0x)만 반복.
+      // 클립별 상태이므로 🎙️ 버튼 토글에 실시간 반응한다.
+      advancePhases: () => !speakModeRef.current[clipId],
       shouldAutoPause: () => {
-        // 스픽 탭 & 이번 클립 미완료 & 스픽 오버레이가 떠있지 않을 때만
+        // 이 클립이 스픽 모드 & 이번 발화 미완료 & 스픽 오버레이 idle일 때만
         return (
-          activeTabRef.current === 'speak' &&
+          !!speakModeRef.current[clipId] &&
           !spokenDoneRef.current[clipId] &&
           !speakStageRef.current[clipId]
         );
@@ -730,7 +748,39 @@ export default function ShortsPage() {
     }, 80);
   };
 
-  // 5) "넘어가기" — 스픽 종료 후 영상 재개 (이 클립은 스픽 완료 처리)
+  // 🎙️ 버튼: 이 클립을 1회성 스픽 모드로 전환.
+  // start_sec으로 되감아 1회차·1배속으로 처음부터 재생 → pause_at에서
+  // 자동 정지 → 발화 플로우(armed→녹음→리뷰) 진입.
+  const enterSpeakMode = (clipId: string) => {
+    const clip = clipsRef.current.find(c => c.clip_id === clipId);
+    if (!clip) return;
+
+    // 진행 중이던 스픽 잔여물 정리 + 재발화 가능하도록 완료 플래그 해제
+    resetSpeakArtifacts(clipId);
+    spokenDoneRef.current = { ...spokenDoneRef.current, [clipId]: false };
+    setSpokenDone(prev => ({ ...prev, [clipId]: false }));
+    setSeqResult(prev => ({ ...prev, [clipId]: null }));
+
+    setClipSpeakMode(clipId, true);
+    // 1회차·1배속으로 고정 후 처음부터
+    phasesRef.current = { ...phasesRef.current, [clipId]: 1 };
+    setPhases(prev => ({ ...prev, [clipId]: 1 }));
+    setPlaybackRates(prev => ({ ...prev, [clipId]: 1.0 }));
+
+    const player = playerRefs.current[clipId];
+    if (player) {
+      try {
+        player.setPlaybackRate(1.0);
+        player.unMute();
+        player.seekTo(Number(clip.start_sec || 0), true);
+        player.playVideo();
+        setIsPlaying(true);
+        startMonitoring(clipId);
+      } catch (e) {}
+    }
+  };
+
+  // 5) "넘어가기" — 스픽 종료 후 쇼츠 모드로 복귀 (3회차 감속 루프 재개)
   const finishSpeak = (clipId: string) => {
     resetSpeakArtifacts(clipId);
 
@@ -738,6 +788,8 @@ export default function ShortsPage() {
     setSpokenDone(prev => ({ ...prev, [clipId]: true }));
     setSeqResult(prev => ({ ...prev, [clipId]: null }));
     setWordFeedback(prev => { const n = { ...prev }; delete n[clipId]; return n; });
+    // 1회성 스픽 종료 → 자동 쇼츠 모드 복귀
+    setClipSpeakMode(clipId, false);
 
     const player = playerRefs.current[clipId];
     if (player && player.playVideo) {
@@ -828,7 +880,7 @@ export default function ShortsPage() {
         
         <div className={styles.phoneScreen} onClick={handleGlobalInteraction}>
           
-          <div style={{ display: (activeTab === 'shorts' || activeTab === 'speak') ? 'flex' : 'none', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+          <div style={{ display: activeTab === 'shorts' ? 'flex' : 'none', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
             {/* 상단 카테고리 필터바 복원 */}
             <div className={styles.presetBar}>
               <div className={styles.presetHeaderRow}>
@@ -862,8 +914,8 @@ export default function ShortsPage() {
               )}
             </div>
 
-            {/* 스픽 모드 전용 상단 스트립: 세션 진행(⑧) · 연속 학습 게이지(⑥) · 핸즈프리(⑦) */}
-            {activeTab === 'speak' && clips.length > 0 && (() => {
+            {/* 통합 쇼츠 상단 스트립: 세션 진행(⑧) · 연속 학습 게이지(⑥) · 핸즈프리(⑦) */}
+            {activeTab === 'shorts' && clips.length > 0 && (() => {
               const sessionClips = clips.slice(0, 8);
               const doneCount = sessionClips.filter(c => spokenDone[c.clip_id]).length;
               const remaining = Math.max(0, DAILY_GOAL_SEC - dailyStudied);
@@ -1068,7 +1120,7 @@ export default function ShortsPage() {
                           <div className={styles.topSection}>
                             {/* 스픽 모드는 1회차(1.0x)만 진행 → 감속 회차 배지 대신 실전 라벨 */}
                             <span className={styles.phaseBadge}>
-                              {activeTab === 'speak' ? '🎙️ 실전 스피킹' : `🔥 ${currentPhase}회차 (${rate.toFixed(2)}x)`}
+                              {speakMode[clip.clip_id] ? '🎙️ 실전 스피킹' : `🔥 ${currentPhase}회차 (${rate.toFixed(2)}x)`}
                             </span>
 
                             <div 
@@ -1122,14 +1174,26 @@ export default function ShortsPage() {
                               </div>
                             )}
 
-                            {activeTab === 'speak' && (
+                            {speakMode[clip.clip_id] && !speakStage[clip.clip_id] && (
                               <div className={styles.actionArea}>
                                 <div className={styles.speakHintText}>
-                                  {spokenDone[clip.clip_id]
-                                    ? '✅ 이 클립 스픽 완료 — 감속 반복 재생 중'
-                                    : '🎙️ 재생 중 지정 시점에서 자동으로 멈추면 말하기가 시작됩니다'}
+                                  🎙️ 지정 시점에서 자동으로 멈추면 말하기가 시작됩니다
                                 </div>
                               </div>
+                            )}
+
+                            {/* 우하단 스픽 FAB — 누르면 이 영상만 1회성 스픽 모드 */}
+                            {isCurrentActive && !speakStage[clip.clip_id] && !speakMode[clip.clip_id] && (
+                              <button
+                                type="button"
+                                className={styles.speakFab}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  enterSpeakMode(clip.clip_id);
+                                }}
+                              >
+                                🎙️ Speak
+                              </button>
                             )}
                           </div>
 
@@ -1380,14 +1444,7 @@ export default function ShortsPage() {
               <span className={styles.tabIcon}>🎬</span>
               <span className={styles.tabLabel}>쇼츠 모드</span>
             </button>
-            <button 
-              className={`${styles.tabItem} ${activeTab === 'speak' ? styles.tabItemActive : ''}`}
-              onClick={() => setActiveTab('speak')}
-            >
-              <span className={styles.tabIcon}>🎙️</span>
-              <span className={styles.tabLabel}>스픽 모드</span>
-            </button>
-            <button 
+            <button
               className={`${styles.tabItem} ${activeTab === 'oneday' ? styles.tabItemActive : ''}`}
               onClick={() => setActiveTab('oneday')}
             >
