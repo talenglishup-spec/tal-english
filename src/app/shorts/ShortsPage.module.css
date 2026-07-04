@@ -1491,6 +1491,196 @@
   background: #2563eb;
 }
 
+/* ── AI 코치 도슨트 가이드 (홈 탭) ────────────────────────────── */
+.guideCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(10, 34, 143, 0.15);
+  background: linear-gradient(135deg, rgba(10, 34, 143, 0.06), rgba(10, 34, 143, 0.02));
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.guideCard:hover {
+  border-color: var(--tal-blue);
+  box-shadow: 0 4px 16px rgba(10, 34, 143, 0.12);
+}
+
+.guideAvatar {
+  flex-shrink: 0;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--tal-blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+
+.guideCardText {
+  flex: 1;
+  min-width: 0;
+}
+
+.guideCardTitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text-dark);
+}
+
+.guideNewBadge {
+  font-size: 9px;
+  font-weight: 900;
+  color: #ffffff;
+  background: #ef4444;
+  padding: 2px 6px;
+  border-radius: 8px;
+  letter-spacing: 0.04em;
+}
+
+.guideCardSub {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.guidePlayChip {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 800;
+  color: #ffffff;
+  background: var(--tal-blue);
+  padding: 7px 12px;
+  border-radius: 20px;
+}
+
+/* 펼친 플레이어 */
+.guidePlayerCard {
+  border-radius: 16px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-white);
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(10, 34, 143, 0.08);
+}
+
+.guidePlayerHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.guidePlayerTitle {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text-dark);
+}
+
+.guideClose {
+  border: none;
+  background: transparent;
+  font-size: 16px;
+  color: var(--text-muted);
+  cursor: pointer;
+  line-height: 1;
+}
+
+.guideVideoBox {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  max-height: 46vh;
+  background: #0b1220;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.guideVideo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #0b1220;
+}
+
+.guidePlaceholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: #cbd5e1;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.guidePlaceholderIcon {
+  font-size: 40px;
+}
+
+.guidePlaceholderSub {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.guideCaption {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-muted);
+  padding: 12px 14px;
+  margin: 0;
+}
+
+.guideNav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px 14px;
+  gap: 10px;
+}
+
+.guideNavBtn {
+  border: 1px solid var(--border-color);
+  background: var(--bg-slate);
+  color: var(--text-dark);
+  border-radius: 20px;
+  padding: 7px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.guideNavBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.guideDots {
+  display: flex;
+  gap: 6px;
+}
+
+.guideDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(10, 34, 143, 0.2);
+}
+
+.guideDotOn {
+  background: var(--tal-blue);
+}
+
 /* 표현 레벨 — 현재 레벨의 5개 표현 목록 */
 .exprList {
   display: flex;

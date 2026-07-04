@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { getSupabase } from '@/utils/supabase';
 import XPToast from '@/components/XPToast';
 import ClipProgressBar from '@/components/ClipProgressBar';
+import GuideDocent from '@/components/GuideDocent';
 import { useShortsMonitor } from '@/hooks/useShortsMonitor';
 import styles from '@/app/shorts/ShortsPage.module.css';
 
@@ -1224,6 +1225,9 @@ export default function ShortsPage() {
                 <h1 className={styles.homeHeroTitle}>TAL English Up</h1>
                 <p className={styles.homeHeroSub}>축구 인터뷰로 배우는 실전 영어 훈련소</p>
               </div>
+
+              {/* AI 코치 도슨트 가이드 (영상) */}
+              <GuideDocent />
 
               <div className={styles.homeSectionTitle}>이렇게 활용하세요</div>
 
