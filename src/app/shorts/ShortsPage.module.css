@@ -1396,7 +1396,7 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
-  background: #070e17;
+  background: #ffffff;
 }
 
 .homeHero {
@@ -1412,14 +1412,14 @@
 .homeHeroTitle {
   font-size: 24px;
   font-weight: 900;
-  color: #ffffff;
+  color: var(--text-dark);
   margin: 10px 0 4px;
   letter-spacing: -0.02em;
 }
 
 .homeHeroSub {
   font-size: 13px;
-  color: #94a3b8;
+  color: var(--text-muted);
   font-weight: 600;
   margin: 0;
 }
@@ -1437,8 +1437,8 @@
   display: flex;
   gap: 12px;
   align-items: flex-start;
-  background: rgba(15, 30, 48, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--bg-slate);
+  border: 1px solid var(--border-color);
   border-radius: 16px;
   padding: 14px;
 }
@@ -1458,17 +1458,17 @@
 .homeStepTitle {
   font-size: 14px;
   font-weight: 800;
-  color: #ffffff;
+  color: var(--text-dark);
 }
 
 .homeStepDesc {
   font-size: 12.5px;
   line-height: 1.55;
-  color: #cbd5e1;
+  color: var(--text-muted);
 }
 
 .homeStepDesc b {
-  color: #93c5fd;
+  color: var(--tal-blue);
   font-weight: 800;
 }
 
