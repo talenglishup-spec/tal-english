@@ -23,10 +23,10 @@ export default function LoginPage() {
         provider: 'kakao',
         options: {
           redirectTo: `${window.location.origin}/api/auth/kakao/callback`,
-          // scope를 코드에서 강제하지 않는다. 앱에 등록되지 않은/형식이 안 맞는
-          // 동의항목을 요청하면 카카오가 KOE205("잘못된 요청")를 낸다.
-          // 카카오 콘솔의 기본 동의항목을 그대로 사용하고, 닉네임/사진은
-          // 콘솔에서 동의항목으로 켜면 자동 수신된다.
+          // Supabase의 카카오 기본 scope에는 account_email이 포함되는데,
+          // 카카오 이메일은 비즈니스 앱 전환이 필요해 대부분 미설정 → KOE205.
+          // 콘솔에 설정된 profile_nickname만 명시해 account_email을 제외한다.
+          scopes: 'profile_nickname',
           skipBrowserRedirect: true,
         },
       });
