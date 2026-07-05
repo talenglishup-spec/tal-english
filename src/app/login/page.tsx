@@ -23,7 +23,10 @@ export default function LoginPage() {
         provider: 'kakao',
         options: {
           redirectTo: `${window.location.origin}/api/auth/kakao/callback`,
-          scopes: 'profile_nickname profile_image',
+          // scope를 코드에서 강제하지 않는다. 앱에 등록되지 않은/형식이 안 맞는
+          // 동의항목을 요청하면 카카오가 KOE205("잘못된 요청")를 낸다.
+          // 카카오 콘솔의 기본 동의항목을 그대로 사용하고, 닉네임/사진은
+          // 콘솔에서 동의항목으로 켜면 자동 수신된다.
           skipBrowserRedirect: true,
         },
       });
