@@ -271,14 +271,11 @@ export default function ShortsPage() {
         videoId: vId,
         playerVars: {
           autoplay: 0,
-          controls: 0,
-          disablekb: 1,
-          fs: 0,
+          controls: 1,
           iv_load_policy: 3,
-          modestbranding: 1,
           rel: 0,
-          showinfo: 0,
           playsinline: 1,
+          origin: typeof window !== 'undefined' ? window.location.origin : '',
         },
         events: {
           onReady: (event: any) => {

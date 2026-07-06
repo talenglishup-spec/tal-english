@@ -52,6 +52,49 @@ export default function PrivacyPage() {
             <h2 className="text-lg font-bold text-white mb-2">4. 개인정보의 파기절차 및 방법</h2>
             <p>이용자의 개인정보는 원칙적으로 개인정보의 수집 및 이용목적이 달성되면 지체 없이 파기합니다.</p>
           </div>
+
+          <div>
+            <h2 className="text-lg font-bold text-white mb-2">
+              5. YouTube API 서비스 이용
+            </h2>
+            <p>
+              TAL은 Google이 제공하는 YouTube API Services를 사용하여 학습 영상을
+              제공합니다. YouTube API 이용과 관련하여 아래 Google 정책이 함께 적용됩니다.
+            </p>
+            <ul className="list-disc pl-5 mt-2 space-y-1">
+              <li>
+                <a
+                  href="https://policies.google.com/privacy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400 underline"
+                >
+                  Google 개인정보처리방침
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://myaccount.google.com/permissions"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400 underline"
+                >
+                  Google 보안 설정 (API 액세스 관리)
+                </a>
+              </li>
+              <li>
+                YouTube 서비스 약관:&nbsp;
+                <a
+                  href="https://www.youtube.com/t/terms"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400 underline"
+                >
+                  https://www.youtube.com/t/terms
+                </a>
+              </li>
+            </ul>
+          </div>
         </section>
       </main>
 
