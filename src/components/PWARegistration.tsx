@@ -78,7 +78,7 @@ export default function PWARegistration() {
 
   return (
     <div style={bannerStyle} role="dialog" aria-label="앱 설치 안내">
-      <img src="/brand/tal-icon-blue-192.png" alt="TAL" width={44} height={44} style={{ borderRadius: 10, flexShrink: 0 }} />
+      <img src="/brand/tal-app-192.png" alt="TAL" width={44} height={44} style={{ borderRadius: 10, flexShrink: 0 }} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 14, fontWeight: 800, color: '#0A228F' }}>TAL 앱 설치</div>
         <div style={{ fontSize: 12, color: '#475569', lineHeight: 1.35, marginTop: 2 }}>

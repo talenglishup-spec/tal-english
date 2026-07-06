@@ -67,9 +67,15 @@
 }
 
 @media (max-width: 480px) {
+  /* 모바일/설치앱(standalone)에서 여백 없이 화면을 꽉 채운다 */
+  .container {
+    padding: 0 !important;
+    min-height: 100dvh;
+  }
   .phoneFrame {
     width: 100vw;
-    height: 100vh;
+    height: 100vh;      /* dvh 미지원 브라우저 폴백 */
+    height: 100dvh;     /* 동적 뷰포트 높이로 정확히 채움 */
     max-width: 100% !important;
     max-height: 100% !important;
     border: none !important;
@@ -78,6 +84,23 @@
   .phoneNotch {
     display: none !important;
   }
+}
+
+/* 설치앱 전체화면(데스크톱 PWA 포함)에서도 프레임 여백 제거 */
+@media (display-mode: standalone) {
+  .container {
+    padding: 0 !important;
+    min-height: 100dvh;
+  }
+  .phoneFrame {
+    width: 100vw;
+    height: 100dvh;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    border: none !important;
+    border-radius: 0 !important;
+  }
+  .phoneNotch { display: none !important; }
 }
 
 .phoneNotch {
@@ -1097,7 +1120,8 @@
   align-items: center;
   background: var(--bg-white);
   border-top: 1px solid var(--border-color);
-  padding: 10px 4px;
+  /* 하단 홈 인디케이터(iOS)·제스처 영역만큼 여백을 더해 탭이 가리지 않게 */
+  padding: 10px 4px calc(10px + env(safe-area-inset-bottom, 0px));
   z-index: 10;
   box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
 }

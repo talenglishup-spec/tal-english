@@ -24,8 +24,8 @@ export const metadata: Metadata = {
     title: "TAL",
   },
   icons: {
-    apple: "/brand/tal-icon-blue-180.png",
-    icon: "/brand/tal-icon-blue-192.png",
+    apple: "/brand/tal-app-180.png",
+    icon: "/brand/tal-app-192.png",
   },
 };
 
@@ -35,6 +35,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
