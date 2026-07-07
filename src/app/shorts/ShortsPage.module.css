@@ -347,6 +347,9 @@
   align-items: center;
   height: 60%;
   cursor: pointer;
+  /* 오버레이(pointer-events:none) 안에서 이 중앙 영역만 탭 허용 → 재생/정지.
+     상단 제목/하단 우측 로고 영역은 덮지 않아 브랜딩 클릭 통과(정책 준수). */
+  pointer-events: auto;
 }
 
 .playPauseBtn {

@@ -275,7 +275,12 @@ export default function ShortsPage() {
         videoId: vId,
         playerVars: {
           autoplay: 0,
-          controls: 1,
+          // 네이티브 컨트롤바(공유·관련영상·설정·CC·볼륨·진행바)를 표시하지 않는다.
+          // controls:0은 YouTube 공식 지원 파라미터로 "가리기"가 아니라 "표시 안 함"
+          // 이므로 정책 위반이 아니다. 재생/정지는 중앙 탭 레이어(자체)로 처리하고,
+          // 일시정지 시 나타나는 YouTube 브랜딩(제목·로고·Watch on YouTube)은
+          // 중앙 레이어가 덮지 않아 그대로 노출·클릭 가능하게 둔다.
+          controls: 0,
           iv_load_policy: 3,
           rel: 0,
           playsinline: 1,
@@ -514,6 +519,34 @@ export default function ShortsPage() {
         player.unMute();
         player.playVideo();
       } catch (e) {}
+    }
+  };
+
+  // 중앙 탭 레이어: controls:0이라 네이티브가 재생/정지를 처리하지 않으므로
+  // 자체 토글을 제공한다. 첫 탭은 "소리 켜기"로만 소모(정지시키지 않음) →
+  // 이후 탭부터 재생/정지 토글.
+  const handleCenterTap = (clipId: string) => {
+    if (!hasInteractedRef.current) {
+      handleGlobalInteraction();
+      return;
+    }
+    togglePlay(clipId);
+  };
+
+  const togglePlay = (clipId: string) => {
+    const player = playerRefs.current[clipId];
+    if (!player || !player.getPlayerState) return;
+    const YT = (window as any).YT;
+    const state = player.getPlayerState();
+    if (YT && state === YT.PlayerState.PLAYING) {
+      try { player.pauseVideo(); } catch (e) {}
+      setIsPlaying(false);
+    } else {
+      try {
+        if (hasInteractedRef.current) player.unMute();
+        player.playVideo();
+      } catch (e) {}
+      setIsPlaying(true);
     }
   };
 
@@ -1132,10 +1165,16 @@ export default function ShortsPage() {
                             </div>
                           </div>
 
-                          {/* 중앙 영역 — 재생/정지는 YouTube 네이티브 컨트롤(controls:1)에
-                              맡긴다. 오버레이는 pointer-events:none이라 이 영역의 탭은
-                              하단 네이티브 컨트롤바로 그대로 전달된다(정책 준수). */}
-                          <div className={styles.centerSection} />
+                          {/* 중앙 영역 — controls:0이므로 자체 탭으로 재생/정지.
+                              중앙 60%만 덮어 상단 제목/하단 우측 YouTube 로고(일시정지 시
+                              노출되는 브랜딩)는 가리지 않는다(정책 준수). */}
+                          <div
+                            className={styles.centerSection}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (isCurrentActive && !speakStage[clip.clip_id]) handleCenterTap(clip.clip_id);
+                            }}
+                          />
 
                           {/* 하단 훈련 자막 및 컨트롤러 */}
                           <div className={styles.bottomSection}>
