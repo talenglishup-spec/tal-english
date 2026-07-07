@@ -227,17 +227,25 @@
 }
 
 .youtubeIframe {
-  /* YouTube 정책 준수: 가로 크롭(185%)을 제거한다. 좌우를 잘라내면 컨트롤바
-     양끝과 우하단 YouTube 로고가 화면 밖으로 잘려 브랜딩을 가리게 되므로,
-     width:100%로 전체 플레이어(컨트롤바 + 로고 포함)를 그대로 노출한다.
-     16:9 영상은 세로 레터박스로 맞춰지지만 브랜딩/컨트롤은 온전히 보인다. */
+  /* 영상을 정확히 16:9로 맞춰 세로 중앙에 배치한다. YouTube 내부 레터박스
+     (검은 여백)를 만들지 않고, 위아래 여백은 흰색 컨테이너(.youtubeWrapper)가
+     채운다. 좌우 크롭이 없으므로 제목/로고 등 브랜딩은 영상 위에 온전히 노출
+     (정책 준수). */
   width: 100%;
-  height: 100%;
+  aspect-ratio: 16 / 9;
+  height: auto;
   position: absolute;
-  top: 0;
+  top: 50%;
   left: 0;
+  transform: translateY(-50%);
   pointer-events: auto;
-  background: var(--bg-white);
+  background: #000;
+}
+
+/* YT.Player가 생성하는 iframe이 16:9 호스트를 꽉 채우도록 강제 */
+.youtubeIframe iframe {
+  width: 100% !important;
+  height: 100% !important;
 }
 
 .overlay {
@@ -251,8 +259,9 @@
   justify-content: space-between;
   padding: 16px;
   box-sizing: border-box;
-  /* 흰 자막 가독성용 — 하단만 살짝 어두운 그라데이션 (쇼츠 표준 스타일) */
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0) 60%, rgba(0, 0, 0, 0.45) 100%);
+  /* 흰 여백 디자인: 오버레이 자체 배경 없음(상하단 흰 여백을 어둡히지 않음).
+     상단/하단 배지·자막은 흰 배경에 맞춰 어두운 톤으로 각자 스타일링한다. */
+  background: transparent;
   z-index: 2;
   transition: background 0.3s, backdrop-filter 0.3s;
   /* YouTube 정책 준수: 오버레이가 네이티브 컨트롤/로고를 가로채지 않도록
@@ -315,15 +324,15 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  background: rgba(255, 255, 255, 0.8);
+  /* 흰 여백 위에서도 보이도록 불투명 흰 배경 + 파란 테두리/글자 */
+  background: #ffffff;
+  color: var(--tal-blue);
   padding: 6px 12px;
   border-radius: 12px;
-  border: 1px solid var(--border-color);
+  border: 1px solid rgba(10, 34, 143, 0.35);
   cursor: pointer;
   transition: all 0.15s ease;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
   pointer-events: auto; /* 오버레이 none 위에서 이 조작 UI만 클릭 허용 */
 }
 
@@ -390,8 +399,6 @@
 }
 
 .captionCard {
-  /* 박스 없이 영상 위에 자막만 띄운다 — 배경/테두리/블러 제거,
-     가독성은 텍스트 그림자로 확보 */
   background: transparent;
   border: none;
   border-radius: 0;
@@ -405,32 +412,29 @@
 .captionEn {
   font-size: 19px;
   font-weight: 800;
-  color: #ffffff;
+  /* 흰 여백 위 — 어두운 TAL 블루 글자 + 글자 폭만큼의 옅은 회색 박스 */
+  color: var(--tal-blue);
   line-height: 1.45;
   letter-spacing: -0.02em;
-  /* 글자 폭만큼만 감싸는 옅은 회색 반투명 박스 (전체 폭 박스 아님) */
   width: fit-content;
   max-width: 100%;
   margin: 0 auto 6px;
   padding: 3px 12px;
   border-radius: 8px;
-  background: rgba(55, 55, 55, 0.45);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+  background: rgba(15, 23, 42, 0.06);
 }
 
 .captionKr {
   font-size: 14px;
-  color: rgba(255, 255, 255, 0.94);
+  color: var(--text-muted);
   font-weight: 600;
   line-height: 1.4;
-  /* 글자 폭만큼만 감싸는 옅은 회색 반투명 박스 (전체 폭 박스 아님) */
   width: fit-content;
   max-width: 100%;
   margin: 0 auto;
   padding: 2px 10px;
   border-radius: 7px;
-  background: rgba(55, 55, 55, 0.45);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+  background: rgba(15, 23, 42, 0.06);
 }
 
 .timelineContainer {
@@ -440,8 +444,8 @@
 .timelineBar {
   width: 100%;
   height: 3px;
-  /* 박스 없는 자막과 함께 영상 위에 얹히므로 밝은 트랙으로 변경 */
-  background: rgba(255, 255, 255, 0.35);
+  /* 흰 여백 위 — 옅은 파란 트랙 */
+  background: rgba(10, 34, 143, 0.14);
   border-radius: 1.5px;
   overflow: hidden;
   position: relative;
@@ -1417,14 +1421,12 @@
   padding: 8px 16px;
   border-radius: 20px;
   border: none;
-  background: rgba(10, 34, 143, 0.82);
+  background: var(--tal-blue);
   color: #ffffff;
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  box-shadow: 0 4px 14px rgba(10, 34, 143, 0.28);
   pointer-events: auto; /* 오버레이 none 위에서 이 안내만 클릭 허용 */
 }
 
