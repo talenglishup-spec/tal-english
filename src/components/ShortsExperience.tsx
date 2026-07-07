@@ -66,6 +66,10 @@ export default function ShortsPage() {
   const [isApiReady, setIsApiReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
+  // 콜백/타이머 내부에서 최신 상호작용 여부를 읽기 위한 ref 미러.
+  // 브라우저 자동재생 정책상 사용자 제스처 전에는 unMute()가 무시되므로,
+  // 제스처가 발생하기 전에는 muted 자동재생만 하고 unMute를 호출하지 않는다.
+  const hasInteractedRef = useRef(false);
   const [isListOpen, setIsListOpen] = useState(false);
   const [subtitleOn, setSubtitleOn] = useState(true);
   const [selectedClub, setSelectedClub] = useState<'tottenham' | 'mancity' | 'realmadrid'>('tottenham');
@@ -284,16 +288,16 @@ export default function ShortsPage() {
             event.target.seekTo(startSec, true);
 
             if (clip.clip_id === activePresetIdRef.current) {
+              // 경쟁(race) 제거: 여기서 다시 mute()를 호출하지 않는다.
+              // muted 자동재생만 하고, 사용자 제스처가 있었을 때만 unMute.
               setTimeout(() => {
-                event.target.mute();
-                event.target.seekTo(startSec, true);
-                setTimeout(() => {
-                  try {
-                    event.target.playVideo();
-                    setIsPlaying(true);
-                  } catch (e) {}
-                }, 150);
-              }, 1000);
+                try {
+                  event.target.seekTo(startSec, true);
+                  if (hasInteractedRef.current) event.target.unMute();
+                  event.target.playVideo();
+                  setIsPlaying(true);
+                } catch (e) {}
+              }, 300);
             }
           },
           onStateChange: (event: any) => {
@@ -389,7 +393,8 @@ export default function ShortsPage() {
       const player = playerRefs.current[activePresetIdRef.current];
       if (player && player.playVideo) {
         try {
-          player.unMute();
+          // 제스처가 있었을 때만 소리를 켠다(정책 준수 + race 방지)
+          if (hasInteractedRef.current) player.unMute();
           player.playVideo();
           setIsPlaying(true);
         } catch (e) {}
@@ -436,11 +441,12 @@ export default function ShortsPage() {
     const nextClip = clips.find(c => c.clip_id === nextClipId);
     if (nextPlayer && nextPlayer.playVideo && nextClip && activeTab === 'shorts') {
       try {
-        nextPlayer.unMute();
         const startSec = Number(nextClip.start_sec || 0);
         nextPlayer.seekTo(startSec, true);
         setTimeout(() => {
           try {
+            // 스크롤 전환도 제스처 여부에 따라서만 unMute (첫 로드 자동스냅은 muted)
+            if (hasInteractedRef.current) nextPlayer.unMute();
             nextPlayer.playVideo();
             setIsPlaying(true);
           } catch(err){}
@@ -499,29 +505,15 @@ export default function ShortsPage() {
   };
 
   const handleGlobalInteraction = () => {
-    if (hasInteracted) return;
+    if (hasInteractedRef.current) return;
     setHasInteracted(true);
+    hasInteractedRef.current = true;
     const player = playerRefs.current[activePresetIdRef.current];
     if (player && player.unMute) {
       try {
         player.unMute();
         player.playVideo();
       } catch (e) {}
-    }
-  };
-
-  const togglePlay = (clipId: string) => {
-    const player = playerRefs.current[clipId];
-    if (!player) return;
-
-    const state = player.getPlayerState();
-    if (state === (window as any).YT.PlayerState.PLAYING) {
-      player.pauseVideo();
-      setIsPlaying(false);
-    } else {
-      player.unMute();
-      player.playVideo();
-      setIsPlaying(true);
     }
   };
 
@@ -1140,16 +1132,10 @@ export default function ShortsPage() {
                             </div>
                           </div>
 
-                          {/* 중앙 탭 영역 — 화면을 탭하면 재생/정지. 별도의
-                              재생/정지 버튼은 표시하지 않는다(영상 위 버튼 제거).
-                              YouTube 자체 컨트롤도 controls:0 + pointer-events:none로 숨김. */}
-                          <div
-                            className={styles.centerSection}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (isCurrentActive && !speakStage[clip.clip_id]) togglePlay(clip.clip_id);
-                            }}
-                          />
+                          {/* 중앙 영역 — 재생/정지는 YouTube 네이티브 컨트롤(controls:1)에
+                              맡긴다. 오버레이는 pointer-events:none이라 이 영역의 탭은
+                              하단 네이티브 컨트롤바로 그대로 전달된다(정책 준수). */}
+                          <div className={styles.centerSection} />
 
                           {/* 하단 훈련 자막 및 컨트롤러 */}
                           <div className={styles.bottomSection}>
@@ -1177,6 +1163,17 @@ export default function ShortsPage() {
                                 progressClassName={styles.timelineProgress}
                               />
                             </div>
+
+                            {/* muted 자동재생 안내 — 첫 탭 전까지 소리가 꺼져 있음을 알림 */}
+                            {isCurrentActive && !hasInteracted && !speakMode[clip.clip_id] && (
+                              <button
+                                type="button"
+                                className={styles.soundHint}
+                                onClick={(e) => { e.stopPropagation(); handleGlobalInteraction(); }}
+                              >
+                                🔇 탭하여 소리 켜기
+                              </button>
+                            )}
 
                             {speakMode[clip.clip_id] && !speakStage[clip.clip_id] && (
                               <div className={styles.actionArea}>

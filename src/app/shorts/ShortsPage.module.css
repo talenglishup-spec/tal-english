@@ -227,14 +227,15 @@
 }
 
 .youtubeIframe {
-  /* YouTube 정책 준수: 세로 크롭을 없애고(height 100%) 컨트롤바가 보이도록
-     pointer-events를 허용한다. 가로는 185% 오버사이즈를 유지해 고화질 스트림
-     (레이아웃 크기 기준 화질 선택)을 계속 받는다. */
-  width: 185%;
+  /* YouTube 정책 준수: 가로 크롭(185%)을 제거한다. 좌우를 잘라내면 컨트롤바
+     양끝과 우하단 YouTube 로고가 화면 밖으로 잘려 브랜딩을 가리게 되므로,
+     width:100%로 전체 플레이어(컨트롤바 + 로고 포함)를 그대로 노출한다.
+     16:9 영상은 세로 레터박스로 맞춰지지만 브랜딩/컨트롤은 온전히 보인다. */
+  width: 100%;
   height: 100%;
   position: absolute;
   top: 0;
-  left: -42.5%;
+  left: 0;
   pointer-events: auto;
   background: var(--bg-white);
 }
@@ -250,9 +251,13 @@
   justify-content: space-between;
   padding: 16px;
   box-sizing: border-box;
-  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 50%, rgba(255, 255, 255, 0.6) 100%);
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 55%, rgba(255, 255, 255, 0.2) 100%);
   z-index: 2;
   transition: background 0.3s, backdrop-filter 0.3s;
+  /* YouTube 정책 준수: 오버레이가 네이티브 컨트롤/로고를 가로채지 않도록
+     기본은 클릭 통과(none). 실제 조작 UI(자막 토글·Speak 버튼 등)만
+     개별적으로 pointer-events:auto로 되살린다. */
+  pointer-events: none;
 }
 
 .overlayPaused {
@@ -314,6 +319,7 @@
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  pointer-events: auto; /* 오버레이 none 위에서 이 조작 UI만 클릭 허용 */
 }
 
 .advLabel {
@@ -371,6 +377,8 @@
   flex-direction: column;
   gap: 12px;
   margin-bottom: 12px;
+  /* 하단 YouTube 네이티브 컨트롤바 위를 침범하지 않도록 여백 확보 */
+  padding-bottom: 48px;
 }
 
 .captionCard {
@@ -1349,7 +1357,9 @@
 }
 
 .speakFab {
-  align-self: flex-end;
+  /* YouTube 정책 준수: 우하단 YouTube 로고와 겹치지 않도록 좌측 정렬로 이동.
+     하단 컨트롤바 침범은 .bottomSection padding-bottom으로 함께 회피. */
+  align-self: flex-start;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -1365,11 +1375,32 @@
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   transition: all 0.15s ease;
+  pointer-events: auto; /* 오버레이 none 위에서 이 버튼만 클릭 허용 */
 }
 
 .speakFab:hover {
   background: var(--tal-blue-hover);
   transform: scale(1.05);
+}
+
+/* muted 자동재생 안내 칩 — 첫 탭 전까지 노출, 탭하면 소리 켜짐 */
+.soundHint {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: none;
+  background: rgba(10, 34, 143, 0.82);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  pointer-events: auto; /* 오버레이 none 위에서 이 안내만 클릭 허용 */
 }
 
 /* 원형 Speak 버튼 (armed 단계 — 눌러서 녹음 시작) */
