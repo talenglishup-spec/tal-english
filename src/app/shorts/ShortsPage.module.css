@@ -251,7 +251,8 @@
   justify-content: space-between;
   padding: 16px;
   box-sizing: border-box;
-  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 55%, rgba(255, 255, 255, 0.2) 100%);
+  /* 흰 자막 가독성용 — 하단만 살짝 어두운 그라데이션 (쇼츠 표준 스타일) */
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0) 60%, rgba(0, 0, 0, 0.45) 100%);
   z-index: 2;
   transition: background 0.3s, backdrop-filter 0.3s;
   /* YouTube 정책 준수: 오버레이가 네이티브 컨트롤/로고를 가로채지 않도록
@@ -269,7 +270,9 @@
 }
 
 .topSection {
-  margin-top: 12px;
+  /* 일시정지 시 상단에 뜨는 YouTube 제목(브랜딩)을 가리지 않도록
+     배지들을 제목 영역 아래로 내린다 */
+  margin-top: 56px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -387,31 +390,35 @@
 }
 
 .captionCard {
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(0, 75, 135, 0.08);
-  border-radius: 16px;
-  padding: 16px;
+  /* 박스 없이 영상 위에 자막만 띄운다 — 배경/테두리/블러 제거,
+     가독성은 텍스트 그림자로 확보 */
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 8px 12px;
   text-align: center;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  box-shadow: 0 8px 32px 0 rgba(0, 75, 135, 0.1);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
 }
 
 .captionEn {
-  font-size: 18px;
+  font-size: 19px;
   font-weight: 800;
-  color: var(--tal-blue);
+  color: #ffffff;
   line-height: 1.45;
   letter-spacing: -0.02em;
   margin-bottom: 6px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85), 0 2px 8px rgba(0, 0, 0, 0.6);
 }
 
 .captionKr {
-  font-size: 13px;
-  color: var(--text-muted);
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.92);
   margin: 0;
   font-weight: 600;
   line-height: 1.4;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85), 0 2px 8px rgba(0, 0, 0, 0.6);
 }
 
 .timelineContainer {
@@ -421,7 +428,8 @@
 .timelineBar {
   width: 100%;
   height: 3px;
-  background: rgba(0, 75, 135, 0.12);
+  /* 박스 없는 자막과 함께 영상 위에 얹히므로 밝은 트랙으로 변경 */
+  background: rgba(255, 255, 255, 0.35);
   border-radius: 1.5px;
   overflow: hidden;
   position: relative;

@@ -780,6 +780,10 @@ export default function ShortsPage() {
     const clip = clipsRef.current.find(c => c.clip_id === clipId);
     if (!clip) return;
 
+    // 🎙️ 버튼 클릭도 실제 제스처 — 소리 상호작용으로 인정 (안내 칩 해제)
+    setHasInteracted(true);
+    hasInteractedRef.current = true;
+
     // 진행 중이던 스픽 잔여물 정리 + 재발화 가능하도록 완료 플래그 해제
     resetSpeakArtifacts(clipId);
     spokenDoneRef.current = { ...spokenDoneRef.current, [clipId]: false };
@@ -910,7 +914,10 @@ export default function ShortsPage() {
       <div className={styles.phoneFrame}>
         <div className={styles.phoneNotch} />
         
-        <div className={styles.phoneScreen} onClick={handleGlobalInteraction}>
+        {/* 전역 탭을 상호작용으로 소모하지 않는다 — 탭 이동/스크롤만으로는
+            hasInteracted가 켜지지 않아 "🔇 탭하여 소리 켜기" 안내가 노출되고,
+            안내 버튼 또는 중앙 탭(실제 제스처)에서만 소리를 켠다. */}
+        <div className={styles.phoneScreen}>
           
           <div style={{ display: activeTab === 'shorts' ? 'flex' : 'none', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
             {/* 상단 카테고리 필터바 복원 */}
