@@ -33,9 +33,9 @@ export default function MarketingLayout({
         href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700;900&family=Manrope:wght@400;500;600;700;800&family=Black+Han+Sans&family=JetBrains+Mono:wght@400;500;700&display=swap"
       />
       {/* Favicon & app icons */}
-      <link rel="icon" href="/brand/tal-icon-blue-32.png" sizes="32x32" type="image/png" />
-      <link rel="apple-touch-icon" href="/brand/tal-icon-blue-180.png" />
-      <link rel="preload" as="image" href="/brand/tal-icon-blue-192.png" fetchPriority="high" />
+      <link rel="icon" href="/brand/tal-app-32.png" sizes="32x32" type="image/png" />
+      <link rel="apple-touch-icon" href="/brand/tal-app-180.png" />
+      <link rel="preload" as="image" href="/brand/tal-app-192.png" fetchPriority="high" />
 
       <style>{`
         body {
