@@ -70,6 +70,11 @@ export default function ShortsPage() {
   // 브라우저 자동재생 정책상 사용자 제스처 전에는 unMute()가 무시되므로,
   // 제스처가 발생하기 전에는 muted 자동재생만 하고 unMute를 호출하지 않는다.
   const hasInteractedRef = useRef(false);
+  // 활성 클립의 "실제" 음소거 여부 — 폴링으로 동기화한다.
+  // 기기(특히 iOS)에 따라 전환 시 프로그램적 unMute가 무시될 수 있어,
+  // hasInteracted 플래그가 아닌 플레이어의 isMuted()가 진실이다.
+  // 이 값이 true인 동안 "🔇 탭하여 소리 켜기" 칩을 영상마다 노출한다.
+  const [isSoundMuted, setIsSoundMuted] = useState(true);
   const [isListOpen, setIsListOpen] = useState(false);
   const [subtitleOn, setSubtitleOn] = useState(true);
   const [selectedClub, setSelectedClub] = useState<'tottenham' | 'mancity' | 'realmadrid'>('tottenham');
@@ -509,25 +514,42 @@ export default function ShortsPage() {
     monitor.stop();
   };
 
-  const handleGlobalInteraction = () => {
-    if (hasInteractedRef.current) return;
+  // 소리 켜기 — 실제 제스처(칩/중앙 탭/🎙️ 버튼) 안에서만 호출한다.
+  const enableSound = (clipId: string) => {
     setHasInteracted(true);
     hasInteractedRef.current = true;
-    const player = playerRefs.current[activePresetIdRef.current];
+    const player = playerRefs.current[clipId];
     if (player && player.unMute) {
       try {
         player.unMute();
         player.playVideo();
       } catch (e) {}
     }
+    setIsSoundMuted(false); // 폴링이 다음 틱에 실제 상태로 재확인
   };
 
+  // 활성 클립의 실제 음소거 상태 폴링 — 칩 노출 판단의 단일 진실.
+  // 전환 시 unMute가 무시되는 기기에서는 매 영상 muted로 시작하므로
+  // 칩이 영상마다 다시 나타나고, unMute가 유지되는 기기에서는 안 뜬다.
+  useEffect(() => {
+    if (activeTab !== 'shorts') return;
+    const id = setInterval(() => {
+      const p = playerRefs.current[activePresetIdRef.current];
+      if (!p || typeof p.isMuted !== 'function') return;
+      try { setIsSoundMuted(!!p.isMuted()); } catch (e) {}
+    }, 700);
+    return () => clearInterval(id);
+  }, [activeTab, activePresetId]);
+
   // 중앙 탭 레이어: controls:0이라 네이티브가 재생/정지를 처리하지 않으므로
-  // 자체 토글을 제공한다. 첫 탭은 "소리 켜기"로만 소모(정지시키지 않음) →
-  // 이후 탭부터 재생/정지 토글.
+  // 자체 토글을 제공한다. 음소거 상태의 탭은 "소리 켜기"로만 소모(정지 안 함)
+  // → 소리가 켜진 뒤부터 재생/정지 토글.
   const handleCenterTap = (clipId: string) => {
-    if (!hasInteractedRef.current) {
-      handleGlobalInteraction();
+    const p = playerRefs.current[clipId];
+    let muted = !hasInteractedRef.current;
+    try { if (p && typeof p.isMuted === 'function') muted = muted || !!p.isMuted(); } catch (e) {}
+    if (muted) {
+      enableSound(clipId);
       return;
     }
     togglePlay(clipId);
@@ -1210,12 +1232,12 @@ export default function ShortsPage() {
                               />
                             </div>
 
-                            {/* muted 자동재생 안내 — 첫 탭 전까지 소리가 꺼져 있음을 알림 */}
-                            {isCurrentActive && !hasInteracted && !speakMode[clip.clip_id] && (
+                            {/* muted 안내 — 활성 클립이 실제로 음소거인 동안 매 영상 노출 */}
+                            {isCurrentActive && isSoundMuted && !speakMode[clip.clip_id] && !speakStage[clip.clip_id] && (
                               <button
                                 type="button"
                                 className={styles.soundHint}
-                                onClick={(e) => { e.stopPropagation(); handleGlobalInteraction(); }}
+                                onClick={(e) => { e.stopPropagation(); enableSound(clip.clip_id); }}
                               >
                                 🔇 탭하여 소리 켜기
                               </button>
