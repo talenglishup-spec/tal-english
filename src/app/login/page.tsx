@@ -52,7 +52,7 @@ export default function LoginPage() {
           // Supabase의 카카오 기본 scope에는 account_email이 포함되는데,
           // 카카오 이메일은 비즈니스 앱 전환이 필요해 대부분 미설정 → KOE205.
           // 콘솔에 설정된 profile_nickname만 명시해 account_email을 제외한다.
-          scopes: 'profile_nickname',
+          scopes: 'profile_nickname profile_image account_email',
           skipBrowserRedirect: true,
         },
       });
