@@ -272,7 +272,7 @@
 .topSection {
   /* 상단 YouTube 제목(브랜딩)과 겹치지 않도록 배지들을 제목 아래로 내린다.
      단 영상 위쪽 영역에 머물게 과하지 않은 여백으로. */
-  margin-top: 84px;
+  margin-top: 104px;
   display: flex;
   justify-content: space-between;
   align-items: center;
