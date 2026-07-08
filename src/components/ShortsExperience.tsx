@@ -280,12 +280,11 @@ export default function ShortsPage() {
         videoId: vId,
         playerVars: {
           autoplay: 0,
-          // 네이티브 컨트롤바(공유·관련영상·설정·CC·볼륨·진행바)를 표시하지 않는다.
-          // controls:0은 YouTube 공식 지원 파라미터로 "가리기"가 아니라 "표시 안 함"
-          // 이므로 정책 위반이 아니다. 재생/정지는 중앙 탭 레이어(자체)로 처리하고,
-          // 일시정지 시 나타나는 YouTube 브랜딩(제목·로고·Watch on YouTube)은
-          // 중앙 레이어가 덮지 않아 그대로 노출·클릭 가능하게 둔다.
-          controls: 0,
+          // controls:1 — 네이티브 컨트롤(재생/정지·진행바·볼륨·전체화면·YouTube
+          // 로고)을 노출한다. Developer Policy III.I.4 / RMF는 이 컨트롤을 숨기는
+          // 것(controls:0)을 금지하므로 반드시 1을 유지한다. 재생/정지는 네이티브
+          // 플레이어에 맡기고, 오버레이는 이 컨트롤을 가리지 않는다(정책 준수).
+          controls: 1,
           iv_load_policy: 3,
           rel: 0,
           playsinline: 1,
@@ -541,36 +540,9 @@ export default function ShortsPage() {
     return () => clearInterval(id);
   }, [activeTab, activePresetId]);
 
-  // 중앙 탭 레이어: controls:0이라 네이티브가 재생/정지를 처리하지 않으므로
-  // 자체 토글을 제공한다. 음소거 상태의 탭은 "소리 켜기"로만 소모(정지 안 함)
-  // → 소리가 켜진 뒤부터 재생/정지 토글.
-  const handleCenterTap = (clipId: string) => {
-    const p = playerRefs.current[clipId];
-    let muted = !hasInteractedRef.current;
-    try { if (p && typeof p.isMuted === 'function') muted = muted || !!p.isMuted(); } catch (e) {}
-    if (muted) {
-      enableSound(clipId);
-      return;
-    }
-    togglePlay(clipId);
-  };
-
-  const togglePlay = (clipId: string) => {
-    const player = playerRefs.current[clipId];
-    if (!player || !player.getPlayerState) return;
-    const YT = (window as any).YT;
-    const state = player.getPlayerState();
-    if (YT && state === YT.PlayerState.PLAYING) {
-      try { player.pauseVideo(); } catch (e) {}
-      setIsPlaying(false);
-    } else {
-      try {
-        if (hasInteractedRef.current) player.unMute();
-        player.playVideo();
-      } catch (e) {}
-      setIsPlaying(true);
-    }
-  };
+  // controls:1에서는 재생/정지·볼륨·전체화면을 모두 네이티브 컨트롤이 처리한다.
+  // 소리는 네이티브 볼륨 버튼 또는 "🔇 탭하여 소리 켜기" 칩(enableSound)으로 켠다.
+  // (isPlaying 상태는 onStateChange가 네이티브 재생/정지에 맞춰 자동 동기화)
 
   // ── 스픽 훈련 상태 헬퍼 ──────────────────────────────────────
   const setStage = (clipId: string, stage: SpeakStage) => {
@@ -1194,16 +1166,10 @@ export default function ShortsPage() {
                             </div>
                           </div>
 
-                          {/* 중앙 영역 — controls:0이므로 자체 탭으로 재생/정지.
-                              중앙 60%만 덮어 상단 제목/하단 우측 YouTube 로고(일시정지 시
-                              노출되는 브랜딩)는 가리지 않는다(정책 준수). */}
-                          <div
-                            className={styles.centerSection}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (isCurrentActive && !speakStage[clip.clip_id]) handleCenterTap(clip.clip_id);
-                            }}
-                          />
+                          {/* 중앙 영역 — controls:1이므로 재생/정지는 네이티브 컨트롤이
+                              처리한다. 이 영역은 클릭을 통과시켜(pointer-events:none)
+                              플레이어가 직접 탭을 받도록 한다(컨트롤 가림 금지, 정책 준수). */}
+                          <div className={styles.centerSection} />
 
                           {/* 하단 훈련 자막 및 컨트롤러 */}
                           <div className={styles.bottomSection}>
