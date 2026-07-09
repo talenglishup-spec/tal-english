@@ -2,12 +2,24 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { getSupabase } from '@/utils/supabase';
 import XPToast from '@/components/XPToast';
 import ClipProgressBar from '@/components/ClipProgressBar';
 import GuideDocent from '@/components/GuideDocent';
 import { useShortsMonitor } from '@/hooks/useShortsMonitor';
 import styles from '@/app/shorts/ShortsPage.module.css';
+
+// 🎤 챌린지 탭 — 기존 인터뷰 챌린지 경험(/challenge 페이지)을 탭 안에 임베드.
+// 코드 스플리팅(dynamic)으로 챌린지 탭 진입 시에만 로드한다.
+const ChallengeExperience = dynamic(() => import('@/app/(app)/challenge/page'), {
+  ssr: false,
+  loading: () => (
+    <div style={{ padding: '60px 20px', textAlign: 'center', color: '#94a3b8' }}>
+      챌린지 불러오는 중…
+    </div>
+  ),
+});
 
 // 활성 클립 기준 앞뒤 몇 개까지 YouTube Player 인스턴스를 살려둘지.
 // 피드의 모든 클립에 대해 플레이어를 한꺼번에 만들면 메모리/쿼터 부담이
@@ -40,7 +52,7 @@ export default function ShortsPage() {
   const router = useRouter();
   const [clips, setClips] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'home' | 'shorts' | 'collection' | 'my'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'shorts' | 'challenge' | 'collection' | 'my'>('home');
 
   // 클립별 스픽 모드 (1회성): 쇼츠 피드에서 🎙️ 버튼을 누른 영상만 true.
   // true인 동안 1회차·1배속 고정 + pause_at 자동 정지가 활성화되고,
@@ -75,6 +87,18 @@ export default function ShortsPage() {
   // hasInteracted 플래그가 아닌 플레이어의 isMuted()가 진실이다.
   // 이 값이 true인 동안 "🔇 탭하여 소리 켜기" 칩을 영상마다 노출한다.
   const [isSoundMuted, setIsSoundMuted] = useState(true);
+
+  // 모범답안 억양 선택 (AI TTS: 미국식/영국식) — localStorage에 유지
+  const [accent, setAccentState] = useState<'us' | 'uk'>('us');
+  const modelAudioRef = useRef<HTMLAudioElement | null>(null);
+  useEffect(() => {
+    const saved = typeof window !== 'undefined' ? localStorage.getItem('tal_accent') : null;
+    if (saved === 'us' || saved === 'uk') setAccentState(saved);
+  }, []);
+  const setAccent = (a: 'us' | 'uk') => {
+    setAccentState(a);
+    try { localStorage.setItem('tal_accent', a); } catch (e) {}
+  };
   const [isListOpen, setIsListOpen] = useState(false);
   const [subtitleOn, setSubtitleOn] = useState(true);
   const [selectedClub, setSelectedClub] = useState<'tottenham' | 'mancity' | 'realmadrid'>('tottenham');
@@ -564,6 +588,7 @@ export default function ShortsPage() {
   const resetSpeakArtifacts = (clipId?: string) => {
     if (activeRecordIntervalRef.current) { clearInterval(activeRecordIntervalRef.current); activeRecordIntervalRef.current = null; }
     if (modelWatchRef.current) { clearInterval(modelWatchRef.current); modelWatchRef.current = null; }
+    if (modelAudioRef.current) { try { modelAudioRef.current.pause(); } catch (e) {} modelAudioRef.current = null; }
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       try { mediaRecorderRef.current.onstop = null as any; mediaRecorderRef.current.stop(); } catch (e) {}
     }
@@ -588,6 +613,7 @@ export default function ShortsPage() {
   // 리뷰 → "다시하기": 결과/녹음을 버리고 다시 말하기 대기 단계로
   const retrySpeak = (clipId: string) => {
     if (myAudioElRef.current) { try { myAudioElRef.current.pause(); } catch (e) {} myAudioElRef.current = null; }
+    if (modelAudioRef.current) { try { modelAudioRef.current.pause(); } catch (e) {} modelAudioRef.current = null; }
     if (modelWatchRef.current) { clearInterval(modelWatchRef.current); modelWatchRef.current = null; }
     // 모범답안 재생 등으로 영상이 움직였을 수 있으니 pause_at 지점으로 되돌린다
     const clip = clipsRef.current.find(c => c.clip_id === clipId);
@@ -737,8 +763,39 @@ export default function ShortsPage() {
     } catch (e) {}
   };
 
-  // 리뷰: 모범 답안 듣기 — 영상의 해당 구간(start~pause_at)을 소리와 함께 재생
+  // 리뷰: 모범 답안 듣기 — AI TTS(선택 억양) 우선, URL이 없으면 영상 원음 폴백
   const playModelAnswer = (clipId: string) => {
+    const clip = clipsRef.current.find(c => c.clip_id === clipId);
+    if (!clip) return;
+
+    // 진행 중인 TTS/영상 감시 정리
+    if (modelAudioRef.current) {
+      try { modelAudioRef.current.pause(); } catch (e) {}
+      modelAudioRef.current = null;
+    }
+    if (modelWatchRef.current) { clearInterval(modelWatchRef.current); modelWatchRef.current = null; }
+
+    // ① AI 모범답안 (ElevenLabs 사전생성, 선택 억양)
+    const ttsUrl = accent === 'us' ? clip.model_audio_us : clip.model_audio_uk;
+    if (ttsUrl) {
+      const player = playerRefs.current[clipId];
+      if (player && player.pauseVideo) {
+        try { player.pauseVideo(); } catch (e) {}
+      }
+      const audio = new Audio(ttsUrl);
+      modelAudioRef.current = audio;
+      audio.play().catch(err => {
+        console.error('[model-audio] TTS 재생 실패, 영상 폴백:', err);
+        playModelAnswerFromVideo(clipId);
+      });
+      return;
+    }
+
+    // ② 폴백: 영상의 해당 구간(start~pause_at)을 소리와 함께 재생
+    playModelAnswerFromVideo(clipId);
+  };
+
+  const playModelAnswerFromVideo = (clipId: string) => {
     const player = playerRefs.current[clipId];
     const clip = clipsRef.current.find(c => c.clip_id === clipId);
     if (!player || !clip) return;
@@ -1103,6 +1160,28 @@ export default function ShortsPage() {
                                     </div>
                                   )}
 
+                                  {/* AI 모범답안 억양 선택 — TTS URL이 있는 클립에서만 노출 */}
+                                  {(clip.model_audio_us || clip.model_audio_uk) && (
+                                    <div className={styles.accentToggleRow}>
+                                      <button
+                                        type="button"
+                                        className={`${styles.accentBtn} ${accent === 'us' ? styles.accentBtnOn : ''}`}
+                                        disabled={!clip.model_audio_us}
+                                        onClick={() => setAccent('us')}
+                                      >
+                                        🇺🇸 미국식
+                                      </button>
+                                      <button
+                                        type="button"
+                                        className={`${styles.accentBtn} ${accent === 'uk' ? styles.accentBtnOn : ''}`}
+                                        disabled={!clip.model_audio_uk}
+                                        onClick={() => setAccent('uk')}
+                                      >
+                                        🇬🇧 영국식
+                                      </button>
+                                    </div>
+                                  )}
+
                                   <div className={styles.reviewBtnRow}>
                                     <button
                                       type="button"
@@ -1244,6 +1323,13 @@ export default function ShortsPage() {
               )}
             </div>
           </div>
+
+          {/* 🎤 챌린지 탭 — 인터뷰 질문 듣고 답하기 (기존 챌린지 경험 임베드) */}
+          {activeTab === 'challenge' && (
+            <div className={styles.challengeTab}>
+              <ChallengeExperience />
+            </div>
+          )}
 
           {/* 홈 탭 — 앱 활용 가이드 */}
           {activeTab === 'home' && (
@@ -1534,6 +1620,13 @@ export default function ShortsPage() {
             >
               <span className={styles.tabIcon}>🎬</span>
               <span className={styles.tabLabel}>쇼츠 모드</span>
+            </button>
+            <button
+              className={`${styles.tabItem} ${activeTab === 'challenge' ? styles.tabItemActive : ''}`}
+              onClick={() => setActiveTab('challenge')}
+            >
+              <span className={styles.tabIcon}>🎤</span>
+              <span className={styles.tabLabel}>챌린지</span>
             </button>
             <button
               className={`${styles.tabItem} ${activeTab === 'collection' ? styles.tabItemActive : ''}`}

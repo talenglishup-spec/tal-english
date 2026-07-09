@@ -498,6 +498,37 @@
   line-height: 1.4;
 }
 
+/* AI 모범답안 억양 토글 (🇺🇸/🇬🇧) */
+.accentToggleRow {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  margin-top: 14px;
+}
+
+.accentBtn {
+  padding: 6px 14px;
+  border-radius: 16px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-white);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.accentBtn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.accentBtnOn {
+  background: var(--tal-blue);
+  border-color: var(--tal-blue);
+  color: var(--text-light);
+}
+
 .reviewBtnRow {
   display: flex;
   gap: 10px;
@@ -1477,6 +1508,13 @@
   flex-direction: column;
   gap: 14px;
   background: #ffffff;
+}
+
+/* 🎤 챌린지 탭 — 기존 /challenge 경험을 임베드하는 스크롤 컨테이너 */
+.challengeTab {
+  flex: 1;
+  overflow-y: auto;
+  background: #f7f9fc;
 }
 
 .homeHero {

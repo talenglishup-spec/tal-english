@@ -60,6 +60,39 @@ export default function AdminPage() {
     const [playersError, setPlayersError] = useState<string>('');
     const [syncing, setSyncing] = useState(false);
 
+    // ── AI 모범답안 TTS (ElevenLabs US/UK) ───────────────────────────────
+    const [ttsGenerating, setTtsGenerating] = useState(false);
+    const [ttsResult, setTtsResult] = useState<string>('');
+
+    const handleGenerateModelAudio = async (force = false) => {
+        if (!confirm(`Speak 클립의 AI 모범답안(미국식/영국식)을 ${force ? '전체 재생성' : '생성'}할까요?\nElevenLabs 요금이 발생합니다.`)) return;
+        setTtsGenerating(true);
+        setTtsResult('');
+        try {
+            const res = await fetch('/api/admin/generate-model-audio', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ force }),
+            });
+            const data = await res.json();
+            if (!res.ok || !data.success) {
+                setTtsResult(`❌ ${data.error || '생성 실패'}`);
+                return;
+            }
+            const gen = data.results.filter((r: any) => r.status === 'generated').length;
+            const skip = data.results.filter((r: any) => r.status === 'skipped').length;
+            const err = data.results.filter((r: any) => r.status === 'error');
+            setTtsResult(
+                `✅ 생성 ${gen} · 스킵 ${skip} · 실패 ${err.length}` +
+                (err.length ? ` — ${err.map((e: any) => `${e.clip_id}: ${e.error}`).join(' / ')}` : '')
+            );
+        } catch (e: any) {
+            setTtsResult(`❌ ${e.message}`);
+        } finally {
+            setTtsGenerating(false);
+        }
+    };
+
     const fetchPlayers = async () => {
         setPlayersLoading(true);
         setPlayersError('');
@@ -265,6 +298,18 @@ export default function AdminPage() {
             {/* ── 학습자 대시보드 (요일 스트릭) Tab ─────────────────────────── */}
             {activeTab === 'players' && (
                 <div style={{ padding: '0 1.5rem 2rem' }}>
+                    {/* AI 모범답안 TTS 생성 (ElevenLabs US/UK) */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', padding: '0.75rem 1rem', marginBottom: '1rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px' }}>
+                        <span style={{ fontWeight: 700, fontSize: '0.85rem', color: '#334155' }}>🔊 AI 모범답안 (미국식/영국식)</span>
+                        <button onClick={() => handleGenerateModelAudio(false)} disabled={ttsGenerating} className={styles.refreshButton} style={{ background: '#0ea5e9', opacity: ttsGenerating ? 0.6 : 1 }}>
+                            {ttsGenerating ? '⏳ 생성 중…' : '누락분 생성'}
+                        </button>
+                        <button onClick={() => handleGenerateModelAudio(true)} disabled={ttsGenerating} className={styles.refreshButton} style={{ background: '#f59e0b', opacity: ttsGenerating ? 0.6 : 1 }}>
+                            전체 재생성
+                        </button>
+                        {ttsResult && <span style={{ fontSize: '0.8rem', color: '#334155' }}>{ttsResult}</span>}
+                    </div>
+
                     {playersError && (
                         <p style={{ color: '#dc2626', textAlign: 'center', fontWeight: 600, padding: '1rem' }}>{playersError}</p>
                     )}
