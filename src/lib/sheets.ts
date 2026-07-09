@@ -8,6 +8,7 @@
  *   start_sec | end_sec | speak_mode | pause_at | target_phrase
  *   nuance_desc | similar_expressions | audio_explanation_url
  *   tags | notes
+ *   model_audio_us | model_audio_uk   ← AI 모범답안 TTS (ElevenLabs, 억양 2종)
  *
  * 변경 이력:
  *   - context_tag 제거 → type(대분류)으로 대체
@@ -79,6 +80,10 @@ export type ClipItem = {
     similar_expressions:   string;  // 유사 표현 (콤마 구분)
     audio_explanation_url: string;  // ElevenLabs TTS 오디오 URL
     translation:           string;  // 한국어 번역 (Sheets 'translation' 컬럼)
+
+    // AI 모범답안 TTS (target_phrase 기반, ElevenLabs 사전생성 → Supabase Storage)
+    model_audio_us: string;  // 미국식 억양 mp3 공개 URL (없으면 영상 원음 폴백)
+    model_audio_uk: string;  // 영국식 억양 mp3 공개 URL (없으면 영상 원음 폴백)
 
     // 메타
     tags:  string;
@@ -161,6 +166,9 @@ export async function getClipItems(): Promise<ClipItem[]> {
                     audio_explanation_url: row.get('audio_explanation_url') || '',
                     translation:           row.get('translation')           || '',
 
+                    model_audio_us: row.get('model_audio_us') || '',
+                    model_audio_uk: row.get('model_audio_uk') || '',
+
                     tags:  row.get('tags')  || '',
                     notes: row.get('notes') || '',
                 } satisfies ClipItem;
@@ -218,7 +226,14 @@ export function extractYouTubeId(url: string): string | null {
 }
 
 // ── addClipItem (Google Sheets Insert Row) ────────────────────
-export async function addClipItem(item: Omit<ClipItem, 'speak_mode'> & { speak_mode: boolean }): Promise<boolean> {
+// model_audio_us/uk는 선택 — TTS는 클립 추가 후 별도 생성 단계에서 기록된다.
+export type NewClipInput = Omit<ClipItem, 'speak_mode' | 'model_audio_us' | 'model_audio_uk'> & {
+    speak_mode: boolean;
+    model_audio_us?: string;
+    model_audio_uk?: string;
+};
+
+export async function addClipItem(item: NewClipInput): Promise<boolean> {
     try {
         await doc.loadInfo();
         const sheet = doc.sheetsByTitle['Clips'];
@@ -246,6 +261,8 @@ export async function addClipItem(item: Omit<ClipItem, 'speak_mode'> & { speak_m
             similar_expressions: item.similar_expressions,
             audio_explanation_url: item.audio_explanation_url,
             translation: item.translation,
+            model_audio_us: item.model_audio_us || '',
+            model_audio_uk: item.model_audio_uk || '',
             tags: item.tags,
             notes: item.notes
         });
@@ -255,6 +272,43 @@ export async function addClipItem(item: Omit<ClipItem, 'speak_mode'> & { speak_m
         return true;
     } catch (error) {
         console.error('[TAL] Error appending row to Google Sheets:', error);
+        return false;
+    }
+}
+
+// ── updateClipModelAudio (AI 모범답안 TTS URL 기록) ────────────
+/**
+ * generate-model-audio 라우트(Phase 2)가 ElevenLabs로 생성한 mp3의 공개 URL을
+ * 해당 클립 행의 model_audio_us / model_audio_uk 컬럼에 기록한다.
+ * 전달된 키만 갱신하며(부분 업데이트), 성공 시 인메모리 캐시를 무효화한다.
+ */
+export async function updateClipModelAudio(
+    clipId: string,
+    urls: { model_audio_us?: string; model_audio_uk?: string }
+): Promise<boolean> {
+    try {
+        await doc.loadInfo();
+        const sheet = doc.sheetsByTitle['Clips'];
+        if (!sheet) {
+            console.error('[TAL] "Clips" sheet not found for model-audio update');
+            return false;
+        }
+
+        const rows = await sheet.getRows();
+        const row = rows.find(r => (r.get('clip_id') || '') === clipId);
+        if (!row) {
+            console.error(`[TAL] clip_id not found for model-audio update: ${clipId}`);
+            return false;
+        }
+
+        if (urls.model_audio_us !== undefined) row.set('model_audio_us', urls.model_audio_us);
+        if (urls.model_audio_uk !== undefined) row.set('model_audio_uk', urls.model_audio_uk);
+        await row.save();
+
+        _cache = null;
+        return true;
+    } catch (error) {
+        console.error('[TAL] Error updating model audio URLs:', error);
         return false;
     }
 }

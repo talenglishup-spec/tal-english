@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { addClipItem, extractYouTubeId, type ClipItem } from '@/lib/sheets';
+import { addClipItem, extractYouTubeId, type NewClipInput } from '@/lib/sheets';
 import { createClient } from '@/utils/supabaseServer';
 
 export async function POST(req: NextRequest) {
@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
       const mockPlayers = ['SONNY', 'HAALAND', 'PEP'];
       const randomPlayer = mockPlayers[Math.floor(Math.random() * mockPlayers.length)];
       
-      const generatedClip: Omit<ClipItem, 'speak_mode'> & { speak_mode: boolean } = {
+      const generatedClip: NewClipInput = {
         clip_id: 'ai-clip-' + Math.floor(Math.random() * 9000 + 1000),
         title_ko: randomPlayer + ' AI 추출 전술 훈련 (' + (target_phrase || '주변 확보') + ')',
         title_en: randomPlayer + ' Drill - ' + (target_phrase || 'Look around'),

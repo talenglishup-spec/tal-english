@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { addClipItem, type ClipItem } from '@/lib/sheets';
+import { addClipItem, type NewClipInput } from '@/lib/sheets';
 
 export async function POST(req: NextRequest) {
   try {
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing core metadata fields' }, { status: 400 });
     }
 
-    const clipData: Omit<ClipItem, 'speak_mode'> & { speak_mode: boolean } = {
+    const clipData: NewClipInput = {
       clip_id,
       title_ko: title_ko || 'AI Drill - ' + target_phrase,
       title_en: title_en || 'AI Drill - ' + target_phrase,
