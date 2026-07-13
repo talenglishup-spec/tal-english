@@ -9,6 +9,7 @@
  *   nuance_desc | similar_expressions | audio_explanation_url
  *   tags | notes
  *   model_audio_us | model_audio_uk   ← AI 모범답안 TTS (ElevenLabs, 억양 2종)
+ *   level | level_order               ← 표현 레벨 (S1~) 및 레벨 내 순서 (1~5)
  *
  * 변경 이력:
  *   - context_tag 제거 → type(대분류)으로 대체
@@ -84,6 +85,10 @@ export type ClipItem = {
     // AI 모범답안 TTS (target_phrase 기반, ElevenLabs 사전생성 → Supabase Storage)
     model_audio_us: string;  // 미국식 억양 mp3 공개 URL (없으면 영상 원음 폴백)
     model_audio_uk: string;  // 영국식 억양 mp3 공개 URL (없으면 영상 원음 폴백)
+
+    // 표현 레벨 (MVP 중고등: S1부터 순서대로 학습·도장판·챌린지 구동)
+    level: string;        // "S1", "S2", ... (빈 값 = 미배정)
+    level_order: number;  // 레벨 내 순서 1~5 (0 = 미배정)
 
     // 메타
     tags:  string;
@@ -169,6 +174,9 @@ export async function getClipItems(): Promise<ClipItem[]> {
                     model_audio_us: row.get('model_audio_us') || '',
                     model_audio_uk: row.get('model_audio_uk') || '',
 
+                    level:       (row.get('level') || '').trim(),
+                    level_order: parseInt(row.get('level_order') || '0', 10) || 0,
+
                     tags:  row.get('tags')  || '',
                     notes: row.get('notes') || '',
                 } satisfies ClipItem;
@@ -226,11 +234,16 @@ export function extractYouTubeId(url: string): string | null {
 }
 
 // ── addClipItem (Google Sheets Insert Row) ────────────────────
-// model_audio_us/uk는 선택 — TTS는 클립 추가 후 별도 생성 단계에서 기록된다.
-export type NewClipInput = Omit<ClipItem, 'speak_mode' | 'model_audio_us' | 'model_audio_uk'> & {
+// model_audio_us/uk·level은 선택 — TTS/레벨 배정은 클립 추가 후 별도 단계에서 기록된다.
+export type NewClipInput = Omit<
+    ClipItem,
+    'speak_mode' | 'model_audio_us' | 'model_audio_uk' | 'level' | 'level_order'
+> & {
     speak_mode: boolean;
     model_audio_us?: string;
     model_audio_uk?: string;
+    level?: string;
+    level_order?: number;
 };
 
 export async function addClipItem(item: NewClipInput): Promise<boolean> {

@@ -115,9 +115,12 @@ export async function POST(req: NextRequest) {
 
     console.log(`[Whisper STT] Result: "${transcript}" | Target: "${target_phrase}"`);
 
-    const score = getSimilarityScore(transcript, target_phrase);
-    const passed = score >= 80;
+    const score = getSimilarityScore(transcript, target_phrase); // 로그/분석용으로만 유지
     const words = wordDiff(target_phrase, transcript);
+    // 판정: 점수 숫자가 아니라 "표현을 맞게 말했는가" — 타깃 표현의 모든
+    // 단어가 (순서 유지하며) 인식되면 합격. 앞뒤 군더더기 말은 허용한다.
+    // (왕기초 타깃 MVP 정책 — 쇼츠·챌린지·재도전 공통 단일 기준)
+    const passed = words.length > 0 && words.every(w => w.ok);
 
     // RLS Rerouting using @supabase/ssr Server Client
     const supabase = await createClient();

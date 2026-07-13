@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import dynamic from 'next/dynamic';
 import { getSupabase } from '@/utils/supabase';
 import XPToast from '@/components/XPToast';
 import ClipProgressBar from '@/components/ClipProgressBar';
@@ -10,16 +9,11 @@ import GuideDocent from '@/components/GuideDocent';
 import { useShortsMonitor } from '@/hooks/useShortsMonitor';
 import styles from '@/app/shorts/ShortsPage.module.css';
 
-// 🎤 챌린지 탭 — 기존 인터뷰 챌린지 경험(/challenge 페이지)을 탭 안에 임베드.
-// 코드 스플리팅(dynamic)으로 챌린지 탭 진입 시에만 로드한다.
-const ChallengeExperience = dynamic(() => import('@/app/(app)/challenge/page'), {
-  ssr: false,
-  loading: () => (
-    <div style={{ padding: '60px 20px', textAlign: 'center', color: '#94a3b8' }}>
-      챌린지 불러오는 중…
-    </div>
-  ),
-});
+// 🎤 챌린지 탭 — 오늘의 랜덤 드릴 (MVP 중고등). 기존 인터뷰 챌린지는
+// /challenge 라우트에 코드 보존(추후 상급자 모드로 부활 가능).
+import ChallengeDrill from '@/components/ChallengeDrill';
+import CollectionBoard from '@/components/CollectionBoard';
+import { sortClipsByLevel, getCurrentLevel, clipsOfLevel } from '@/lib/levels';
 
 // 활성 클립 기준 앞뒤 몇 개까지 YouTube Player 인스턴스를 살려둘지.
 // 피드의 모든 클립에 대해 플레이어를 한꺼번에 만들면 메모리/쿼터 부담이
@@ -68,6 +62,12 @@ export default function ShortsPage() {
   const [shareMsg, setShareMsg] = useState<string>('');
   // 스픽 성공한 clip_id 집합 (표현 레벨 계산용)
   const [passedClips, setPassedClips] = useState<Set<string>>(new Set());
+  // 도장판(🟡) 판정용: 시도(성공 여부 무관) 이력이 있는 clip_id
+  const [attemptedIds, setAttemptedIds] = useState<Set<string>>(new Set());
+  // 오늘 세션에서 새로 완료한 표현 — Collection 하이라이트용
+  const [todayPassed, setTodayPassed] = useState<Set<string>>(new Set());
+  // Collection 카드 탭 → 단일 표현 연습 모드
+  const [practiceClip, setPracticeClip] = useState<any | null>(null);
   const [activePresetId, setActivePresetId] = useState<string>('');
   const [playerId, setPlayerId] = useState<string | null>(null);
   
@@ -215,8 +215,27 @@ export default function ShortsPage() {
 
         const res = await fetch('/api/content/items?speak=1');
         const data = await res.json();
-        const items = data.items || [];
+        // S1부터 순서대로 노출 (왕기초 원칙 — 신규 유저 진입점 고정)
+        const items = sortClipsByLevel(data.items || []);
         setClips(items);
+
+        // 합격/시도 이력 로드 — 도장판·챌린지 문항 선정·진행 표시의 기준
+        // (RLS로 본인 행만 조회됨)
+        try {
+          const { data: attempts } = await supabase
+            .from('speak_attempts_log')
+            .select('clip_id, passed');
+          const pSet = new Set<string>();
+          const aSet = new Set<string>();
+          (attempts || []).forEach((a: any) => {
+            aSet.add(a.clip_id);
+            if (a.passed) pSet.add(a.clip_id);
+          });
+          setPassedClips(pSet);
+          setAttemptedIds(aSet);
+        } catch (e) {
+          console.warn('[ShortsPage] attempts history load failed:', e);
+        }
 
         if (items.length > 0) {
           const firstId = items[0].clip_id;
@@ -712,9 +731,14 @@ export default function ShortsPage() {
         setWordFeedback(prev => ({ ...prev, [clipId]: data.words }));
       }
 
+      // 시도 이력은 성공 여부와 무관하게 기록 (도장판 🟡 상태)
+      setAttemptedIds(prev => new Set(prev).add(clipId));
+
       if (passed) {
         setSuccessCounts(prev => ({ ...prev, [clipId]: (prev[clipId] || 0) + 1 }));
         setScores(prev => ({ ...prev, [clipId]: scoreVal }));
+        setPassedClips(prev => new Set(prev).add(clipId));
+        setTodayPassed(prev => new Set(prev).add(clipId));
         if (playerId) {
           try {
             const syncRes = await fetch('/api/train/complete', {
@@ -921,7 +945,7 @@ export default function ShortsPage() {
   };
 
   useEffect(() => {
-    if (activeTab === 'my') loadMyStats();
+    if (activeTab === 'my' || activeTab === 'collection') loadMyStats();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, playerId]);
 
@@ -974,8 +998,20 @@ export default function ShortsPage() {
             {/* 상단 카테고리 필터바 복원 */}
             <div className={styles.presetBar}>
               <div className={styles.presetHeaderRow}>
+                {/* 레벨 진행 표시 — "지금 어디쯤인지"가 보이면 조금만 더 심리 작동 */}
+                {(() => {
+                  const curLv = getCurrentLevel(clips, passedClips);
+                  if (!curLv) return <div style={{ flex: 1 }} />;
+                  const members = clipsOfLevel(clips, curLv);
+                  const done = members.filter(c => passedClips.has(c.clip_id)).length;
+                  return (
+                    <div className={styles.levelProgressChip}>
+                      {curLv} · {done}/{members.length} 완료
+                    </div>
+                  );
+                })()}
                 <div style={{ flex: 1 }} />
-                <button 
+                <button
                   type="button"
                   className={styles.listToggleBtn}
                   onClick={() => setIsListOpen(!isListOpen)}
@@ -1324,10 +1360,31 @@ export default function ShortsPage() {
             </div>
           </div>
 
-          {/* 🎤 챌린지 탭 — 인터뷰 질문 듣고 답하기 (기존 챌린지 경험 임베드) */}
+          {/* 🎤 챌린지 탭 — 오늘의 랜덤 드릴 (레벨 표현 5문항, MVP 중고등) */}
           {activeTab === 'challenge' && (
             <div className={styles.challengeTab}>
-              <ChallengeExperience />
+              <ChallengeDrill
+                key={practiceClip ? `single-${practiceClip.clip_id}` : 'session'}
+                clips={clips}
+                passedIds={passedClips}
+                singleClip={practiceClip}
+                onExit={() => {
+                  if (practiceClip) {
+                    setPracticeClip(null);
+                    setActiveTab('collection');
+                  } else {
+                    setActiveTab('home');
+                  }
+                }}
+                onResult={(clipId: string, passed: boolean) => {
+                  setAttemptedIds(prev => new Set(prev).add(clipId));
+                  if (passed) {
+                    setPassedClips(prev => new Set(prev).add(clipId));
+                    setTodayPassed(prev => new Set(prev).add(clipId));
+                    setSuccessCounts(prev => ({ ...prev, [clipId]: (prev[clipId] || 0) + 1 }));
+                  }
+                }}
+              />
             </div>
           )}
 
@@ -1347,6 +1404,45 @@ export default function ShortsPage() {
                   개별 스텝 안내 박스는 제거하고 영상으로 통합. */}
               <GuideDocent />
 
+              {/* 오늘 Challenge / 내 진도 바로가기 (MVP 중고등 홈 연결) */}
+              <button
+                type="button"
+                className={styles.homeQuickCard}
+                onClick={() => setActiveTab('challenge')}
+              >
+                <span className={styles.homeQuickIcon}>🎤</span>
+                <span className={styles.homeQuickBody}>
+                  <span className={styles.homeQuickTitle}>오늘 Challenge</span>
+                  <span className={styles.homeQuickSub}>랜덤 드릴 · 5문항</span>
+                </span>
+                <span className={styles.homeQuickArrow}>→</span>
+              </button>
+
+              {(() => {
+                const curLv = getCurrentLevel(clips, passedClips);
+                if (!curLv) return null;
+                const members = clipsOfLevel(clips, curLv);
+                const done = members.filter(c => passedClips.has(c.clip_id)).length;
+                const pct = members.length > 0 ? Math.round((done / members.length) * 100) : 0;
+                return (
+                  <button
+                    type="button"
+                    className={styles.homeQuickCard}
+                    onClick={() => setActiveTab('collection')}
+                  >
+                    <span className={styles.homeQuickIcon}>📦</span>
+                    <span className={styles.homeQuickBody}>
+                      <span className={styles.homeQuickTitle}>내 진도</span>
+                      <span className={styles.homeQuickSub}>{curLv} · {done}/{members.length} 완료</span>
+                      <span className={styles.homeQuickBar}>
+                        <span className={styles.homeQuickBarFill} style={{ width: `${pct}%` }} />
+                      </span>
+                    </span>
+                    <span className={styles.homeQuickArrow}>→</span>
+                  </button>
+                );
+              })()}
+
               <button
                 type="button"
                 className={styles.homeStartBtn}
@@ -1357,117 +1453,20 @@ export default function ShortsPage() {
             </div>
           )}
 
-          {/* Collection 모드 실전 구단 연동 탭 영역 */}
+          {/* Collection 탭 — 레벨 도장판 (MVP 중고등: 카드 채우면 레벨업) */}
           {activeTab === 'collection' && (
-            <div className={`${styles.collectionTab} ${selectedClub === 'tottenham' ? styles.tottenhamTheme : selectedClub === 'mancity' ? styles.mancityTheme : styles.realmadridTheme}`}>
-              
-              {/* 상단 선호 구단 테마 선택기 */}
-              <div className={styles.clubSelectorContainer}>
-                <div className={styles.clubSelectorLabel}>선호 구단 테마 커스텀</div>
-                <div className={styles.clubSelectorRow}>
-                  <button 
-                    onClick={() => setSelectedClub('tottenham')}
-                    className={`${styles.clubBtn} ${selectedClub === 'tottenham' ? styles.clubBtnActiveTottenham : ''}`}
-                  >
-                    <span>⚪</span> 토트넘
-                  </button>
-                  <button 
-                    onClick={() => setSelectedClub('mancity')}
-                    className={`${styles.clubBtn} ${selectedClub === 'mancity' ? styles.clubBtnActiveMancity : ''}`}
-                  >
-                    <span>🔵</span> 맨시티
-                  </button>
-                  <button 
-                    onClick={() => setSelectedClub('realmadrid')}
-                    className={`${styles.clubBtn} ${selectedClub === 'realmadrid' ? styles.clubBtnActiveRealmadrid : ''}`}
-                  >
-                    <span>🟡</span> 레알
-                  </button>
-                </div>
-              </div>
-
-              {/* 구단 엠블럼/배지 진열대 */}
-              <div className={styles.cabinetSection}>
-                <div className={styles.cabinetTitle}>
-                  🏆 구단 배지 수집함 (100% 마스터 시 획득)
-                </div>
-                <div className={styles.badgeGrid}>
-                  
-                  {clips.slice(0, 3).map((clip, index) => {
-                    const isPassed = (successCounts[clip.clip_id] || 0) > 0;
-                    const icons = ['🐔', '🦅', '👑'];
-                    const clubNames = ['토트넘 홋스퍼', '맨체스터 시티', '레알 마드리드'];
-                    
-                    return (
-                      <div key={clip.clip_id} className={`${styles.badgeItem} ${isPassed ? styles.badgeItemActive : ''}`}>
-                        <span className={styles.badgeEmblem}>{icons[index % 3]}</span>
-                        <span className={styles.badgeName}>{clubNames[index % 3]}</span>
-                        <span className={styles.badgeStatus}>
-                          {isPassed ? '🔓 획득 완료' : '🔒 미션 수행'}
-                        </span>
-                      </div>
-                    );
-                  })}
-
-                </div>
-              </div>
-
-              {/* 프로 선수 인터뷰 마스터 카드 진열대 (FUT 스타일) */}
-              <div className={styles.cardSection}>
-                <div className={styles.cabinetTitle}>
-                  🎙️ 프로 선수 마스터 카드 (FUT 스타일)
-                </div>
-                <div className={styles.cardGrid}>
-                  
-                  {clips.slice(0, 2).map((clip, index) => {
-                    const isPassed = (successCounts[clip.clip_id] || 0) > 0;
-                    const nationIcons = ['🇰🇷', '🇳🇴'];
-                    const ovrVal = scores[clip.clip_id] || 91;
-                    const posTags = ['LW', 'ST'];
-                    
-                    return (
-                      <div key={clip.clip_id} className={`${styles.playerCard} ${isPassed ? `${styles.playerCardActive}` : ''}`}>
-                        {!isPassed && (
-                          <div className={styles.cardLockMask}>
-                            <span className={styles.cardLockIcon}>🔒</span>
-                            <span className={styles.cardLockText}>발음 80점 이상 해금</span>
-                          </div>
-                        )}
-                        <div className={styles.playerCardHeader}>
-                          <div className={styles.cardOvr}>{ovrVal}</div>
-                          <div className={styles.cardPos}>{posTags[index % 2]}</div>
-                        </div>
-                        <div className={styles.cardImagePlaceholder}>{nationIcons[index % 2]}</div>
-                        <div className={styles.playerCardFooter}>
-                          <div className={styles.cardPlayerName}>{clip.player_name}</div>
-                          <div className={styles.cardClubText}>{clip.position_tag}</div>
-                        </div>
-                      </div>
-                    );
-                  })}
-
-                </div>
-              </div>
-
-              {/* 로그아웃 행 */}
-              <div style={{ textAlign: 'center', marginTop: '24px' }}>
-                <button 
-                  onClick={handleLogout}
-                  style={{
-                    background: 'rgba(239, 68, 68, 0.1)',
-                    border: '1px solid rgba(239, 68, 68, 0.3)',
-                    color: '#ef4444',
-                    padding: '8px 20px',
-                    borderRadius: '12px',
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    cursor: 'pointer'
-                  }}
-                >
-                  로그아웃 (Sign Out)
-                </button>
-              </div>
-
+            <div className={styles.collectionTab}>
+              <CollectionBoard
+                clips={clips}
+                passedIds={passedClips}
+                attemptedIds={attemptedIds}
+                todayPassedIds={todayPassed}
+                totalXp={(myStats?.xp as number) ?? 0}
+                onPractice={(clip) => {
+                  setPracticeClip(clip);
+                  setActiveTab('challenge');
+                }}
+              />
             </div>
           )}
 
