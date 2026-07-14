@@ -56,6 +56,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     };
                     setUser(userData);
                     localStorage.setItem('tal_user', JSON.stringify(userData));
+
+                    // 자체 복구: profiles 행이 어떤 이유로든 없으면(예: 이메일 미동의
+                    // 가입, 트리거 미적용 시점 가입 등) 로그인 시점에 채운다.
+                    // 트리거 하나에만 의존하지 않는 이중 방어 — 실패해도 로그인 흐름은
+                    // 막지 않는다(non-blocking).
+                    supabase.rpc('ensure_profile').then(({ error }) => {
+                        if (error) console.warn('[AuthContext] ensure_profile 실패:', error.message);
+                    });
                 }
             } catch (e) {
                 console.error('[AuthContext] Failed to get Supabase session', e);
