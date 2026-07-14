@@ -51,6 +51,7 @@ export default function PrivacyPage() {
           <div>
             <h2 className="text-lg font-bold text-white mb-2">4. 개인정보의 파기절차 및 방법</h2>
             <p>이용자의 개인정보는 원칙적으로 개인정보의 수집 및 이용목적이 달성되면 지체 없이 파기합니다.</p>
+            <p className="mt-2">저장된 개인정보 삭제를 원하시면 tal.english.up@gmail.com으로 문의하세요.</p>
           </div>
 
           <div>
@@ -74,7 +75,7 @@ export default function PrivacyPage() {
               </li>
               <li>
                 <a
-                  href="https://myaccount.google.com/permissions"
+                  href="https://security.google.com/settings/security/permissions"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-blue-400 underline"
