@@ -93,26 +93,52 @@ export default function PushSettings({ playerId }: { playerId: string | null }) 
 
       const reg = await navigator.serviceWorker.ready;
       const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-      if (!publicKey) { setMsg('알림 설정이 아직 준비되지 않았습니다.'); return; }
+      if (!publicKey) { setMsg('알림 설정이 아직 준비되지 않았습니다. (VAPID 키 미배포)'); return; }
 
-      const sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(publicKey) as BufferSource,
-      });
+      let sub: PushSubscription;
+      try {
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(publicKey) as BufferSource,
+        });
+      } catch (subErr: any) {
+        // 이전에 다른 키로 구독된 적이 있으면 InvalidStateError가 난다
+        // (예: 개발 중 다른 VAPID 키로 테스트했던 경우). 기존 구독을 정리하고
+        // 현재 키로 한 번 더 시도한다.
+        if (subErr?.name === 'InvalidStateError') {
+          const existing = await reg.pushManager.getSubscription();
+          if (existing) await existing.unsubscribe();
+          sub = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(publicKey) as BufferSource,
+          });
+        } else {
+          throw subErr;
+        }
+      }
 
       const res = await fetch('/api/push/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ subscription: sub.toJSON(), userAgent: navigator.userAgent }),
       });
-      if (!res.ok) throw new Error('구독 저장 실패');
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(`서버 저장 실패 (${res.status}): ${body.error || '알 수 없는 오류'}`);
+      }
 
-      await supabase.from('profiles').update({ notify_opt_in: true }).eq('id', playerId);
+      const { error: profErr } = await supabase
+        .from('profiles')
+        .update({ notify_opt_in: true })
+        .eq('id', playerId);
+      if (profErr) throw new Error(`설정 저장 실패: ${profErr.message}`);
+
       setOptIn(true);
       setMsg('✅ 알림이 켜졌어요!');
     } catch (e: any) {
       console.error('[PushSettings] enable 실패:', e);
-      setMsg('알림 설정에 실패했어요. 잠시 후 다시 시도해 주세요.');
+      const detail = e?.name ? `${e.name}: ${e.message}` : (e?.message || '알 수 없는 오류');
+      setMsg(`알림 설정에 실패했어요. (${detail})`);
     } finally {
       setBusy(false);
     }
