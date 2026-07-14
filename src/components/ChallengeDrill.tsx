@@ -26,7 +26,10 @@ const SESSION_SIZE = 5;
 const REC_MAX_SEC = 8;
 const FEEDBACK_MS = 1400;
 
-type Stage = 'start' | 'question' | 'feedback' | 'result';
+type Stage = 'start' | 'question' | 'feedback' | 'celebrate' | 'result';
+
+// 셀레브레이션 종이 꽃가루 색 (TAL 블루 + 골드 + 그린)
+const CONFETTI_COLORS = ['#0A228F', '#2563eb', '#fbbf24', '#f59e0b', '#10b981', '#93c5fd'];
 
 type Props = {
   clips: LevelClip[];              // speak 가능한 전체 클립 (level 포함)
@@ -54,7 +57,10 @@ export default function ChallengeDrill({ clips, passedIds, singleClip, onExit, o
   const [xpEarned, setXpEarned] = useState(0);
   const [streakDays, setStreakDays] = useState<number | null>(null);
   const [clearedLevel, setClearedLevel] = useState<string | null>(null);
+  // finishSession 시점의 최신 값을 읽기 위한 ref 미러 (setState 비동기 레이스 방지)
+  const clearedLevelRef = useRef<string | null>(null);
   const [xpShown, setXpShown] = useState(0); // 카운트업 표시값
+  const [shareMsg, setShareMsg] = useState('');
 
   // 세션 중 새로 합격한 clip_id (레벨 클리어 판정에 passedIds와 합산)
   const sessionPassedRef = useRef<Set<string>>(new Set());
@@ -112,6 +118,8 @@ export default function ChallengeDrill({ clips, passedIds, singleClip, onExit, o
     setXpShown(0);
     setStreakDays(null);
     setClearedLevel(null);
+    clearedLevelRef.current = null;
+    setShareMsg('');
     setCheer(false);
     setStage('question');
   };
@@ -233,6 +241,7 @@ export default function ChallengeDrill({ clips, passedIds, singleClip, onExit, o
                 if (d?.rewarded) {
                   setXpEarned(x => x + (d.xpGained || 0));
                   setClearedLevel(lv);
+                  clearedLevelRef.current = lv;
                 }
                 if (typeof d?.streakDays === 'number') setStreakDays(d.streakDays);
               }
@@ -270,7 +279,23 @@ export default function ChallengeDrill({ clips, passedIds, singleClip, onExit, o
         }
       } catch (e) {}
     }
-    setStage('result');
+    // 이번 세션에서 레벨을 클리어했다면 결과 전에 셀레브레이션 먼저
+    setStage(clearedLevelRef.current ? 'celebrate' : 'result');
+  };
+
+  // 레벨 클리어 SNS 공유 — Web Share API, 미지원 시 클립보드 복사
+  const shareLevelClear = async (lv: string) => {
+    const url = typeof window !== 'undefined' ? window.location.origin : 'https://tal-english.vercel.app';
+    const text = `⚽ TAL ${lv} 레벨 클리어! 축구로 영어 표현 훈련 중 🔥`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'TAL English Up', text, url });
+        return;
+      }
+      await navigator.clipboard.writeText(`${text} ${url}`);
+      setShareMsg('링크가 복사되었습니다!');
+      setTimeout(() => setShareMsg(''), 2000);
+    } catch (e) {}
   };
 
   // ── 결과 화면 XP 카운트업 ─────────────────────────────
@@ -308,6 +333,58 @@ export default function ChallengeDrill({ clips, passedIds, singleClip, onExit, o
               KICK OFF
             </button>
           )}
+        </div>
+      </div>
+    );
+  }
+
+  // Phase 2 — 레벨 클리어 셀레브레이션 (결과 화면 진입 전)
+  if (stage === 'celebrate' && clearedLevel) {
+    const members = clipsOfLevel(clips, clearedLevel);
+    return (
+      <div className={styles.drillWrap}>
+        {/* 종이 꽃가루 */}
+        <div className={styles.celebrateConfetti}>
+          {Array.from({ length: 18 }).map((_, i) => (
+            <span
+              key={i}
+              className={styles.confettiPiece}
+              style={{
+                left: `${(i * 5.3 + 4) % 96}%`,
+                background: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+                animationDelay: `${(i % 6) * 0.18}s`,
+              }}
+            />
+          ))}
+        </div>
+
+        <div className={styles.celebrateWrap}>
+          <div className={styles.celebrateBadge}>🏆</div>
+          <h2 className={styles.celebrateTitle}>{clearedLevel} 완료! ⚡</h2>
+          <p className={styles.celebrateSub}>표현 {members.length}개 전부 정답! 다음 레벨 해금!</p>
+
+          {/* 모든 칸이 차례로 채워지는 도장판 애니메이션 */}
+          <div className={styles.celebrateGrid}>
+            {members.map((m, i) => (
+              <span
+                key={m.clip_id}
+                className={styles.celebrateCell}
+                style={{ animationDelay: `${0.5 + i * 0.18}s` }}
+              >
+                ✅
+              </span>
+            ))}
+          </div>
+
+          <span className={styles.celebrateShareMsg}>{shareMsg}</span>
+          <div className={styles.drillResultBtns}>
+            <button type="button" className={styles.drillBtnGhost} onClick={() => shareLevelClear(clearedLevel)}>
+              📣 공유하기
+            </button>
+            <button type="button" className={styles.drillBtnPrimary} onClick={() => setStage('result')}>
+              계속 →
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -379,6 +456,24 @@ export default function ChallengeDrill({ clips, passedIds, singleClip, onExit, o
         <button type="button" className={styles.drillReplay} onClick={playExpressionAudio}>🔊</button>
         <div className={styles.drillPhrase}>{current.target_phrase}</div>
         {current.translation && <div className={styles.drillTranslation}>{current.translation}</div>}
+
+        {/* Phase 2 — 상황 그림 + 설명 (시트에 콘텐츠가 채워지면 자동 노출) */}
+        {(current.situation_image || current.situation_desc) && (
+          <div className={styles.drillSituation}>
+            {current.situation_image && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                className={styles.drillSituationImg}
+                src={current.situation_image}
+                alt="상황 그림"
+                loading="lazy"
+              />
+            )}
+            {current.situation_desc && (
+              <div className={styles.drillSituationDesc}>{current.situation_desc}</div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* 마이크 */}

@@ -29,6 +29,22 @@ export default function CollectionBoard({
   clips, passedIds, attemptedIds, totalXp, todayPassedIds, onPractice,
 }: Props) {
   const [lockMsg, setLockMsg] = useState('');
+  const [shareMsg, setShareMsg] = useState('');
+
+  // 클리어한 레벨 SNS 공유 — Web Share API, 미지원 시 클립보드 복사
+  const shareLevel = async (lv: string) => {
+    const url = typeof window !== 'undefined' ? window.location.origin : 'https://tal-english.vercel.app';
+    const text = `⚽ TAL ${lv} 레벨 클리어! 축구로 영어 표현 훈련 중 🔥`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'TAL English Up', text, url });
+        return;
+      }
+      await navigator.clipboard.writeText(`${text} ${url}`);
+      setShareMsg('링크가 복사되었습니다!');
+      setTimeout(() => setShareMsg(''), 2000);
+    } catch (e) {}
+  };
 
   const levels = getLevels(clips);
   const unlocked = new Set(getUnlockedLevels(clips, passedIds));
@@ -59,6 +75,7 @@ export default function CollectionBoard({
       </div>
 
       {lockMsg && <div className={styles.boardLockToast}>{lockMsg}</div>}
+      {shareMsg && <div className={styles.boardLockToast}>{shareMsg}</div>}
 
       {levels.map((lv, li) => {
         const members = clipsOfLevel(clips, lv);
@@ -74,7 +91,18 @@ export default function CollectionBoard({
                 {cleared ? '🏆 ' : ''}{lv}
                 {!isUnlocked && ' 🔒'}
               </span>
-              <span className={styles.boardLevelCount}>{doneCount}/{members.length}</span>
+              <span className={styles.boardLevelHeadRight}>
+                {cleared && (
+                  <button
+                    type="button"
+                    className={styles.boardShareBtn}
+                    onClick={() => shareLevel(lv)}
+                  >
+                    📣 공유
+                  </button>
+                )}
+                <span className={styles.boardLevelCount}>{doneCount}/{members.length}</span>
+              </span>
             </div>
 
             <div className={styles.boardGrid}>

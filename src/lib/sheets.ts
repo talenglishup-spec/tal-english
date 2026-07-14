@@ -10,6 +10,7 @@
  *   tags | notes
  *   model_audio_us | model_audio_uk   ← AI 모범답안 TTS (ElevenLabs, 억양 2종)
  *   level | level_order               ← 표현 레벨 (S1~) 및 레벨 내 순서 (1~5)
+ *   situation_image | situation_desc  ← 챌린지 상황 그림 URL + 1~2줄 설명 (Phase 2)
  *
  * 변경 이력:
  *   - context_tag 제거 → type(대분류)으로 대체
@@ -89,6 +90,10 @@ export type ClipItem = {
     // 표현 레벨 (MVP 중고등: S1부터 순서대로 학습·도장판·챌린지 구동)
     level: string;        // "S1", "S2", ... (빈 값 = 미배정)
     level_order: number;  // 레벨 내 순서 1~5 (0 = 미배정)
+
+    // 챌린지 상황 콘텐츠 (Phase 2 — 값이 있으면 드릴 문항에 자동 노출)
+    situation_image: string;  // 상황 그림 공개 URL (빈 값 = 미표시)
+    situation_desc: string;   // 상황 설명 1~2줄 (빈 값 = 미표시)
 
     // 메타
     tags:  string;
@@ -177,6 +182,9 @@ export async function getClipItems(): Promise<ClipItem[]> {
                     level:       (row.get('level') || '').trim(),
                     level_order: parseInt(row.get('level_order') || '0', 10) || 0,
 
+                    situation_image: row.get('situation_image') || '',
+                    situation_desc:  row.get('situation_desc')  || '',
+
                     tags:  row.get('tags')  || '',
                     notes: row.get('notes') || '',
                 } satisfies ClipItem;
@@ -234,16 +242,19 @@ export function extractYouTubeId(url: string): string | null {
 }
 
 // ── addClipItem (Google Sheets Insert Row) ────────────────────
-// model_audio_us/uk·level은 선택 — TTS/레벨 배정은 클립 추가 후 별도 단계에서 기록된다.
+// model_audio_us/uk·level·situation_*은 선택 — 클립 추가 후 별도 단계에서 기록된다.
 export type NewClipInput = Omit<
     ClipItem,
     'speak_mode' | 'model_audio_us' | 'model_audio_uk' | 'level' | 'level_order'
+    | 'situation_image' | 'situation_desc'
 > & {
     speak_mode: boolean;
     model_audio_us?: string;
     model_audio_uk?: string;
     level?: string;
     level_order?: number;
+    situation_image?: string;
+    situation_desc?: string;
 };
 
 export async function addClipItem(item: NewClipInput): Promise<boolean> {
