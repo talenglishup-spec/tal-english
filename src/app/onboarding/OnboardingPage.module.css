@@ -1,0 +1,101 @@
+.wrap {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: #ffffff;
+  color: #001C3D;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 22px calc(28px + env(safe-area-inset-bottom));
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.card {
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+}
+
+/* 진행 점 */
+.dots { display: flex; gap: 8px; margin-bottom: 6px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(10, 34, 143, 0.16); }
+.dotOn { background: #0A228F; width: 22px; border-radius: 4px; }
+
+.hero { font-size: 58px; line-height: 1; margin: 4px 0; }
+.title { font-size: 24px; font-weight: 900; color: #0A228F; margin: 0; letter-spacing: -0.02em; }
+.sub { font-size: 15px; font-weight: 600; color: #475569; margin: 0; line-height: 1.55; }
+
+.timeBox {
+  width: 100%;
+  background: #f2f6fa;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+.timeLabel { font-size: 14px; font-weight: 700; color: #001C3D; }
+.timeSelect {
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #0A228F;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.installBox {
+  width: 100%;
+  background: #f2f6fa;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 16px 18px;
+  text-align: left;
+}
+.installSteps {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: #001C3D;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.btns { width: 100%; display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+.primary {
+  width: 100%;
+  padding: 16px;
+  border: none;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #0A228F, #2563eb);
+  color: #ffffff;
+  font-size: 17px;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 8px 22px rgba(10, 34, 143, 0.28);
+}
+.primary:active { transform: scale(0.98); }
+.primary:disabled { opacity: 0.6; }
+.ghost {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 14px;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.msg { font-size: 13px; font-weight: 700; color: #b45309; min-height: 16px; margin: 2px 0 0; }

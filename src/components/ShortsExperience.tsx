@@ -227,6 +227,25 @@ export default function ShortsPage() {
           return;
         }
 
+        // 온보딩 게이트: 아직 온보딩을 안 거친 유저는 /onboarding으로.
+        // localStorage 캐시로 재방문 유저는 DB 조회를 건너뛴다.
+        if (localStorage.getItem('tal_onboarded') !== '1') {
+          try {
+            const { data: prof } = await supabase
+              .from('profiles')
+              .select('onboarded_at')
+              .eq('id', session.user.id)
+              .maybeSingle();
+            if (!prof?.onboarded_at) {
+              router.replace('/onboarding');
+              return;
+            }
+            localStorage.setItem('tal_onboarded', '1');
+          } catch (e) {
+            // 조회 실패 시 앱은 계속 진입시킨다(온보딩만 다음 기회로)
+          }
+        }
+
         const res = await fetch('/api/content/items?speak=1');
         const data = await res.json();
         // S1부터 순서대로 노출 (왕기초 원칙 — 신규 유저 진입점 고정)
