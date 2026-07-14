@@ -126,7 +126,8 @@
 }
 
 .presetBar {
-  padding: 26px 16px 12px 16px;
+  /* 상단 간격 축소 — 영상 영역을 위로 끌어올림 */
+  padding: 8px 16px 6px 16px;
   background: var(--bg-slate);
   z-index: 5;
   border-bottom: 1px solid var(--border-color);
@@ -298,17 +299,16 @@
 }
 
 .phaseBadge {
-  background: var(--tal-blue);
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  /* 투명 배경 + 흰 테두리 (영상 위에 가볍게 얹힌 느낌) */
+  background: transparent;
+  border: 1.5px solid rgba(255, 255, 255, 0.9);
   color: var(--text-light);
   padding: 6px 12px;
   border-radius: 12px;
   font-size: 11px;
   font-weight: 800;
   letter-spacing: -0.01em;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  box-shadow: 0 2px 8px rgba(0, 75, 135, 0.2);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
 .advToggle {
@@ -597,12 +597,13 @@
 }
 
 .speakStrip {
-  padding: 10px 14px 12px;
+  /* 상단 간격 축소 — 영상 영역을 위로 끌어올림 */
+  padding: 6px 14px 7px;
   background: var(--bg-slate);
   border-bottom: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 6px;
 }
 
 .sessionRow {
