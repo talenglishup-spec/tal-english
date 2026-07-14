@@ -20,7 +20,30 @@ export default function PWARegistration() {
       navigator.serviceWorker.register('/sw.js').catch((err) => {
         console.warn('[PWA] SW registration failed:', err);
       });
+
+      // 푸시 오픈 추적 ①: 앱이 이미 떠 있을 때 알림 클릭 → SW가 postMessage
+      navigator.serviceWorker.addEventListener('message', (event: MessageEvent) => {
+        if (event.data?.type === 'PUSH_OPENED' && event.data?.nid) {
+          fetch('/api/push/opened', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nid: event.data.nid }),
+          }).catch(() => {});
+        }
+      });
     }
+
+    // 푸시 오픈 추적 ②: 닫힌 상태에서 알림 클릭 → ?from=push&nid= 로 진입
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('from') === 'push' && params.get('nid')) {
+        fetch('/api/push/opened', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nid: params.get('nid') }),
+        }).catch(() => {});
+      }
+    } catch (e) {}
 
     // 2) 이미 설치(standalone)면 배너 불필요
     const standalone =

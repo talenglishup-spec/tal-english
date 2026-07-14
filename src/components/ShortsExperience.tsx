@@ -13,7 +13,9 @@ import styles from '@/app/shorts/ShortsPage.module.css';
 // /challenge 라우트에 코드 보존(추후 상급자 모드로 부활 가능).
 import ChallengeDrill from '@/components/ChallengeDrill';
 import CollectionBoard from '@/components/CollectionBoard';
+import PushSettings from '@/components/PushSettings';
 import { sortClipsByLevel, getCurrentLevel, clipsOfLevel } from '@/lib/levels';
+import { initSessionTracking, trackTabEnter } from '@/lib/track';
 
 // 활성 클립 기준 앞뒤 몇 개까지 YouTube Player 인스턴스를 살려둘지.
 // 피드의 모든 클립에 대해 플레이어를 한꺼번에 만들면 메모리/쿼터 부담이
@@ -200,6 +202,18 @@ export default function ShortsPage() {
   }, [clips, activePresetId]);
 
   const supabase = getSupabase();
+
+  // 학습 활동 추적 — 세션 시작(유입 경로 포함) + 탭별 체류시간
+  // (학습 시간대·요일별 체류·지속율 분석의 원천 데이터, /api/track로 적재)
+  useEffect(() => {
+    const fromPush = new URLSearchParams(window.location.search).get('from') === 'push';
+    initSessionTracking('home', fromPush ? 'push' : 'organic');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    trackTabEnter(activeTab);
+  }, [activeTab]);
 
   // 1. 세션 및 클립 데이터 동적 가져오기
   useEffect(() => {
@@ -1595,6 +1609,9 @@ export default function ShortsPage() {
                   </button>
                   {shareMsg && <div className={styles.myShareMsg}>{shareMsg}</div>}
                 </div>
+
+                {/* 학습 알림 설정 (웹푸시 · iOS 미설치 시 홈화면 추가 안내) */}
+                <PushSettings playerId={playerId} />
 
                 {/* 로그아웃 */}
                 <button type="button" className={styles.myLogoutBtn} onClick={handleLogout}>

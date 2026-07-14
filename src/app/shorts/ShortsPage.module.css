@@ -2364,3 +2364,52 @@
   font-weight: 600;
   margin: 4px 0 0;
 }
+
+/* ── 학습 알림 설정 (웹푸시, 마이 탭) ──────────────────── */
+.pushRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+}
+.pushLabel { font-size: 13px; font-weight: 700; color: var(--text-dark); }
+.pushToggle {
+  min-width: 56px;
+  padding: 7px 14px;
+  border-radius: 16px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-slate);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.pushToggleOn {
+  background: var(--tal-blue);
+  border-color: var(--tal-blue);
+  color: #ffffff;
+}
+.pushHourSelect {
+  padding: 7px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-white);
+  color: var(--text-dark);
+  font-size: 13px;
+  font-weight: 700;
+}
+.pushMsg { font-size: 12px; color: var(--tal-blue); font-weight: 700; margin: 6px 0 0; }
+.pushInstallGuide { display: flex; flex-direction: column; gap: 8px; }
+.pushInstallText { font-size: 13px; color: var(--text-muted); font-weight: 600; margin: 0; line-height: 1.5; }
+.pushInstallSteps {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--text-dark);
+  font-weight: 600;
+  line-height: 1.5;
+}

@@ -43,3 +43,42 @@ self.addEventListener('fetch', (event) => {
     caches.match(request).then((cached) => cached ?? fetch(request))
   );
 });
+
+// ── 웹푸시 (학습 리마인더) ────────────────────────────────
+self.addEventListener('push', (event) => {
+  let d = {};
+  try { d = event.data ? event.data.json() : {}; } catch (e) {}
+  event.waitUntil(
+    self.registration.showNotification(d.title || 'TAL English Up', {
+      body: d.body || '오늘의 훈련이 기다리고 있어요 ⚽',
+      icon: '/brand/tal-app-192.png',
+      badge: '/brand/tal-app-192.png',
+      tag: 'tal-reminder', // 같은 tag = 알림이 쌓이지 않고 최신으로 대체
+      data: { url: d.url || '/home', nid: d.nid || '' },
+    })
+  );
+});
+
+// 클릭 → 오픈 추적: 앱이 이미 떠 있으면(standalone 포함) 새 창을 못 열어
+// URL 파라미터가 전달되지 않으므로, 열린 창에는 postMessage로 nid를 전달하고
+// 닫혀 있을 때만 ?from=push&nid= 로 연다. 두 경로 모두 커버해야 오픈율이
+// 과소 집계되지 않는다.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const data = event.notification.data || {};
+  const url = data.url || '/home';
+  const nid = data.nid || '';
+
+  event.waitUntil((async () => {
+    const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    const opened = wins.find((w) => w.url.startsWith(self.location.origin));
+    if (opened) {
+      try { await opened.focus(); } catch (e) {}
+      opened.postMessage({ type: 'PUSH_OPENED', nid });
+    } else {
+      await self.clients.openWindow(
+        url + (url.includes('?') ? '&' : '?') + 'from=push&nid=' + encodeURIComponent(nid)
+      );
+    }
+  })());
+});
