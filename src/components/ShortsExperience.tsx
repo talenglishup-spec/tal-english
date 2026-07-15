@@ -4,7 +4,6 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { getSupabase } from '@/utils/supabase';
 import XPToast from '@/components/XPToast';
-import ClipProgressBar from '@/components/ClipProgressBar';
 import GuideDocent from '@/components/GuideDocent';
 import { useShortsMonitor } from '@/hooks/useShortsMonitor';
 import styles from '@/app/shorts/ShortsPage.module.css';
@@ -362,6 +361,9 @@ export default function ShortsPage() {
           // 플레이어에 맡기고, 오버레이는 이 컨트롤을 가리지 않는다(정책 준수).
           controls: 1,
           iv_load_policy: 3,
+          // 자막을 기본으로 켜지 않는다(공식 지원 파라미터 — 버튼 무력화가
+          // 아니라 기본값만 off라 정책 준수). 사용자가 CC를 직접 누르면 뜬다.
+          cc_load_policy: 0,
           rel: 0,
           playsinline: 1,
           origin: typeof window !== 'undefined' ? window.location.origin : '',
@@ -1334,16 +1336,8 @@ export default function ShortsPage() {
                                   )}
                                 </>
                               )}
-
-                              <ClipProgressBar
-                                getPlayer={() => playerRefs.current[clip.clip_id]}
-                                startSec={startSec}
-                                endSec={endSec}
-                                active={isCurrentActive}
-                                containerClassName={styles.timelineContainer}
-                                barClassName={styles.timelineBar}
-                                progressClassName={styles.timelineProgress}
-                              />
+                              {/* 커스텀 재생바 제거 — YouTube 네이티브 진행바와 중복되어
+                                  "재생바 2개"로 보이던 문제 해소(네이티브 바는 정책상 유지). */}
                             </div>
 
                             {/* muted 안내 — 활성 클립이 실제로 음소거인 동안 매 영상 노출 */}
