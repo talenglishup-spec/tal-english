@@ -52,6 +52,7 @@ export default function ChallengeDrill({ clips, passedIds, singleClip, onExit, o
   const [isScoring, setIsScoring] = useState(false);
   const [micError, setMicError] = useState('');
   const [cheer, setCheer] = useState(false);
+  const [revealed, setRevealed] = useState(false); // 영어 표현 공개 여부(탭하면 공개)
 
   // 세션 누적 (결과 화면용)
   const [xpEarned, setXpEarned] = useState(0);
@@ -87,11 +88,10 @@ export default function ChallengeDrill({ clips, passedIds, singleClip, onExit, o
   };
   useEffect(() => cleanup, []);
 
-  // ── 표현 오디오 자동 재생 (문항 진입 시) ──────────────
+  // 문항이 바뀌면 영어 표현을 다시 가린다. 오디오는 자동재생하지 않고
+  // '🔊 듣기' 버튼을 눌렀을 때만 재생한다(수정 요청 반영).
   useEffect(() => {
-    if (stage !== 'question' || !current) return;
-    playExpressionAudio();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setRevealed(false);
   }, [stage, idx]);
 
   const playExpressionAudio = () => {
@@ -451,29 +451,42 @@ export default function ChallengeDrill({ clips, passedIds, singleClip, onExit, o
         <div className={styles.drillCheer}>절반 넘었어! 잘하고 있어 💪</div>
       )}
 
-      {/* 표현 */}
+      {/* 문항: 상황 그림(크게) → 한국어(위) → 영어(가림·탭하면 공개) → 듣기 */}
       <div className={styles.drillPhraseArea}>
-        <button type="button" className={styles.drillReplay} onClick={playExpressionAudio}>🔊</button>
-        <div className={styles.drillPhrase}>{current.target_phrase}</div>
-        {current.translation && <div className={styles.drillTranslation}>{current.translation}</div>}
-
-        {/* Phase 2 — 상황 그림 + 설명 (시트에 콘텐츠가 채워지면 자동 노출) */}
-        {(current.situation_image || current.situation_desc) && (
-          <div className={styles.drillSituation}>
-            {current.situation_image && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                className={styles.drillSituationImg}
-                src={current.situation_image}
-                alt="상황 그림"
-                loading="lazy"
-              />
-            )}
-            {current.situation_desc && (
-              <div className={styles.drillSituationDesc}>{current.situation_desc}</div>
-            )}
-          </div>
+        {/* 상황 그림 — 크게 (situation_image 있을 때만 노출) */}
+        {current.situation_image && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            className={styles.drillSituationImg}
+            src={current.situation_image}
+            alt="상황 그림"
+            loading="lazy"
+          />
         )}
+
+        {/* 한국어 뜻 — 먼저(위) */}
+        {current.translation && (
+          <div className={styles.drillTransMain}>{current.translation}</div>
+        )}
+        {current.situation_desc && (
+          <div className={styles.drillSituationDesc}>{current.situation_desc}</div>
+        )}
+
+        {/* 영어 표현 — 회색 반투명 박스로 가려짐. 탭하면 공개 */}
+        <div
+          className={styles.revealWrap}
+          role="button"
+          tabIndex={0}
+          onClick={() => setRevealed(true)}
+        >
+          <span className={styles.drillPhrase}>{current.target_phrase}</span>
+          {!revealed && <span className={styles.revealMask}>👆 눌러서 영어 확인</span>}
+        </div>
+
+        {/* 오디오 듣기 — 버튼 눌렀을 때만 재생 */}
+        <button type="button" className={styles.drillReplayPill} onClick={playExpressionAudio}>
+          🔊 듣기
+        </button>
       </div>
 
       {/* 마이크 */}
