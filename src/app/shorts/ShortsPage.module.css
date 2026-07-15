@@ -238,7 +238,9 @@
   top: 0;
   left: 0;
   pointer-events: auto;
-  background: var(--bg-white);
+  /* 스크롤 전환 시 플레이어 재생성 동안의 로딩 갭이 '깨진 흰 화면'이 아니라
+     자연스러운 영상 로딩(검정)으로 보이도록 검은 배경 사용 */
+  background: #000;
 }
 
 .overlay {
@@ -2008,51 +2010,85 @@
   justify-content: center;
   gap: 12px;
   text-align: center;
-  padding: 12px 0;
+  padding: 10px 0;
+  width: 100%;
+  max-width: 380px;
+  margin: 0 auto;
 }
-.drillReplay {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  border: 1px solid rgba(10, 34, 143, 0.25);
-  background: rgba(10, 34, 143, 0.06);
-  font-size: 18px;
+
+/* 상황 그림 — 크게 (화면을 채우는 느낌) */
+.drillSituationImg {
+  width: 100%;
+  max-height: 40vh;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 18px;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 8px 24px rgba(10, 34, 143, 0.12);
+}
+.drillSituationDesc {
+  font-size: 14px;
+  color: var(--text-muted);
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+/* 한국어 뜻 — 먼저(위), 강조 */
+.drillTransMain {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text-dark);
+  line-height: 1.35;
+  word-break: keep-all;
+}
+
+/* 영어 표현 — 회색 반투명 박스로 가림 → 탭하면 공개 */
+.revealWrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 8px 16px;
+  border-radius: 14px;
   cursor: pointer;
+  max-width: 100%;
+}
+.revealMask {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(100, 116, 139, 0.92);
+  border-radius: 14px;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
 }
 .drillPhrase {
-  font-size: 34px;
+  font-size: 30px;
   font-weight: 900;
   line-height: 1.25;
   letter-spacing: -0.01em;
   word-break: keep-all;
   color: var(--tal-blue);
 }
-.drillTranslation {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-muted);
-}
 
-/* Phase 2 — 상황 그림 + 설명 (situation_image / situation_desc 있을 때만) */
-.drillSituation {
-  display: flex;
-  flex-direction: column;
+/* 오디오 듣기 — pill 버튼 (버튼 눌렀을 때만 재생) */
+.drillReplayPill {
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  max-width: 300px;
-}
-.drillSituationImg {
-  width: 100%;
-  max-height: 150px;
-  object-fit: cover;
-  border-radius: 14px;
-  border: 1px solid var(--border-color);
-}
-.drillSituationDesc {
-  font-size: 13px;
-  color: var(--text-muted);
-  font-weight: 600;
-  line-height: 1.4;
+  gap: 6px;
+  padding: 9px 18px;
+  border-radius: 20px;
+  border: 1px solid rgba(10, 34, 143, 0.25);
+  background: rgba(10, 34, 143, 0.06);
+  color: var(--tal-blue);
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
 }
 
 .drillMicArea {

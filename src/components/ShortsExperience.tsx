@@ -17,9 +17,18 @@ import { sortClipsByLevel, getCurrentLevel, clipsOfLevel } from '@/lib/levels';
 import { initSessionTracking, trackTabEnter } from '@/lib/track';
 
 // 활성 클립 기준 앞뒤 몇 개까지 YouTube Player 인스턴스를 살려둘지.
-// 피드의 모든 클립에 대해 플레이어를 한꺼번에 만들면 메모리/쿼터 부담이
-// 커지므로, 활성 ± WINDOW 범위만 유지하고 나머지는 destroy한다.
-const PLAYER_WINDOW = 1;
+// 0 = 활성 클립 하나만 플레이어를 유지한다.
+//
+// 왜 0인가: 우리 콘텐츠 모델은 인터뷰 영상 1개에서 여러 표현 클립이 나오므로
+// 인접 클립들이 같은 youtube video_id를 공유하는 경우가 흔하다. WINDOW>=1이면
+// 같은 영상을 여러 iframe이 "동시에" 로드하게 되는데, YouTube IFrame API는 이
+// 상황에서 (a) 오디오가 인스턴스 간 충돌해 이전 영상 소리가 안 꺼지고 다음
+// 영상이 무음이 되거나 (b) 3번째 동시 인스턴스부터 빈(흰) iframe으로 초기화에
+// 실패한다. 활성 하나만 유지하면 동일 영상이 동시에 겹칠 일이 없어 두 증상이
+// 모두 사라진다. (대가: 스크롤마다 플레이어 재생성 → 짧은 로딩. dwell-heavy한
+// 학습 앱 특성상 허용 가능. 추후 "다음 영상이 다른 video_id일 때만 프리로드"로
+// 최적화 여지 있음.)
+const PLAYER_WINDOW = 0;
 
 // 스픽 훈련 진행 단계 (clipId별)
 //   armed     : pause_at에서 영상이 멈추고 "말하기 시작" 버튼 대기

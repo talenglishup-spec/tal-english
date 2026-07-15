@@ -28,6 +28,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const router = useRouter();
 
     useEffect(() => {
+        /**
+         * 자체 복구: profiles 행이 어떤 이유로든 없으면(이메일 미동의 카카오 가입,
+         * 트리거 미적용 시점 가입 등) 그 자리에서 채운다. handle_new_user 트리거
+         * 하나에만 의존하지 않는 이중 방어.
+         *
+         * initUser()의 localStorage 조기 return과 무관하게 항상 실행되어야 하므로
+         * (재방문 유저가 대부분의 접속이다) 별도 함수로 분리해 세션이 있으면
+         * 무조건 호출한다. 멱등(ON CONFLICT DO NOTHING)이라 매 진입 호출해도 안전하고,
+         * 실패해도 로그인 흐름은 막지 않는다(non-blocking).
+         */
+        async function ensureProfile() {
+            try {
+                const supabase = getSupabase();
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!session?.user) return;
+                const { error } = await supabase.rpc('ensure_profile');
+                if (error) console.warn('[AuthContext] ensure_profile 실패:', error.message);
+            } catch (e) {
+                console.warn('[AuthContext] ensure_profile 호출 실패', e);
+            }
+        }
+
         async function initUser() {
             const storedUser = localStorage.getItem('tal_user');
             if (storedUser) {
@@ -56,14 +78,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     };
                     setUser(userData);
                     localStorage.setItem('tal_user', JSON.stringify(userData));
-
-                    // 자체 복구: profiles 행이 어떤 이유로든 없으면(예: 이메일 미동의
-                    // 가입, 트리거 미적용 시점 가입 등) 로그인 시점에 채운다.
-                    // 트리거 하나에만 의존하지 않는 이중 방어 — 실패해도 로그인 흐름은
-                    // 막지 않는다(non-blocking).
-                    supabase.rpc('ensure_profile').then(({ error }) => {
-                        if (error) console.warn('[AuthContext] ensure_profile 실패:', error.message);
-                    });
                 }
             } catch (e) {
                 console.error('[AuthContext] Failed to get Supabase session', e);
@@ -73,6 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         initUser();
+        ensureProfile();
     }, []);
 
     const login = async (userData: any) => {
