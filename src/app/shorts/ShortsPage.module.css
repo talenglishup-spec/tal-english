@@ -2060,12 +2060,18 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(100, 116, 139, 0.92);
+  /* 완전 불투명 — 영어 정답이 어떤 환경에서도 비쳐 보이면 안 된다 */
+  background: linear-gradient(135deg, #64748b, #475569);
   border-radius: 14px;
   color: #ffffff;
   font-size: 14px;
   font-weight: 800;
   letter-spacing: -0.01em;
+}
+/* 공개 전에는 영어 텍스트 자체를 숨긴다 (가림막 투명도와 무관하게 안전) */
+.drillPhraseHidden {
+  visibility: hidden;
+  user-select: none;
 }
 .drillPhrase {
   font-size: 30px;
@@ -2123,6 +2129,19 @@
   min-height: 16px;
 }
 .drillMicError { font-size: 12px; color: #b45309; font-weight: 700; }
+.drillSkipBtn {
+  margin-top: 4px;
+  padding: 8px 16px;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.drillSkipBtn:active { opacity: 0.6; }
 .drillScoring {
   display: flex;
   flex-direction: column;

@@ -264,6 +264,22 @@ export default function ChallengeDrill({ clips, passedIds, singleClip, onExit, o
     }, FEEDBACK_MS);
   };
 
+  // ── 넘어가기 (스킵) ──────────────────────────────────
+  // 지금 문항을 오답 처리하고 바로 다음 문항으로. 피드백 오버레이 없이 즉시 진행.
+  const skipQuestion = () => {
+    if (stage !== 'question' || isScoring || isRecording || !current) return;
+    setResults(prev => [...prev, 'fail']);
+    onResult(current.clip_id, false); // 시도 기록 (오답 → 나중에 다시)
+    setFeedback(null);
+    if (idx + 1 >= items.length) {
+      finishSession();
+    } else {
+      if (idx + 1 === 3) setCheer(true);
+      setIdx(i => i + 1);
+      setStage('question');
+    }
+  };
+
   const finishSession = async () => {
     if (!single) {
       try {
@@ -472,14 +488,20 @@ export default function ChallengeDrill({ clips, passedIds, singleClip, onExit, o
           <div className={styles.drillSituationDesc}>{current.situation_desc}</div>
         )}
 
-        {/* 영어 표현 — 회색 반투명 박스로 가려짐. 탭하면 공개 */}
+        {/* 영어 표현 — 불투명 가림막으로 가려짐. 탭하면 공개
+            (텍스트 자체도 visibility로 숨겨 가림막이 어떤 환경에서도 비치지 않게) */}
         <div
           className={styles.revealWrap}
           role="button"
           tabIndex={0}
           onClick={() => setRevealed(true)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setRevealed(true); }
+          }}
         >
-          <span className={styles.drillPhrase}>{current.target_phrase}</span>
+          <span className={`${styles.drillPhrase} ${!revealed ? styles.drillPhraseHidden : ''}`}>
+            {current.target_phrase}
+          </span>
           {!revealed && <span className={styles.revealMask}>👆 눌러서 영어 확인</span>}
         </div>
 
@@ -510,6 +532,12 @@ export default function ChallengeDrill({ clips, passedIds, singleClip, onExit, o
         <span className={styles.drillMicHint}>
           {isRecording ? '말한 뒤 버튼을 누르세요' : isScoring ? '' : '버튼을 누르고 말하세요'}
         </span>
+        {/* 넘어가기 — 지금 문항을 오답 처리하고 다음으로 */}
+        {stage === 'question' && !isRecording && !isScoring && (
+          <button type="button" className={styles.drillSkipBtn} onClick={skipQuestion}>
+            이 문제 넘어가기 →
+          </button>
+        )}
       </div>
 
       {/* 정답/오답 오버레이 */}

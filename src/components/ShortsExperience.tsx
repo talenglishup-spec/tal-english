@@ -16,19 +16,19 @@ import PushSettings from '@/components/PushSettings';
 import { sortClipsByLevel, getCurrentLevel, clipsOfLevel } from '@/lib/levels';
 import { initSessionTracking, trackTabEnter } from '@/lib/track';
 
-// 활성 클립 기준 앞뒤 몇 개까지 YouTube Player 인스턴스를 살려둘지.
-// 0 = 활성 클립 하나만 플레이어를 유지한다.
+// 활성 클립 기준 앞뒤 몇 개까지 YouTube Player 인스턴스를 프리로드/유지할지.
 //
-// 왜 0인가: 우리 콘텐츠 모델은 인터뷰 영상 1개에서 여러 표현 클립이 나오므로
-// 인접 클립들이 같은 youtube video_id를 공유하는 경우가 흔하다. WINDOW>=1이면
-// 같은 영상을 여러 iframe이 "동시에" 로드하게 되는데, YouTube IFrame API는 이
-// 상황에서 (a) 오디오가 인스턴스 간 충돌해 이전 영상 소리가 안 꺼지고 다음
-// 영상이 무음이 되거나 (b) 3번째 동시 인스턴스부터 빈(흰) iframe으로 초기화에
-// 실패한다. 활성 하나만 유지하면 동일 영상이 동시에 겹칠 일이 없어 두 증상이
-// 모두 사라진다. (대가: 스크롤마다 플레이어 재생성 → 짧은 로딩. dwell-heavy한
-// 학습 앱 특성상 허용 가능. 추후 "다음 영상이 다른 video_id일 때만 프리로드"로
-// 최적화 여지 있음.)
-const PLAYER_WINDOW = 0;
+// 1 = 활성 ±1을 미리 만들어 둔다. 반드시 필요: WINDOW=0(즉석 생성)이면 스크롤한
+// 순간 새 iframe이 아직 초기화되지 않아 "다음 영상이 검은 화면으로 멈추는" 증상이
+// 난다. 이웃을 미리 로드해 두면 스크롤 도착 시 이미 준비돼 바로 재생된다.
+//
+// 트레이드오프: 같은 video_id를 여러 iframe이 동시에 로드하면 YouTube IFrame API가
+// 3개 이상 동시 중복에서 빈(흰) 화면으로 실패할 수 있다. 현재 콘텐츠는 레벨 순
+// 정렬상 인접 클립의 영상이 대체로 교차라 동시 중복이 최대 2개 → 안전. 단, 한
+// 레벨 안에 같은 영상 클립이 3개 이상 "연속"으로 몰리면 그 구간에서 흰 화면이 날
+// 수 있다(예: S3). 근본 해결은 단일 영구 플레이어 재타깃이며, 그건 라이브 테스트가
+// 가능한 세션에서 별도로 진행한다.
+const PLAYER_WINDOW = 1;
 
 // 스픽 훈련 진행 단계 (clipId별)
 //   armed     : pause_at에서 영상이 멈추고 "말하기 시작" 버튼 대기
@@ -142,6 +142,13 @@ export default function ShortsPage() {
   const activePresetIdRef = useRef<string>('');
   const playerRefs = useRef<Record<string, any>>({});
   const containerRef = useRef<HTMLDivElement | null>(null);
+
+  // 플레이어 자가치유(black screen 방지): 활성 클립 플레이어가 제한 시간 안에
+  // 재생을 시작하지 못하면 1회 재생성한다.
+  const playerWatchdogRef = useRef<Record<string, any>>({});      // clipId → timeout id
+  const recreateTriedRef = useRef<Record<string, boolean>>({});   // clipId → 재생성 1회 제한
+  const soundRestoreTriedRef = useRef<Record<string, boolean>>({}); // clipId → unMute 시도 1회 제한
+  const [playerRecreateNonce, setPlayerRecreateNonce] = useState(0); // 워치독 → 생성 effect 재실행 트리거
 
   // 재생 감시 엔진 (배속 3단계 전이 · pause_at 자동 정지 · 버퍼링 가드)
   const monitor = useShortsMonitor();
@@ -346,7 +353,24 @@ export default function ShortsPage() {
 
     const YT = (window as any).YT;
 
-    // (a) 윈도우 안에 있는데 아직 플레이어가 없는 클립 → 생성
+    // (a) 윈도우 밖으로 나간 플레이어 → 먼저 파괴.
+    //     생성보다 파괴를 먼저 해야 같은 video_id를 쓰는 이전 클립의 iframe과
+    //     새 iframe이 한순간도 공존하지 않는다(동시 중복 인스턴스 = 빈 화면 초기화 원인).
+    Object.keys(playerRefs.current).forEach((clipId) => {
+      if (mountedIds.has(clipId)) return;
+      if (playerWatchdogRef.current[clipId]) {
+        clearTimeout(playerWatchdogRef.current[clipId]);
+        delete playerWatchdogRef.current[clipId];
+      }
+      delete soundRestoreTriedRef.current[clipId];
+      delete recreateTriedRef.current[clipId];
+      try { playerRefs.current[clipId].destroy(); } catch (e) {}
+      delete playerRefs.current[clipId];
+      const host = document.getElementById(`yt-host-${clipId}`);
+      if (host) host.innerHTML = '';
+    });
+
+    // (b) 윈도우 안에 있는데 아직 플레이어가 없는 클립 → 생성
     mountedIds.forEach((clipId) => {
       if (playerRefs.current[clipId]) return;
       const clip = clips.find(c => c.clip_id === clipId);
@@ -384,12 +408,12 @@ export default function ShortsPage() {
             event.target.seekTo(startSec, true);
 
             if (clip.clip_id === activePresetIdRef.current) {
-              // 경쟁(race) 제거: 여기서 다시 mute()를 호출하지 않는다.
-              // muted 자동재생만 하고, 사용자 제스처가 있었을 때만 unMute.
+              // 반드시 muted로 재생을 시작한다. 새 iframe에 unMute+play를 걸면
+              // 자동재생 정책이 재생 자체를 차단해 검은 화면이 되는 기기가 있다.
+              // 소리는 PLAYING 진입 후 maybeRestoreSound가 안전하게 복원한다.
               setTimeout(() => {
                 try {
                   event.target.seekTo(startSec, true);
-                  if (hasInteractedRef.current) event.target.unMute();
                   event.target.playVideo();
                   setIsPlaying(true);
                 } catch (e) {}
@@ -400,6 +424,12 @@ export default function ShortsPage() {
             const state = event.data;
             if (clip.clip_id === activePresetIdRef.current) {
               if (state === YT.PlayerState.PLAYING) {
+                // 재생 시작 확인 → 워치독 해제 + (제스처 이력 있으면) 소리 복원
+                if (playerWatchdogRef.current[clip.clip_id]) {
+                  clearTimeout(playerWatchdogRef.current[clip.clip_id]);
+                  delete playerWatchdogRef.current[clip.clip_id];
+                }
+                maybeRestoreSound(clip.clip_id, event.target);
                 setIsPlaying(true);
                 // 스픽 오버레이(모범 답안 재생 등)가 떠 있는 중엔 감시 루프를
                 // 재가동하지 않는다 — 발화 종료(넘어가기) 시 명시적으로 재시작.
@@ -411,25 +441,47 @@ export default function ShortsPage() {
                 setIsPlaying(false);
               }
             }
+          },
+          onError: (event: any) => {
+            // 2=잘못된 파라미터, 5=HTML5 오류, 100=영상 없음, 101/150=임베드 금지
+            console.error(`[Shorts] YT player error clip=${clipId} code=${event?.data}`);
           }
         }
       });
-    });
 
-    // (b) 윈도우 밖으로 나갔는데 아직 살아있는 플레이어 → 파괴
-    Object.keys(playerRefs.current).forEach((clipId) => {
-      if (mountedIds.has(clipId)) return;
-      try { playerRefs.current[clipId].destroy(); } catch (e) {}
-      delete playerRefs.current[clipId];
-      const host = document.getElementById(`yt-host-${clipId}`);
-      if (host) host.innerHTML = '';
+      // 워치독: 활성 클립인데 제한 시간 안에 재생(또는 사용자 정지 등 정상 상태)에
+      // 도달하지 못하면 플레이어를 1회 재생성한다 — iframe 초기화가 조용히
+      // 실패해 검은 화면으로 남는 케이스의 자가치유.
+      if (clipId === activePresetIdRef.current && !recreateTriedRef.current[clipId]) {
+        if (playerWatchdogRef.current[clipId]) clearTimeout(playerWatchdogRef.current[clipId]);
+        playerWatchdogRef.current[clipId] = setTimeout(() => {
+          delete playerWatchdogRef.current[clipId];
+          if (clipId !== activePresetIdRef.current) return; // 이미 다른 클립으로 이동
+          let st: any = null;
+          try { st = playerRefs.current[clipId]?.getPlayerState?.(); } catch (e) {}
+          // 0=종료 1=재생 2=일시정지 3=버퍼링 → 정상. -1/5/undefined/예외 → 죽은 것
+          const healthy = st === 0 || st === 1 || st === 2 || st === 3;
+          if (healthy) return;
+          console.warn(`[Shorts] watchdog: recreating stuck player clip=${clipId} state=${st}`);
+          recreateTriedRef.current[clipId] = true;
+          try { playerRefs.current[clipId]?.destroy?.(); } catch (e) {}
+          delete playerRefs.current[clipId];
+          const h = document.getElementById(`yt-host-${clipId}`);
+          if (h) h.innerHTML = '';
+          setPlayerRecreateNonce(n => n + 1); // 이 effect 재실행 → (b)에서 재생성
+        }, 5000);
+      }
     });
-  }, [isApiReady, clips, mountedIds]);
+  }, [isApiReady, clips, mountedIds, playerRecreateNonce]);
 
   // 언마운트 시 감시 루프 및 전 플레이어 정리
   useEffect(() => {
     return () => {
       stopMonitoring();
+      Object.keys(playerWatchdogRef.current).forEach((clipId) => {
+        clearTimeout(playerWatchdogRef.current[clipId]);
+      });
+      playerWatchdogRef.current = {};
       Object.keys(playerRefs.current).forEach((clipId) => {
         try { playerRefs.current[clipId].destroy(); } catch (e) {}
       });
@@ -489,8 +541,8 @@ export default function ShortsPage() {
       const player = playerRefs.current[activePresetIdRef.current];
       if (player && player.playVideo) {
         try {
-          // 제스처가 있었을 때만 소리를 켠다(정책 준수 + race 방지)
-          if (hasInteractedRef.current) player.unMute();
+          // unMute를 먼저 걸지 않는다 — 정책이 unMute+play를 차단하면 재생이
+          // 멈춘다. muted 상태 그대로 재생하고, 소리는 PLAYING 후 복원 로직/칩이 담당.
           player.playVideo();
           setIsPlaying(true);
         } catch (e) {}
@@ -541,8 +593,8 @@ export default function ShortsPage() {
         nextPlayer.seekTo(startSec, true);
         setTimeout(() => {
           try {
-            // 스크롤 전환도 제스처 여부에 따라서만 unMute (첫 로드 자동스냅은 muted)
-            if (hasInteractedRef.current) nextPlayer.unMute();
+            // muted 상태 그대로 재생 시작 — 소리는 PLAYING 후 복원 로직이 담당
+            // (unMute를 먼저 걸면 정책 차단 시 재생 자체가 막혀 검은 화면이 됨)
             nextPlayer.playVideo();
             setIsPlaying(true);
           } catch(err){}
@@ -598,6 +650,26 @@ export default function ShortsPage() {
 
   const stopMonitoring = () => {
     monitor.stop();
+  };
+
+  // 재생 확인 후 소리 복원 — 새로 만든 플레이어는 항상 muted로 먼저 재생을
+  // 시작한다(자동재생 정책상 unMute+play 는 기기별로 차단되어 검은 화면이 됨).
+  // PLAYING 진입 후에 unMute를 시도하고, 정책이 거부해 재생이 멈추면 즉시
+  // muted로 되돌려 재생을 유지한다(이때는 기존 "🔇 탭하여 소리 켜기" 칩이 안내).
+  const maybeRestoreSound = (clipId: string, player: any) => {
+    if (!hasInteractedRef.current) return;
+    if (soundRestoreTriedRef.current[clipId]) return;
+    soundRestoreTriedRef.current[clipId] = true;
+    try {
+      if (typeof player.isMuted === 'function' && !player.isMuted()) return;
+      player.unMute();
+      setTimeout(() => {
+        try {
+          const st = player.getPlayerState?.();
+          if (st !== 1 /* PLAYING */) { player.mute(); player.playVideo(); }
+        } catch (e) {}
+      }, 400);
+    } catch (e) {}
   };
 
   // 소리 켜기 — 실제 제스처(칩/중앙 탭/🎙️ 버튼) 안에서만 호출한다.
