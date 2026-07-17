@@ -74,7 +74,6 @@ export async function POST(req: NextRequest) {
       const generatedClip: NewClipInput = {
         clip_id: 'ai-clip-' + Math.floor(Math.random() * 9000 + 1000),
         title_ko: randomPlayer + ' AI 추출 전술 훈련 (' + (target_phrase || '주변 확보') + ')',
-        title_en: randomPlayer + ' Drill - ' + (target_phrase || 'Look around'),
         youtube_url,
         player_name: randomPlayer,
         position_tag: randomPlayer === 'PEP' ? 'ALL' : 'FW',
@@ -86,10 +85,8 @@ export async function POST(req: NextRequest) {
         pause_at: 14.5,
         target_phrase: target_phrase || 'We need to keep the shape',
         nuance_desc: 'AI 분석 결과, 감독 또는 필드 리더가 전술적 경기 대형을 유지하며 안정된 공수 밸런스를 가져가도록 경기 흐름 속에서 다급히 전술적 피드백을 전달하는 표현입니다.',
-        similar_expressions: 'Hold the line, Stay compact, Maintain organization',
         audio_explanation_url: 'https://api.elevenlabs.io/v1/history/mock-synthetic-voice.mp3',
         translation: '',
-        tags: 'mock_ai, ' + randomPlayer.toLowerCase(),
         notes: 'Mock AI Engine Auto-generated row'
       };
 

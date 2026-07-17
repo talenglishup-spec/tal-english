@@ -14,7 +14,6 @@ interface ClipItem {
   subtype: string;
   target_phrase: string;
   nuance_desc: string;
-  similar_expressions: string;
   speak_mode: boolean;
   pause_at: number;
 }
@@ -240,11 +239,6 @@ export default function ShortsPlayer({ clip, isActive, onNext, onPrev, isFirst, 
           <div className={styles.modalContent}>
             <h3 className={styles.modalTitle}>📢 표현 뉘앙스</h3>
             <p className={styles.modalDesc}>{clip.nuance_desc}</p>
-            
-            <div className={styles.modalExpressions}>
-              <span className={styles.modalExpLabel}>원어민 유사 표현</span>
-              <span className={styles.modalExpText}>{clip.similar_expressions}</span>
-            </div>
 
             <button type="button" onClick={handleCloseNuance} className={styles.btnModalClose}>
               돌아가기

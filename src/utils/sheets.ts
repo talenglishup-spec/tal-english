@@ -23,23 +23,6 @@ const auth = new JWT({
 
 const doc = new GoogleSpreadsheet(SHEET_ID as string, auth);
 
-/**
- * 구글 시트에서 시간 셀로 서식된 값("3:20", "1:03:20")과 순수 초 단위 숫자
- * 문자열("200")을 모두 초 단위 숫자로 변환한다.
- * parseFloat("3:20")은 콜론 이전의 "3"만 읽어버려 분:초 구간이 통째로
- * 잘못 인식되는 문제가 있어 별도 파서로 처리한다.
- */
-function parseSeconds(raw: string | undefined): number {
-    if (!raw) return 0;
-    const str = String(raw).trim();
-    if (!str) return 0;
-    if (!str.includes(':')) return parseFloat(str) || 0;
-
-    const parts = str.split(':').map(p => Number(p.trim()));
-    if (parts.some(p => Number.isNaN(p))) return 0;
-    return parts.reduce((acc, p) => acc * 60 + p, 0);
-}
-
 // --- Existing Types ---
 // --- Existing Types ---
 export type AttemptRow = {
@@ -236,21 +219,6 @@ export type InterviewQuestionRow = {
     sample_answer?: string;
     scenario_tags?: string;
     hint_keywords?: string;
-};
-
-export type ClipRow = {
-    active: boolean;
-    clip_id: string;
-    title_ko: string;
-    title_en: string;
-    context_tag: string;
-    player_name: string;
-    start_sec: number;
-    end_sec: number;
-    video_url: string;
-    translation?: string;
-    tags: string;
-    notes: string;
 };
 
 export type InterviewFollowupRow = {
@@ -1113,27 +1081,6 @@ export async function updateItem(itemId: string, updates: Partial<TrainingItem>)
     if (updates.question_audio_source !== undefined) row.set('question_audio_source', updates.question_audio_source);
 
     await row.save();
-}
-
-export async function getClips() {
-    const sheet = await getSheet('Clips');
-    if (!sheet) return [];
-
-    const rows = await sheet.getRows();
-    return rows.map(r => ({
-        active: r.get('active') === 'TRUE' || r.get('active') === 'true' || r.get('active') === true,
-        clip_id: r.get('clip_id') || '',
-        title_ko: r.get('title_ko') || '',
-        title_en: r.get('title_en') || '',
-        context_tag: r.get('context_tag') || '',
-        player_name: r.get('player_name') || '',
-        start_sec: parseSeconds(r.get('start_sec')),
-        end_sec: parseSeconds(r.get('end_sec')),
-        video_url: r.get('video_url') || '',
-        translation: r.get('translation') || '',
-        tags: r.get('tags') || '',
-        notes: r.get('notes') || ''
-    })).filter(c => c.active);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

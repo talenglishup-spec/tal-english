@@ -2,18 +2,21 @@
  * TAL — Google Sheets client
  * Path: src/lib/sheets.ts
  *
- * Google Sheet "Clips" 탭 컬럼 순서 (정확히 일치해야 함):
- *   active | clip_id | title_ko | title_en | youtube_url | player_name
+ * Google Sheet "Clips" 탭에서 읽는 컬럼 (이름 기반 매핑 — 시트 내 순서 무관):
+ *   active | clip_id | title_ko | youtube_url | player_name
  *   position_tag | type | subtype
  *   start_sec | end_sec | speak_mode | pause_at | target_phrase
- *   nuance_desc | similar_expressions | audio_explanation_url
- *   tags | notes
+ *   nuance_desc | audio_explanation_url | translation
  *   model_audio_us | model_audio_uk   ← AI 모범답안 TTS (ElevenLabs, 억양 2종)
  *   level | level_order               ← 표현 레벨 (S1~) 및 레벨 내 순서 (1~5)
  *   situation_image | situation_desc  ← 챌린지 상황 그림 URL + 1~2줄 설명 (Phase 2)
+ *   notes
+ *
+ * ※ 모든 컬럼은 row.get(name)으로 읽으므로 시트 내 컬럼 순서는 무관하다.
  *
  * 변경 이력:
  *   - context_tag 제거 → type(대분류)으로 대체
+ *   - title_en / tags / similar_expressions 컬럼 제거 (2026-07, 미사용 정리)
  *   - start_sec, end_sec 추가 (useYouTubePlayer의 startAt/endAt에 대응)
  *   - cloze 관련 필드 제거 (Shorts Speak Mode로 대체)
  *   - Scope: spreadsheets (읽기+쓰기, Phase 6 어드민 자동화용)
@@ -59,7 +62,6 @@ export type ClipSubtype =
 export type ClipItem = {
     clip_id:     string;
     title_ko:    string;
-    title_en:    string;
     youtube_url: string;    // https://youtu.be/xxxxx 또는 https://youtube.com/watch?v=xxxxx
     player_name: string;
 
@@ -79,7 +81,6 @@ export type ClipItem = {
 
     // 뉘앙스 설명 팝업
     nuance_desc:           string;  // 한국어 뉘앙스 설명
-    similar_expressions:   string;  // 유사 표현 (콤마 구분)
     audio_explanation_url: string;  // ElevenLabs TTS 오디오 URL
     translation:           string;  // 한국어 번역 (Sheets 'translation' 컬럼)
 
@@ -96,7 +97,6 @@ export type ClipItem = {
     situation_desc: string;   // 상황 설명 1~2줄 (빈 값 = 미표시)
 
     // 메타
-    tags:  string;
     notes: string;
 };
 
@@ -156,7 +156,6 @@ export async function getClipItems(): Promise<ClipItem[]> {
                 return {
                     clip_id:     row.get('clip_id')     || '',
                     title_ko:    row.get('title_ko')    || '',
-                    title_en:    row.get('title_en')    || '',
                     youtube_url: row.get('youtube_url') || '',
                     player_name: row.get('player_name') || '',
 
@@ -172,7 +171,6 @@ export async function getClipItems(): Promise<ClipItem[]> {
                     target_phrase: row.get('target_phrase') || '',
 
                     nuance_desc:           row.get('nuance_desc')           || '',
-                    similar_expressions:   row.get('similar_expressions')   || '',
                     audio_explanation_url: row.get('audio_explanation_url') || '',
                     translation:           row.get('translation')           || '',
 
@@ -185,7 +183,6 @@ export async function getClipItems(): Promise<ClipItem[]> {
                     situation_image: row.get('situation_image') || '',
                     situation_desc:  row.get('situation_desc')  || '',
 
-                    tags:  row.get('tags')  || '',
                     notes: row.get('notes') || '',
                 } satisfies ClipItem;
             })
@@ -270,7 +267,6 @@ export async function addClipItem(item: NewClipInput): Promise<boolean> {
             active: 'TRUE',
             clip_id: item.clip_id,
             title_ko: item.title_ko,
-            title_en: item.title_en,
             youtube_url: item.youtube_url,
             player_name: item.player_name,
             position_tag: item.position_tag,
@@ -282,12 +278,10 @@ export async function addClipItem(item: NewClipInput): Promise<boolean> {
             pause_at: String(item.pause_at),
             target_phrase: item.target_phrase,
             nuance_desc: item.nuance_desc,
-            similar_expressions: item.similar_expressions,
             audio_explanation_url: item.audio_explanation_url,
             translation: item.translation,
             model_audio_us: item.model_audio_us || '',
             model_audio_uk: item.model_audio_uk || '',
-            tags: item.tags,
             notes: item.notes
         });
 

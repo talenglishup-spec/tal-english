@@ -26,7 +26,6 @@ export async function GET() {
       .filter(row => row.get('active') === 'FALSE')
       .map(row => ({
         clip_id: row.get('clip_id'),
-        title_en: row.get('title_en'),
         player_name: row.get('player_name'),
         youtube_url: row.get('youtube_url'),
         video_id: row.get('youtube_url')?.split('youtu.be/')[1] || row.get('youtube_url')?.split('v=')[1],

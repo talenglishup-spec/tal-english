@@ -14,7 +14,6 @@ interface ClipItem {
   subtype: string;
   target_phrase: string;
   nuance_desc: string;
-  similar_expressions: string;
   speak_mode: boolean;
   pause_at: number;
 }
