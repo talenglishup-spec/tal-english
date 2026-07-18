@@ -366,19 +366,25 @@ export default function ShortsPage() {
   // 레이어로 항상 DOM에 존재한다. React가 host 자식을 관리하지 않으므로
   // YT의 DOM 조작과 재조정이 충돌하지 않는다.
   useEffect(() => {
-    if (!isApiReady || clips.length === 0) return;
+    // loading 가드가 핵심: setClips 직후 await(합격 이력 로드) 때문에
+    // "clips는 있는데 loading=true"인 중간 렌더가 존재하고, 그 렌더는 로딩
+    // 조기 return이라 #yt-single-host가 DOM에 없다. 그 시점에 이 effect가
+    // 돌면 host 부재로 생성이 조용히 실패하고 다시는 재시도되지 않아
+    // "영상·소리·컨트롤 전부 없음"이 됐다. loading을 deps에 넣어 메인 JSX
+    // (host 포함)가 커밋된 뒤에 생성한다.
+    if (loading || !isApiReady || clips.length === 0) return;
     if (singlePlayerRef.current) return;
 
     const YT = (window as any).YT;
     const firstClip = clips.find(c => c.clip_id === activePresetIdRef.current) || clips[0];
     const vId = getYoutubeId(firstClip.youtube_url);
     const host = document.getElementById('yt-single-host');
-    // 진단 로그 — 실기기에서 생성이 어느 단계에서 멈추는지 콘솔로 특정
-    console.log('[Shorts] 단일 플레이어 생성 시도:', {
+    // 진단 로그 — 생성이 어느 단계에서 멈추는지 콘솔로 특정
+    console.log('[Shorts] 단일 플레이어 생성 시도: ' + JSON.stringify({
       video: vId, clip: firstClip.clip_id, hostExists: !!host, hasYT: !!(YT && YT.Player),
-    });
+    }));
     if (!vId || !host) {
-      console.warn('[Shorts] 생성 중단 — vId 또는 host 없음');
+      console.warn('[Shorts] 생성 중단 — vId=' + JSON.stringify(vId) + ' host=' + !!host);
       return;
     }
 
@@ -451,7 +457,7 @@ export default function ShortsPage() {
       },
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isApiReady, clips]);
+  }, [loading, isApiReady, clips]);
 
   // 언마운트 시 감시 루프 및 플레이어 정리
   useEffect(() => {
@@ -486,14 +492,35 @@ export default function ShortsPage() {
     };
 
     const observer = new IntersectionObserver(observerCallback, observerOptions);
-    
+
     clips.forEach((clip) => {
       const el = document.getElementById(`card-${clip.clip_id}`);
       if (el) observer.observe(el);
     });
 
+    // 스크롤 기반 폴백 — IO 콜백이 오지 않는 환경(일부 임베디드/헤드리스
+    // WebView 등)에서도 스냅 전환이 동작하도록 한다. IO가 정상인 기기에선
+    // IO가 먼저 전환을 처리하고 여기선 같은 clipId라 no-op이 된다.
+    const el = containerRef.current;
+    let scrollDebounce: any = null;
+    const onScrollEnd = () => {
+      if (scrollDebounce) clearTimeout(scrollDebounce);
+      scrollDebounce = setTimeout(() => {
+        const c = containerRef.current;
+        if (!c || c.clientHeight === 0) return;
+        const idx = Math.max(0, Math.min(clips.length - 1, Math.round(c.scrollTop / c.clientHeight)));
+        const clip = clips[idx];
+        if (clip && clip.clip_id !== activePresetIdRef.current) {
+          handlePresetTransition(clip.clip_id);
+        }
+      }, 150);
+    };
+    el?.addEventListener('scroll', onScrollEnd, { passive: true });
+
     return () => {
       observer.disconnect();
+      if (scrollDebounce) clearTimeout(scrollDebounce);
+      el?.removeEventListener('scroll', onScrollEnd);
     };
   }, [clips]);
 
