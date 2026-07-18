@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { getSupabase } from '@/utils/supabase';
 import XPToast from '@/components/XPToast';
@@ -16,19 +16,24 @@ import PushSettings from '@/components/PushSettings';
 import { sortClipsByLevel, getCurrentLevel, clipsOfLevel } from '@/lib/levels';
 import { initSessionTracking, trackTabEnter } from '@/lib/track';
 
-// 활성 클립 기준 앞뒤 몇 개까지 YouTube Player 인스턴스를 프리로드/유지할지.
+// ── 플레이어 아키텍처: 단일 영구 플레이어 ──────────────────────────
+// YouTube 플레이어(iframe)를 딱 1개만 만들어 스크롤 피드 "뒤" 고정 레이어에
+// 두고, 클립 전환 시 파괴/재생성 없이 그 하나를 재타깃한다:
+//   · 같은 video_id → seekTo(start)만 (즉시 전환)
+//   · 다른 video_id → loadVideoById (플레이어는 이미 초기화된 상태)
 //
-// 1 = 활성 ±1을 미리 만들어 둔다. 반드시 필요: WINDOW=0(즉석 생성)이면 스크롤한
-// 순간 새 iframe이 아직 초기화되지 않아 "다음 영상이 검은 화면으로 멈추는" 증상이
-// 난다. 이웃을 미리 로드해 두면 스크롤 도착 시 이미 준비돼 바로 재생된다.
+// 왜 이렇게 하는가 — per-clip iframe 방식은 두 함정을 피할 수 없었다:
+//   (a) 스크롤 시점 즉석 생성(window=0): 새 iframe이 준비되기 전에 도착 → 검은 화면
+//   (b) 이웃 프리로드(window≥1): 우리 콘텐츠는 인터뷰 영상 1개에서 표현 여러 개가
+//       나와 인접 클립이 같은 video_id를 공유 → 같은 영상의 동시 중복 임베드 →
+//       두 번째 인스턴스부터 검은 화면
+// 단일 인스턴스 재타깃은 두 함정 모두 원리적으로 제거한다 (쇼츠형 웹 표준 패턴).
 //
-// 트레이드오프: 같은 video_id를 여러 iframe이 동시에 로드하면 YouTube IFrame API가
-// 3개 이상 동시 중복에서 빈(흰) 화면으로 실패할 수 있다. 현재 콘텐츠는 레벨 순
-// 정렬상 인접 클립의 영상이 대체로 교차라 동시 중복이 최대 2개 → 안전. 단, 한
-// 레벨 안에 같은 영상 클립이 3개 이상 "연속"으로 몰리면 그 구간에서 흰 화면이 날
-// 수 있다(예: S3). 근본 해결은 단일 영구 플레이어 재타깃이며, 그건 라이브 테스트가
-// 가능한 세션에서 별도로 진행한다.
-const PLAYER_WINDOW = 1;
+// 포인터 모델(정책 준수 유지): 플레이어 레이어(z0)는 pointer-events:auto —
+// 네이티브 컨트롤/로고 직접 클릭 가능. 스크롤 컨테이너(z1)는 pointer-events:none
+// 이라 터치가 iframe에 도달하고, iframe 위 세로 스와이프는 브라우저 스크롤
+// 체이닝으로 부모 스크롤러(컨테이너)를 굴린다(기존 per-clip 구조와 동일한 원리).
+// 조작 UI(자막 토글·Speak·칩·스픽 오버레이)만 개별 pointer-events:auto.
 
 // 스픽 훈련 진행 단계 (clipId별)
 //   armed     : pause_at에서 영상이 멈추고 "말하기 시작" 버튼 대기
@@ -140,15 +145,13 @@ export default function ShortsPage() {
   const [scores, setScores] = useState<Record<string, number>>({});
 
   const activePresetIdRef = useRef<string>('');
-  const playerRefs = useRef<Record<string, any>>({});
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  // 플레이어 자가치유(black screen 방지): 활성 클립 플레이어가 제한 시간 안에
-  // 재생을 시작하지 못하면 1회 재생성한다.
-  const playerWatchdogRef = useRef<Record<string, any>>({});      // clipId → timeout id
-  const recreateTriedRef = useRef<Record<string, boolean>>({});   // clipId → 재생성 1회 제한
+  // 단일 영구 플레이어 (파일 상단 아키텍처 주석 참조)
+  const singlePlayerRef = useRef<any>(null);
+  const loadedVideoIdRef = useRef<string>('');  // 현재 플레이어에 로드된 video_id
+  const getPlayer = () => singlePlayerRef.current; // 활성 클립 문맥 공용 접근자
   const soundRestoreTriedRef = useRef<Record<string, boolean>>({}); // clipId → unMute 시도 1회 제한
-  const [playerRecreateNonce, setPlayerRecreateNonce] = useState(0); // 워치독 → 생성 effect 재실행 트리거
 
   // 재생 감시 엔진 (배속 3단계 전이 · pause_at 자동 정지 · 버퍼링 가드)
   const monitor = useShortsMonitor();
@@ -203,18 +206,6 @@ export default function ShortsPage() {
     }, 1000);
     return () => clearInterval(id);
   }, []);
-
-  // 활성 클립 기준 윈도우 안에 들어오는 clip_id 집합 (플레이어 생성 대상)
-  const mountedIds = useMemo(() => {
-    const ids = new Set<string>();
-    if (clips.length === 0) return ids;
-    const idx = clips.findIndex(c => c.clip_id === activePresetId);
-    const center = idx < 0 ? 0 : idx;
-    for (let i = center - PLAYER_WINDOW; i <= center + PLAYER_WINDOW; i++) {
-      if (clips[i]) ids.add(clips[i].clip_id);
-    }
-    return ids;
-  }, [clips, activePresetId]);
 
   const supabase = getSupabase();
 
@@ -343,149 +334,124 @@ export default function ShortsPage() {
     };
   }, []);
 
-  // 3. 윈도우 기반 유튜브 플레이어 생성/파괴 (활성 ± PLAYER_WINDOW만 유지)
-  //    React가 관리하는 host div(<div id="yt-host-...">)는 항상 렌더링되고,
-  //    그 안에 imperative하게 자식 div를 만들어 YT.Player를 붙인다. React는
-  //    host의 자식을 JSX로 관리하지 않으므로, 플레이어를 destroy할 때
-  //    React 재조정과 YT의 DOM 조작이 충돌하지 않는다.
+  // 3. 단일 영구 플레이어를 활성 클립으로 재타깃한다 (파괴/재생성 없음).
+  //    같은 영상이면 seek만, 다른 영상이면 loadVideoById — 두 경우 모두
+  //    "이미 초기화된 플레이어"라 검은 화면 함정이 없다.
+  const activateClip = (clipId: string) => {
+    const player = singlePlayerRef.current;
+    const list = clipsRef.current.length > 0 ? clipsRef.current : clips;
+    const clip = list.find((c: any) => c.clip_id === clipId);
+    if (!player || !clip) return;
+    const vId = getYoutubeId(clip.youtube_url);
+    if (!vId) return;
+    const start = Number(clip.start_sec || 0);
+    try {
+      player.setPlaybackRate?.(1.0);
+      if (loadedVideoIdRef.current === vId) {
+        player.seekTo(start, true);
+        player.playVideo();
+      } else {
+        loadedVideoIdRef.current = vId;
+        // loadVideoById는 로드 완료 후 자동 재생한다. mute 여부는 플레이어
+        // 속성이라 그대로 유지된다(첫 제스처 전엔 muted → 정책 안전).
+        player.loadVideoById({ videoId: vId, startSeconds: start });
+      }
+      setIsPlaying(true);
+    } catch (e) {
+      console.error('[Shorts] activateClip 실패:', e);
+    }
+  };
+
+  // 단일 플레이어 생성 (1회). host(#yt-single-host)는 쇼츠 스테이지의 고정
+  // 레이어로 항상 DOM에 존재한다. React가 host 자식을 관리하지 않으므로
+  // YT의 DOM 조작과 재조정이 충돌하지 않는다.
   useEffect(() => {
-    if (!isApiReady) return;
+    if (!isApiReady || clips.length === 0) return;
+    if (singlePlayerRef.current) return;
 
     const YT = (window as any).YT;
+    const firstClip = clips.find(c => c.clip_id === activePresetIdRef.current) || clips[0];
+    const vId = getYoutubeId(firstClip.youtube_url);
+    const host = document.getElementById('yt-single-host');
+    if (!vId || !host) return;
 
-    // (a) 윈도우 밖으로 나간 플레이어 → 먼저 파괴.
-    //     생성보다 파괴를 먼저 해야 같은 video_id를 쓰는 이전 클립의 iframe과
-    //     새 iframe이 한순간도 공존하지 않는다(동시 중복 인스턴스 = 빈 화면 초기화 원인).
-    Object.keys(playerRefs.current).forEach((clipId) => {
-      if (mountedIds.has(clipId)) return;
-      if (playerWatchdogRef.current[clipId]) {
-        clearTimeout(playerWatchdogRef.current[clipId]);
-        delete playerWatchdogRef.current[clipId];
-      }
-      delete soundRestoreTriedRef.current[clipId];
-      delete recreateTriedRef.current[clipId];
-      try { playerRefs.current[clipId].destroy(); } catch (e) {}
-      delete playerRefs.current[clipId];
-      const host = document.getElementById(`yt-host-${clipId}`);
-      if (host) host.innerHTML = '';
-    });
+    const mountDiv = document.createElement('div');
+    mountDiv.style.width = '100%';
+    mountDiv.style.height = '100%';
+    host.appendChild(mountDiv);
+    loadedVideoIdRef.current = vId;
 
-    // (b) 윈도우 안에 있는데 아직 플레이어가 없는 클립 → 생성
-    mountedIds.forEach((clipId) => {
-      if (playerRefs.current[clipId]) return;
-      const clip = clips.find(c => c.clip_id === clipId);
-      if (!clip) return;
-      const vId = getYoutubeId(clip.youtube_url);
-      const host = document.getElementById(`yt-host-${clipId}`);
-      if (!vId || !host) return;
-
-      const mountDiv = document.createElement('div');
-      mountDiv.style.width = '100%';
-      mountDiv.style.height = '100%';
-      host.appendChild(mountDiv);
-
-      playerRefs.current[clipId] = new YT.Player(mountDiv, {
-        videoId: vId,
-        playerVars: {
-          autoplay: 0,
-          // controls:1 — 네이티브 컨트롤(재생/정지·진행바·볼륨·전체화면·YouTube
-          // 로고)을 노출한다. Developer Policy III.I.4 / RMF는 이 컨트롤을 숨기는
-          // 것(controls:0)을 금지하므로 반드시 1을 유지한다. 재생/정지는 네이티브
-          // 플레이어에 맡기고, 오버레이는 이 컨트롤을 가리지 않는다(정책 준수).
-          controls: 1,
-          iv_load_policy: 3,
-          // 자막을 기본으로 켜지 않는다(공식 지원 파라미터 — 버튼 무력화가
-          // 아니라 기본값만 off라 정책 준수). 사용자가 CC를 직접 누르면 뜬다.
-          cc_load_policy: 0,
-          rel: 0,
-          playsinline: 1,
-          origin: typeof window !== 'undefined' ? window.location.origin : '',
-        },
-        events: {
-          onReady: (event: any) => {
-            event.target.mute();
-            const startSec = Number(clip.start_sec || 0);
-            event.target.seekTo(startSec, true);
-
-            if (clip.clip_id === activePresetIdRef.current) {
-              // 반드시 muted로 재생을 시작한다. 새 iframe에 unMute+play를 걸면
-              // 자동재생 정책이 재생 자체를 차단해 검은 화면이 되는 기기가 있다.
-              // 소리는 PLAYING 진입 후 maybeRestoreSound가 안전하게 복원한다.
-              setTimeout(() => {
-                try {
-                  event.target.seekTo(startSec, true);
-                  event.target.playVideo();
-                  setIsPlaying(true);
-                } catch (e) {}
-              }, 300);
-            }
-          },
-          onStateChange: (event: any) => {
-            const state = event.data;
-            if (clip.clip_id === activePresetIdRef.current) {
-              if (state === YT.PlayerState.PLAYING) {
-                // 재생 시작 확인 → 워치독 해제 + (제스처 이력 있으면) 소리 복원
-                if (playerWatchdogRef.current[clip.clip_id]) {
-                  clearTimeout(playerWatchdogRef.current[clip.clip_id]);
-                  delete playerWatchdogRef.current[clip.clip_id];
+    singlePlayerRef.current = new YT.Player(mountDiv, {
+      videoId: vId,
+      width: '100%',
+      height: '100%',
+      playerVars: {
+        autoplay: 0,
+        // controls:1 — 네이티브 컨트롤(재생/정지·진행바·볼륨·전체화면·YouTube
+        // 로고)을 노출한다. Developer Policy III.I.4 / RMF는 이 컨트롤을 숨기는
+        // 것(controls:0)을 금지하므로 반드시 1을 유지한다.
+        controls: 1,
+        iv_load_policy: 3,
+        // 자막 기본 꺼짐(공식 파라미터 — 버튼 무력화 아님, 정책 준수)
+        cc_load_policy: 0,
+        rel: 0,
+        playsinline: 1,
+        origin: typeof window !== 'undefined' ? window.location.origin : '',
+      },
+      events: {
+        onReady: (event: any) => {
+          // 반드시 muted로 시작 — unMute+play는 자동재생 정책이 재생 자체를
+          // 차단할 수 있다. 소리는 PLAYING 후 maybeRestoreSound/칩이 담당.
+          event.target.mute();
+          const startSec = Number(firstClip.start_sec || 0);
+          event.target.seekTo(startSec, true);
+          if (activeTabRef.current === 'shorts') {
+            setTimeout(() => {
+              try {
+                // 준비되는 사이 사용자가 이미 다른 클립으로 스크롤했다면 그 클립으로
+                if (activePresetIdRef.current && activePresetIdRef.current !== firstClip.clip_id) {
+                  activateClip(activePresetIdRef.current);
+                  return;
                 }
-                maybeRestoreSound(clip.clip_id, event.target);
+                event.target.seekTo(startSec, true);
+                event.target.playVideo();
                 setIsPlaying(true);
-                // 스픽 오버레이(모범 답안 재생 등)가 떠 있는 중엔 감시 루프를
-                // 재가동하지 않는다 — 발화 종료(넘어가기) 시 명시적으로 재시작.
-                if (!speakStageRef.current[clip.clip_id]) {
-                  startMonitoring(clip.clip_id);
-                }
-              } else if (state === YT.PlayerState.PAUSED ||
-                         state === YT.PlayerState.ENDED) {
-                setIsPlaying(false);
-              }
-            }
-          },
-          onError: (event: any) => {
-            // 2=잘못된 파라미터, 5=HTML5 오류, 100=영상 없음, 101/150=임베드 금지
-            console.error(`[Shorts] YT player error clip=${clipId} code=${event?.data}`);
+              } catch (e) {}
+            }, 300);
           }
-        }
-      });
-
-      // 워치독: 활성 클립인데 제한 시간 안에 재생(또는 사용자 정지 등 정상 상태)에
-      // 도달하지 못하면 플레이어를 1회 재생성한다 — iframe 초기화가 조용히
-      // 실패해 검은 화면으로 남는 케이스의 자가치유.
-      if (clipId === activePresetIdRef.current && !recreateTriedRef.current[clipId]) {
-        if (playerWatchdogRef.current[clipId]) clearTimeout(playerWatchdogRef.current[clipId]);
-        playerWatchdogRef.current[clipId] = setTimeout(() => {
-          delete playerWatchdogRef.current[clipId];
-          if (clipId !== activePresetIdRef.current) return; // 이미 다른 클립으로 이동
-          let st: any = null;
-          try { st = playerRefs.current[clipId]?.getPlayerState?.(); } catch (e) {}
-          // 0=종료 1=재생 2=일시정지 3=버퍼링 → 정상. -1/5/undefined/예외 → 죽은 것
-          const healthy = st === 0 || st === 1 || st === 2 || st === 3;
-          if (healthy) return;
-          console.warn(`[Shorts] watchdog: recreating stuck player clip=${clipId} state=${st}`);
-          recreateTriedRef.current[clipId] = true;
-          try { playerRefs.current[clipId]?.destroy?.(); } catch (e) {}
-          delete playerRefs.current[clipId];
-          const h = document.getElementById(`yt-host-${clipId}`);
-          if (h) h.innerHTML = '';
-          setPlayerRecreateNonce(n => n + 1); // 이 effect 재실행 → (b)에서 재생성
-        }, 5000);
-      }
+        },
+        onStateChange: (event: any) => {
+          // 단일 플레이어 = 항상 활성 클립 소속
+          const state = event.data;
+          const activeId = activePresetIdRef.current;
+          if (state === YT.PlayerState.PLAYING) {
+            maybeRestoreSound(activeId, event.target);
+            setIsPlaying(true);
+            // 스픽 오버레이 중엔 감시 루프 재가동 금지(발화 종료 시 명시 재시작)
+            if (activeId && !speakStageRef.current[activeId]) {
+              startMonitoring(activeId);
+            }
+          } else if (state === YT.PlayerState.PAUSED ||
+                     state === YT.PlayerState.ENDED) {
+            setIsPlaying(false);
+          }
+        },
+        onError: (event: any) => {
+          // 2=잘못된 파라미터, 5=HTML5 오류, 100=영상 없음, 101/150=임베드 금지
+          console.error(`[Shorts] YT player error code=${event?.data} video=${loadedVideoIdRef.current}`);
+        },
+      },
     });
-  }, [isApiReady, clips, mountedIds, playerRecreateNonce]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isApiReady, clips]);
 
-  // 언마운트 시 감시 루프 및 전 플레이어 정리
+  // 언마운트 시 감시 루프 및 플레이어 정리
   useEffect(() => {
     return () => {
       stopMonitoring();
-      Object.keys(playerWatchdogRef.current).forEach((clipId) => {
-        clearTimeout(playerWatchdogRef.current[clipId]);
-      });
-      playerWatchdogRef.current = {};
-      Object.keys(playerRefs.current).forEach((clipId) => {
-        try { playerRefs.current[clipId].destroy(); } catch (e) {}
-      });
-      playerRefs.current = {};
+      try { singlePlayerRef.current?.destroy?.(); } catch (e) {}
+      singlePlayerRef.current = null;
+      loadedVideoIdRef.current = '';
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -528,17 +494,12 @@ export default function ShortsPage() {
     if (activeTab !== 'shorts') {
       stopMonitoring();
       resetSpeakArtifacts(activePresetIdRef.current);
-      clips.forEach((clip) => {
-        const player = playerRefs.current[clip.clip_id];
-        if (player && player.pauseVideo) {
-          try { player.pauseVideo(); } catch (e) {}
-        }
-      });
+      try { getPlayer()?.pauseVideo?.(); } catch (e) {}
       setIsPlaying(false);
     } else {
       // 스픽 오버레이가 떠 있는 중이면 자동 재생하지 않는다 (사용자 입력 대기)
       if (speakStageRef.current[activePresetIdRef.current]) return;
-      const player = playerRefs.current[activePresetIdRef.current];
+      const player = getPlayer();
       if (player && player.playVideo) {
         try {
           // unMute를 먼저 걸지 않는다 — 정책이 unMute+play를 차단하면 재생이
@@ -556,18 +517,6 @@ export default function ShortsPage() {
     // 이전 클립의 진행 중이던 스픽 훈련(녹음/타이머 등)을 정리
     resetSpeakArtifacts(activePresetIdRef.current);
 
-    clips.forEach((clip) => {
-      if (clip.clip_id !== nextClipId) {
-        const prevPlayer = playerRefs.current[clip.clip_id];
-        if (prevPlayer && prevPlayer.pauseVideo) {
-          try {
-            prevPlayer.pauseVideo();
-            prevPlayer.seekTo(Number(clip.start_sec || 0), true);
-          } catch (e) {}
-        }
-      }
-    });
-
     // 이전 활성 클립은 스픽 모드 해제 (다른 영상으로 넘어가면 자동 쇼츠 복귀)
     const prevActiveId = activePresetIdRef.current;
     if (prevActiveId && speakModeRef.current[prevActiveId]) {
@@ -584,24 +533,12 @@ export default function ShortsPage() {
     setPlaybackRates(prev => ({ ...prev, [nextClipId]: 1.0 }));
     setSpokenDone(prev => ({ ...prev, [nextClipId]: false }));
     setSeqResult(prev => ({ ...prev, [nextClipId]: null }));
+    // 새 클립 방문 시 소리 복원 1회 제한을 리셋(재방문에도 복원 시도 가능)
+    delete soundRestoreTriedRef.current[nextClipId];
 
-    const nextPlayer = playerRefs.current[nextClipId];
-    const nextClip = clips.find(c => c.clip_id === nextClipId);
-    if (nextPlayer && nextPlayer.playVideo && nextClip && activeTab === 'shorts') {
-      try {
-        const startSec = Number(nextClip.start_sec || 0);
-        nextPlayer.seekTo(startSec, true);
-        setTimeout(() => {
-          try {
-            // muted 상태 그대로 재생 시작 — 소리는 PLAYING 후 복원 로직이 담당
-            // (unMute를 먼저 걸면 정책 차단 시 재생 자체가 막혀 검은 화면이 됨)
-            nextPlayer.playVideo();
-            setIsPlaying(true);
-          } catch(err){}
-        }, 150);
-      } catch (e) {
-        setIsPlaying(false);
-      }
+    // 단일 플레이어를 새 클립으로 재타깃 (같은 영상=seek, 다른 영상=load)
+    if (activeTabRef.current === 'shorts') {
+      activateClip(nextClipId);
     }
   };
 
@@ -616,7 +553,7 @@ export default function ShortsPage() {
     const pauseAt = Number(clip.pause_at || start + 2.5);
 
     monitor.start({
-      getPlayer: () => playerRefs.current[clipId],
+      getPlayer: () => singlePlayerRef.current,
       start,
       end,
       pauseAt,
@@ -676,7 +613,7 @@ export default function ShortsPage() {
   const enableSound = (clipId: string) => {
     setHasInteracted(true);
     hasInteractedRef.current = true;
-    const player = playerRefs.current[clipId];
+    const player = getPlayer();
     if (player && player.unMute) {
       try {
         player.unMute();
@@ -692,7 +629,7 @@ export default function ShortsPage() {
   useEffect(() => {
     if (activeTab !== 'shorts') return;
     const id = setInterval(() => {
-      const p = playerRefs.current[activePresetIdRef.current];
+      const p = getPlayer();
       if (!p || typeof p.isMuted !== 'function') return;
       try { setIsSoundMuted(!!p.isMuted()); } catch (e) {}
     }, 700);
@@ -752,7 +689,7 @@ export default function ShortsPage() {
     if (modelWatchRef.current) { clearInterval(modelWatchRef.current); modelWatchRef.current = null; }
     // 모범답안 재생 등으로 영상이 움직였을 수 있으니 pause_at 지점으로 되돌린다
     const clip = clipsRef.current.find(c => c.clip_id === clipId);
-    const player = playerRefs.current[clipId];
+    const player = getPlayer();
     if (player && clip) {
       const start = Number(clip.start_sec || 0);
       const pauseAt = Number(clip.pause_at || start + 2.5);
@@ -918,7 +855,7 @@ export default function ShortsPage() {
     // ① AI 모범답안 (ElevenLabs 사전생성, 선택 억양)
     const ttsUrl = accent === 'us' ? clip.model_audio_us : clip.model_audio_uk;
     if (ttsUrl) {
-      const player = playerRefs.current[clipId];
+      const player = getPlayer();
       if (player && player.pauseVideo) {
         try { player.pauseVideo(); } catch (e) {}
       }
@@ -936,7 +873,7 @@ export default function ShortsPage() {
   };
 
   const playModelAnswerFromVideo = (clipId: string) => {
-    const player = playerRefs.current[clipId];
+    const player = getPlayer();
     const clip = clipsRef.current.find(c => c.clip_id === clipId);
     if (!player || !clip) return;
 
@@ -952,7 +889,7 @@ export default function ShortsPage() {
     } catch (e) {}
 
     modelWatchRef.current = setInterval(() => {
-      const p = playerRefs.current[clipId];
+      const p = getPlayer();
       if (!p || !p.getCurrentTime) return;
       let t = 0;
       try { t = p.getCurrentTime() || 0; } catch (e) {}
@@ -987,7 +924,7 @@ export default function ShortsPage() {
     setPhases(prev => ({ ...prev, [clipId]: 1 }));
     setPlaybackRates(prev => ({ ...prev, [clipId]: 1.0 }));
 
-    const player = playerRefs.current[clipId];
+    const player = getPlayer();
     if (player) {
       try {
         player.setPlaybackRate(1.0);
@@ -1011,7 +948,7 @@ export default function ShortsPage() {
     // 1회성 스픽 종료 → 자동 쇼츠 모드 복귀
     setClipSpeakMode(clipId, false);
 
-    const player = playerRefs.current[clipId];
+    const player = getPlayer();
     if (player && player.playVideo) {
       try {
         player.unMute();
@@ -1200,11 +1137,19 @@ export default function ShortsPage() {
               );
             })()}
 
-            {/* 수직 스냅 스크롤링 쇼츠 피드 */}
-            <div
-              ref={containerRef}
-              className={styles.shortsContainer}
-            >
+            {/* 쇼츠 스테이지: 뒤(z0)=단일 영구 플레이어, 앞(z1)=투명 스냅 피드.
+                컨테이너는 pointer-events:none — 터치는 iframe이 받고(네이티브
+                컨트롤 클릭 가능), 스와이프는 스크롤 체이닝으로 피드를 굴린다. */}
+            <div className={styles.stageWrap}>
+              <div className={styles.playerLayer}>
+                <div id="yt-single-host" className={styles.singleHost}></div>
+              </div>
+
+              {/* 수직 스냅 스크롤링 쇼츠 피드 (투명 오버레이 카드) */}
+              <div
+                ref={containerRef}
+                className={styles.shortsContainer}
+              >
               {clips.length > 0 ? (
                 clips.map((clip) => {
                   const currentPhase = phases[clip.clip_id] || 1;
@@ -1223,9 +1168,8 @@ export default function ShortsPage() {
                       className={styles.shortsCard}
                     >
                       <div className={styles.videoArea}>
-                        <div className={styles.youtubeWrapper}>
-                          <div id={`yt-host-${clip.clip_id}`} className={styles.youtubeIframe}></div>
-                        </div>
+                        {/* 영상은 카드 뒤 고정 playerLayer의 단일 플레이어가 담당 —
+                            카드는 투명하며 오버레이 UI만 얹는다 */}
 
                         {/* 스픽 훈련 오버레이 (armed → recording → review) */}
                         {isCurrentActive && speakStage[clip.clip_id] && (
@@ -1465,6 +1409,7 @@ export default function ShortsPage() {
                   <p>해당 카테고리의 훈련 카드가 비어 있습니다.</p>
                 </div>
               )}
+              </div>
             </div>
           </div>
 

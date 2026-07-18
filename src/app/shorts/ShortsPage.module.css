@@ -179,8 +179,38 @@
   box-shadow: 0 2px 8px rgba(0, 75, 135, 0.25);
 }
 
-.shortsContainer {
+/* ── 단일 영구 플레이어 스테이지 ─────────────────────────
+   뒤(z0) 고정 플레이어 + 앞(z1) 투명 스냅 피드. 포인터 모델은
+   ShortsExperience 상단 아키텍처 주석 참조. */
+.stageWrap {
+  position: relative;
   flex: 1;
+  overflow: hidden;
+  background: #000;
+}
+
+.playerLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 0; /* pointer-events 기본 auto — 네이티브 컨트롤 직접 클릭 */
+}
+
+.singleHost {
+  width: 100%;
+  height: 100%;
+  background: #000;
+}
+
+.singleHost iframe {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.shortsContainer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
   overflow-y: scroll;
   scroll-snap-type: y mandatory;
   -webkit-overflow-scrolling: touch;
@@ -189,7 +219,10 @@
   scroll-behavior: smooth;
   -ms-overflow-style: none;
   scrollbar-width: none;
-  background: var(--bg-white);
+  background: transparent;
+  /* 터치가 뒤 iframe에 닿도록 통과 — 스와이프는 스크롤 체이닝으로 이 컨테이너를
+     굴리고, 탭은 유튜브 컨트롤로 간다. 조작 UI만 개별 auto. */
+  pointer-events: none;
 }
 
 .shortsContainer::-webkit-scrollbar {
@@ -204,7 +237,8 @@
   scroll-snap-align: start;
   scroll-snap-stop: always;
   overflow: hidden;
-  background: var(--bg-white);
+  /* 투명 — 영상은 뒤 playerLayer가 담당, 카드는 오버레이 UI만 */
+  background: transparent;
 }
 
 .videoArea {
@@ -213,7 +247,7 @@
   position: absolute;
   top: 0;
   left: 0;
-  background: var(--bg-white);
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -705,6 +739,8 @@
   justify-content: center;
   z-index: 15;
   transition: all 0.3s;
+  /* 컨테이너(pointer-events:none) 안에서 스픽 오버레이 버튼들은 눌려야 함 */
+  pointer-events: auto;
 }
 
 .overlayBlurActive {
