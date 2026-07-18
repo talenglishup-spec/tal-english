@@ -1,7 +1,7 @@
 // TAL Service Worker — minimal shell
 // 목적: Android Chrome "홈 화면에 추가" 설치 배너 조건 충족 + 기본 오프라인 대응
 
-const CACHE_NAME = 'tal-v3';
+const CACHE_NAME = 'tal-v4';
 
 // 앱 셸: 로그인 화면이 오프라인에서도 표시되도록 정적 자산 캐싱
 const PRECACHE_URLS = ['/login', '/brand/tal-app-192.png', '/brand/tal-app-512.png'];

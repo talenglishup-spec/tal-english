@@ -373,7 +373,14 @@ export default function ShortsPage() {
     const firstClip = clips.find(c => c.clip_id === activePresetIdRef.current) || clips[0];
     const vId = getYoutubeId(firstClip.youtube_url);
     const host = document.getElementById('yt-single-host');
-    if (!vId || !host) return;
+    // 진단 로그 — 실기기에서 생성이 어느 단계에서 멈추는지 콘솔로 특정
+    console.log('[Shorts] 단일 플레이어 생성 시도:', {
+      video: vId, clip: firstClip.clip_id, hostExists: !!host, hasYT: !!(YT && YT.Player),
+    });
+    if (!vId || !host) {
+      console.warn('[Shorts] 생성 중단 — vId 또는 host 없음');
+      return;
+    }
 
     const mountDiv = document.createElement('div');
     mountDiv.style.width = '100%';
@@ -400,6 +407,7 @@ export default function ShortsPage() {
       },
       events: {
         onReady: (event: any) => {
+          console.log('[Shorts] onReady 발화 — tab=', activeTabRef.current);
           // 반드시 muted로 시작 — unMute+play는 자동재생 정책이 재생 자체를
           // 차단할 수 있다. 소리는 PLAYING 후 maybeRestoreSound/칩이 담당.
           event.target.mute();
