@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { getSupabase } from '@/utils/supabase';
 import XPToast from '@/components/XPToast';
@@ -34,6 +34,14 @@ import { initSessionTracking, trackTabEnter } from '@/lib/track';
 // 이라 터치가 iframe에 도달하고, iframe 위 세로 스와이프는 브라우저 스크롤
 // 체이닝으로 부모 스크롤러(컨테이너)를 굴린다(기존 per-clip 구조와 동일한 원리).
 // 조작 UI(자막 토글·Speak·칩·스픽 오버레이)만 개별 pointer-events:auto.
+
+// 쇼츠 피드 전체 열람 계정(관리자·QA) — 레벨 게이트 없이 전 클립을 순서대로 본다.
+// 일반 유저는 현재 진행 레벨의 클립만 보이고, 레벨 클리어 시 다음 레벨로 전환된다.
+// (UX 필터일 뿐 보안 경계가 아님 — 서버 권한은 requireStaffAuth가 별도로 담당)
+const PRIVILEGED_FEED_EMAILS = [
+  'tal.english.up@gmail.com', // 관리자
+  'tal.qa.claude@gmail.com',  // QA 테스트 계정
+];
 
 // 스픽 훈련 진행 단계 (clipId별)
 //   armed     : pause_at에서 영상이 멈추고 "말하기 시작" 버튼 대기
@@ -83,6 +91,8 @@ export default function ShortsPage() {
   const [todayPassed, setTodayPassed] = useState<Set<string>>(new Set());
   // Collection 카드 탭 → 단일 표현 연습 모드
   const [practiceClip, setPracticeClip] = useState<any | null>(null);
+  // 피드 권한 판별용 (관리자·QA = 전체 열람)
+  const [userEmail, setUserEmail] = useState<string>('');
   const [activePresetId, setActivePresetId] = useState<string>('');
   const [playerId, setPlayerId] = useState<string | null>(null);
   
@@ -209,6 +219,30 @@ export default function ShortsPage() {
 
   const supabase = getSupabase();
 
+  // ── 쇼츠 피드 레벨 게이트 ────────────────────────────────
+  // 관리자·QA: 전 클립(레벨 순 정렬 그대로). 일반 유저: 현재 진행 레벨의
+  // 클립만 — 레벨을 클리어하면 getCurrentLevel이 다음 레벨을 가리키므로
+  // 피드가 자동으로 다음 레벨로 전환된다. (챌린지·도장판은 전체 clips 유지)
+  const isPrivilegedFeed = PRIVILEGED_FEED_EMAILS.includes(userEmail);
+  const feedClips = useMemo(() => {
+    if (isPrivilegedFeed) return clips;
+    const lv = getCurrentLevel(clips, passedClips);
+    return lv ? clipsOfLevel(clips, lv) : clips;
+  }, [clips, passedClips, isPrivilegedFeed]);
+  const feedClipsRef = useRef<any[]>([]);
+  useEffect(() => { feedClipsRef.current = feedClips; }, [feedClips]);
+
+  // 레벨 클리어로 피드가 다음 레벨로 바뀌면, 활성 클립을 새 피드의 첫
+  // 클립으로 옮기고 스크롤을 맨 위로 되돌린다.
+  useEffect(() => {
+    if (feedClips.length === 0) return;
+    if (!feedClips.find((c: any) => c.clip_id === activePresetIdRef.current)) {
+      containerRef.current?.scrollTo({ top: 0 });
+      handlePresetTransition(feedClips[0].clip_id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [feedClips]);
+
   // 학습 활동 추적 — 세션 시작(유입 경로 포함) + 탭별 체류시간
   // (학습 시간대·요일별 체류·지속율 분석의 원천 데이터, /api/track로 적재)
   useEffect(() => {
@@ -252,6 +286,9 @@ export default function ShortsPage() {
           }
         }
 
+        const email = session.user.email || '';
+        setUserEmail(email);
+
         const res = await fetch('/api/content/items?speak=1');
         const data = await res.json();
         // S1부터 순서대로 노출 (왕기초 원칙 — 신규 유저 진입점 고정)
@@ -260,11 +297,11 @@ export default function ShortsPage() {
 
         // 합격/시도 이력 로드 — 도장판·챌린지 문항 선정·진행 표시의 기준
         // (RLS로 본인 행만 조회됨)
+        const pSet = new Set<string>();
         try {
           const { data: attempts } = await supabase
             .from('speak_attempts_log')
             .select('clip_id, passed');
-          const pSet = new Set<string>();
           const aSet = new Set<string>();
           (attempts || []).forEach((a: any) => {
             aSet.add(a.clip_id);
@@ -277,7 +314,15 @@ export default function ShortsPage() {
         }
 
         if (items.length > 0) {
-          const firstId = items[0].clip_id;
+          // 초기 활성 클립 = 이 유저 피드의 첫 클립.
+          // 일반 유저는 현재 진행 레벨의 첫 클립(예: S2 진행 중이면 S2#1),
+          // 관리자·QA는 전체 목록의 첫 클립.
+          let firstId = items[0].clip_id;
+          if (!PRIVILEGED_FEED_EMAILS.includes(email)) {
+            const lv = getCurrentLevel(items, pSet);
+            const levelFirst = lv ? clipsOfLevel(items, lv)[0] : null;
+            if (levelFirst) firstId = levelFirst.clip_id;
+          }
           setActivePresetId(firstId);
           activePresetIdRef.current = firstId;
           
@@ -372,11 +417,11 @@ export default function ShortsPage() {
     // 돌면 host 부재로 생성이 조용히 실패하고 다시는 재시도되지 않아
     // "영상·소리·컨트롤 전부 없음"이 됐다. loading을 deps에 넣어 메인 JSX
     // (host 포함)가 커밋된 뒤에 생성한다.
-    if (loading || !isApiReady || clips.length === 0) return;
+    if (loading || !isApiReady || feedClips.length === 0) return;
     if (singlePlayerRef.current) return;
 
     const YT = (window as any).YT;
-    const firstClip = clips.find(c => c.clip_id === activePresetIdRef.current) || clips[0];
+    const firstClip = feedClips.find((c: any) => c.clip_id === activePresetIdRef.current) || feedClips[0];
     const vId = getYoutubeId(firstClip.youtube_url);
     const host = document.getElementById('yt-single-host');
     // 진단 로그 — 생성이 어느 단계에서 멈추는지 콘솔로 특정
@@ -457,7 +502,7 @@ export default function ShortsPage() {
       },
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, isApiReady, clips]);
+  }, [loading, isApiReady, feedClips]);
 
   // 언마운트 시 감시 루프 및 플레이어 정리
   useEffect(() => {
@@ -470,9 +515,9 @@ export default function ShortsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 4. 세로 스크롤 스냅 감지
+  // 4. 세로 스크롤 스냅 감지 (피드 = feedClips)
   useEffect(() => {
-    if (!containerRef.current || clips.length === 0) return;
+    if (!containerRef.current || feedClips.length === 0) return;
 
     const observerOptions = {
       root: containerRef.current,
@@ -493,7 +538,7 @@ export default function ShortsPage() {
 
     const observer = new IntersectionObserver(observerCallback, observerOptions);
 
-    clips.forEach((clip) => {
+    feedClips.forEach((clip: any) => {
       const el = document.getElementById(`card-${clip.clip_id}`);
       if (el) observer.observe(el);
     });
@@ -508,8 +553,8 @@ export default function ShortsPage() {
       scrollDebounce = setTimeout(() => {
         const c = containerRef.current;
         if (!c || c.clientHeight === 0) return;
-        const idx = Math.max(0, Math.min(clips.length - 1, Math.round(c.scrollTop / c.clientHeight)));
-        const clip = clips[idx];
+        const idx = Math.max(0, Math.min(feedClips.length - 1, Math.round(c.scrollTop / c.clientHeight)));
+        const clip = feedClips[idx];
         if (clip && clip.clip_id !== activePresetIdRef.current) {
           handlePresetTransition(clip.clip_id);
         }
@@ -522,7 +567,7 @@ export default function ShortsPage() {
       if (scrollDebounce) clearTimeout(scrollDebounce);
       el?.removeEventListener('scroll', onScrollEnd);
     };
-  }, [clips]);
+  }, [feedClips]);
 
   // 탭 변경 시 정지 및 제어
   useEffect(() => {
@@ -858,8 +903,8 @@ export default function ShortsPage() {
 
   // ⑦ 다음 클립으로 스크롤 이동 (스냅 → IntersectionObserver가 전환 처리)
   const goNextClip = (fromClipId: string) => {
-    const list = clipsRef.current;
-    const idx = list.findIndex(c => c.clip_id === fromClipId);
+    const list = feedClipsRef.current; // 유저에게 보이는 피드 기준
+    const idx = list.findIndex((c: any) => c.clip_id === fromClipId);
     const next = idx >= 0 ? list[idx + 1] : null;
     if (next) scrollToPreset(next.clip_id);
   };
@@ -1088,6 +1133,13 @@ export default function ShortsPage() {
               <div className={styles.presetHeaderRow}>
                 {/* 레벨 진행 표시 — "지금 어디쯤인지"가 보이면 조금만 더 심리 작동 */}
                 {(() => {
+                  if (isPrivilegedFeed) {
+                    return (
+                      <div className={styles.levelProgressChip}>
+                        전체 열람 · {clips.length}개
+                      </div>
+                    );
+                  }
                   const curLv = getCurrentLevel(clips, passedClips);
                   if (!curLv) return <div style={{ flex: 1 }} />;
                   const members = clipsOfLevel(clips, curLv);
@@ -1129,8 +1181,8 @@ export default function ShortsPage() {
             </div>
 
             {/* 통합 쇼츠 상단 스트립: 세션 진행(⑧) · 연속 학습 게이지(⑥) · 핸즈프리(⑦) */}
-            {activeTab === 'shorts' && clips.length > 0 && (() => {
-              const sessionClips = clips.slice(0, 8);
+            {activeTab === 'shorts' && feedClips.length > 0 && (() => {
+              const sessionClips = feedClips.slice(0, 8);
               const doneCount = sessionClips.filter(c => spokenDone[c.clip_id]).length;
               const remaining = Math.max(0, DAILY_GOAL_SEC - dailyStudied);
               const goalPct = Math.min(100, (dailyStudied / DAILY_GOAL_SEC) * 100);
@@ -1185,8 +1237,8 @@ export default function ShortsPage() {
                 ref={containerRef}
                 className={styles.shortsContainer}
               >
-              {clips.length > 0 ? (
-                clips.map((clip) => {
+              {feedClips.length > 0 ? (
+                feedClips.map((clip: any) => {
                   const currentPhase = phases[clip.clip_id] || 1;
                   const rate = playbackRates[clip.clip_id] || 1.0;
                   const isCurrentActive = activePresetId === clip.clip_id;
