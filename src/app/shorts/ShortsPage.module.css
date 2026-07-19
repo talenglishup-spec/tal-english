@@ -314,9 +314,9 @@
 
 .topSection {
   /* 배지들을 영상 화면 "위"(유튜브 제목 스트립과 영상 상단 사이의 검은
-     배경)에 배치한다. 오버레이 자체가 제목 스트립(40px) 아래에서 시작하므로
-     여백은 최소만 준다. */
-  margin-top: 4px;
+     배경)에 배치한다. 제목이 2줄로 접힐 때까지 감안해 겹치지 않도록
+     제목 스트립 아래로 조금 더 내린다. */
+  margin-top: 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1464,6 +1464,8 @@
   /* YouTube 정책 준수: 우하단 YouTube 로고와 겹치지 않도록 좌측 정렬로 이동.
      하단 컨트롤바 침범은 .bottomSection padding-bottom으로 함께 회피. */
   align-self: flex-start;
+  /* 컨트롤바에서 조금 더 띄운다 */
+  margin-bottom: 10px;
   display: inline-flex;
   align-items: center;
   gap: 6px;

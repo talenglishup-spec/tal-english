@@ -1464,6 +1464,18 @@ export default function ShortsPage() {
                           {/* 하단 훈련 자막 및 컨트롤러 */}
                           <div className={styles.bottomSection}>
                             
+                            {/* muted 안내 — 활성 클립이 실제로 음소거인 동안 매 영상 노출.
+                                자막 박스보다 위에 둔다(자막이 영상 하단에 붙어야 하므로). */}
+                            {isCurrentActive && isSoundMuted && !speakMode[clip.clip_id] && !speakStage[clip.clip_id] && (
+                              <button
+                                type="button"
+                                className={styles.soundHint}
+                                onClick={(e) => { e.stopPropagation(); enableSound(clip.clip_id); }}
+                              >
+                                🔇 탭하여 소리 켜기
+                              </button>
+                            )}
+
                             <div className={styles.captionCard}>
                               {subtitleOn && (
                                 <>
@@ -1479,17 +1491,6 @@ export default function ShortsPage() {
                               {/* 커스텀 재생바 제거 — YouTube 네이티브 진행바와 중복되어
                                   "재생바 2개"로 보이던 문제 해소(네이티브 바는 정책상 유지). */}
                             </div>
-
-                            {/* muted 안내 — 활성 클립이 실제로 음소거인 동안 매 영상 노출 */}
-                            {isCurrentActive && isSoundMuted && !speakMode[clip.clip_id] && !speakStage[clip.clip_id] && (
-                              <button
-                                type="button"
-                                className={styles.soundHint}
-                                onClick={(e) => { e.stopPropagation(); enableSound(clip.clip_id); }}
-                              >
-                                🔇 탭하여 소리 켜기
-                              </button>
-                            )}
 
                             {speakMode[clip.clip_id] && !speakStage[clip.clip_id] && (
                               <div className={styles.actionArea}>
