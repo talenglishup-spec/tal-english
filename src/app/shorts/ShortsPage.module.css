@@ -209,7 +209,16 @@
 
 .shortsContainer {
   position: absolute;
-  inset: 0;
+  /* 상단 40px(유튜브 제목·채널 줄)과 하단 52px(컨트롤바·로고)는 컨테이너
+     영역에서 제외 → 그 스트립에서는 뒤 iframe이 직접 클릭을 받는다
+     (III.I.4 컨트롤 접근 보장). 나머지(중앙부)는 이 컨테이너가 스와이프를
+     "직접" 받아 스크롤한다 — iframe이 컨테이너의 형제(고정 레이어)라
+     iframe 위 제스처는 스크롤 체이닝이 되지 않기 때문(이전 구조에선
+     iframe이 컨테이너의 자손이라 체이닝이 됐다). */
+  top: 40px;
+  bottom: 52px;
+  left: 0;
+  right: 0;
   z-index: 1;
   overflow-y: scroll;
   scroll-snap-type: y mandatory;
@@ -220,9 +229,6 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
   background: transparent;
-  /* 터치가 뒤 iframe에 닿도록 통과 — 스와이프는 스크롤 체이닝으로 이 컨테이너를
-     굴리고, 탭은 유튜브 컨트롤로 간다. 조작 UI만 개별 auto. */
-  pointer-events: none;
 }
 
 .shortsContainer::-webkit-scrollbar {
