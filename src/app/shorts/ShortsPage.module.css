@@ -329,21 +329,35 @@
   left: 16px;
   right: 16px;
   bottom: min(calc(50cqh + 28.125cqw - 46px), calc(100cqh - 130px));
+  z-index: 1;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-/* 소리 켜기 칩 + 자막 묶음 — 영상 하단 기준으로 22px 위에 앉힌다.
-   max()는 화면이 짧을 때 Speak 버튼과 겹치지 않게 하는 최소 여유. */
+/* 소리 켜기 칩 — 영상 중앙(일시정지 버튼) 아래 40px.
+   영상 중앙 = 50cqh(스테이지 기준) → 카드 기준으로는 50cqh - 40px 이므로
+   top: 50cqh 이면 정확히 중앙에서 40px 아래가 된다. */
+.chipAnchor {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  top: 50cqh;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+}
+
+/* 자막 — 영상 "바로 아래"(하단 가장자리 +8px) 검은 배경에 놓는다.
+   min()은 화면이 짧을 때 Speak 버튼을 침범하지 않게 하는 안전장치. */
 .captionGroup {
   position: absolute;
   left: 16px;
   right: 16px;
-  bottom: max(78px, calc(50cqh - 28.125cqw - 30px));
+  top: min(calc(50cqh + 28.125cqw - 32px), calc(100cqh - 238px));
+  z-index: 1;
   display: flex;
   flex-direction: column;
-  gap: 12px;
   align-items: center;
 }
 
@@ -420,6 +434,9 @@
      Speak 버튼이 위에 얹혀 클릭을 먼저 가져간다. */
   position: absolute;
   inset: 0;
+  /* 조작 UI(배지·칩·자막·Speak)는 z-index:1로 이 위에 얹는다 — DOM 순서에
+     기대면 조건부 렌더링으로 순서가 바뀔 때 탭 레이어가 버튼을 덮는다. */
+  z-index: 0;
   pointer-events: auto;
   cursor: pointer;
 }
@@ -450,6 +467,11 @@
 }
 
 .bottomSection {
+  /* 위치 지정 요소(centerSection 등 absolute)는 흐름 요소보다 위에 그려지므로,
+     흐름 상태로 두면 전면 탭 레이어가 Speak 버튼을 덮어 클릭을 가로챈다.
+     positioned로 만들어 DOM 순서(centerSection 뒤)대로 위에 오게 한다. */
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -457,9 +479,9 @@
      요소가 됐다 — auto 마진으로 하단(컨트롤바 바로 위)에 밀어붙인다. */
   margin-top: auto;
   margin-bottom: 0;
-  /* 자막·칩을 영상 하단에 붙인다 — 오버레이 자체가 하단 컨트롤바 스트립
-     (52px) 위에서 끝나므로 큰 안전 여백이 더는 필요 없다. */
-  padding-bottom: 8px;
+  /* 자막이 영상 바로 아래로 내려오면서 Speak와 좁아졌다 — Speak를 컨트롤바
+     쪽으로 더 붙여(하단 여백 34→16px) 그 사이 공간을 자막에 넘긴다. */
+  padding-bottom: 0;
 }
 
 .captionCard {
@@ -1491,8 +1513,6 @@
   /* YouTube 정책 준수: 우하단 YouTube 로고와 겹치지 않도록 좌측 정렬로 이동.
      하단 컨트롤바 침범은 .bottomSection padding-bottom으로 함께 회피. */
   align-self: flex-start;
-  /* 컨트롤바에서 조금 더 띄운다 */
-  margin-bottom: 10px;
   display: inline-flex;
   align-items: center;
   gap: 6px;

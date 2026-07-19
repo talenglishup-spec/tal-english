@@ -1460,11 +1460,10 @@ export default function ShortsPage() {
                             </div>
                           </div>
 
-                          {/* 소리 켜기 칩 + 자막 — 영상 하단 기준으로 고정 */}
-                          <div className={styles.captionGroup}>
-                            {/* muted 안내 — 활성 클립이 실제로 음소거인 동안 매 영상 노출.
-                                자막 박스보다 위에 둔다(자막이 영상 하단에 붙어야 하므로). */}
-                            {isCurrentActive && isSoundMuted && !speakMode[clip.clip_id] && !speakStage[clip.clip_id] && (
+                          {/* muted 안내 — 영상 중앙(일시정지 버튼) 아래에 고정.
+                              활성 클립이 실제로 음소거인 동안 매 영상 노출. */}
+                          {isCurrentActive && isSoundMuted && !speakMode[clip.clip_id] && !speakStage[clip.clip_id] && (
+                            <div className={styles.chipAnchor}>
                               <button
                                 type="button"
                                 className={styles.soundHint}
@@ -1472,8 +1471,11 @@ export default function ShortsPage() {
                               >
                                 🔇 탭하여 소리 켜기
                               </button>
-                            )}
+                            </div>
+                          )}
 
+                          {/* 자막 — 영상 바로 아래 검은 배경에 고정 */}
+                          <div className={styles.captionGroup}>
                             <div className={styles.captionCard}>
                               {subtitleOn && (
                                 <>
