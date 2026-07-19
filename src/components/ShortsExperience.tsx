@@ -913,6 +913,27 @@ export default function ShortsPage() {
     if (next) scrollToPreset(next.clip_id);
   };
 
+  // 중앙 탭 — 쇼츠 표준 UX: 음소거 중이면 첫 탭에 소리 켜기, 이후 탭은
+  // 일시정지/재생 토글. 스와이프 수정으로 스크롤 컨테이너가 중앙부를 덮어
+  // 네이티브 중앙 탭이 플레이어에 닿지 않게 됐으므로 동일 기능을 API로
+  // 제공한다(탭은 클릭, 스와이프는 드래그라 서로 간섭 없음). 네이티브
+  // 컨트롤바·로고는 하단 스트립에서 그대로 직접 클릭된다(정책 준수).
+  const handleCenterTap = (clipId: string) => {
+    if (clipId !== activePresetIdRef.current) return;
+    if (isSoundMuted) { enableSound(clipId); return; }
+    const p = getPlayer();
+    if (!p) return;
+    try {
+      if (p.getPlayerState && p.getPlayerState() === 1) {
+        p.pauseVideo();
+        setIsPlaying(false);
+      } else {
+        p.playVideo();
+        setIsPlaying(true);
+      }
+    } catch (e) {}
+  };
+
   // 리뷰: 내 발음 듣기
   const playMyRecording = () => {
     if (!myAudioUrl) return;
@@ -1432,10 +1453,13 @@ export default function ShortsPage() {
                             </div>
                           </div>
 
-                          {/* 중앙 영역 — controls:1이므로 재생/정지는 네이티브 컨트롤이
-                              처리한다. 이 영역은 클릭을 통과시켜(pointer-events:none)
-                              플레이어가 직접 탭을 받도록 한다(컨트롤 가림 금지, 정책 준수). */}
-                          <div className={styles.centerSection} />
+                          {/* 중앙 영역 — 탭하면 소리 켜기(음소거 중) 또는 일시정지/재생
+                              토글. 스크롤 컨테이너가 중앙부를 덮으므로 네이티브 중앙 탭
+                              대신 API로 동일 기능 제공(스와이프와 간섭 없음). */}
+                          <div
+                            className={styles.centerSection}
+                            onClick={() => handleCenterTap(clip.clip_id)}
+                          />
 
                           {/* 하단 훈련 자막 및 컨트롤러 */}
                           <div className={styles.bottomSection}>
