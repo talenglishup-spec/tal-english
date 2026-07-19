@@ -348,13 +348,14 @@
   justify-content: center;
 }
 
-/* 자막 — 영상 "바로 아래"(하단 가장자리 +8px) 검은 배경에 놓는다.
-   min()은 화면이 짧을 때 Speak 버튼을 침범하지 않게 하는 안전장치. */
+/* 자막 — 영상 하단 가장자리 +24px 아래 검은 배경에 놓는다.
+   Speak와 겹쳐도 무방하다는 요청에 따라 Speak 회피 여백은 두지 않고,
+   min()은 자막이 카드 밖으로 밀려나지 않게만 막는다. */
 .captionGroup {
   position: absolute;
   left: 16px;
   right: 16px;
-  top: min(calc(50cqh + 28.125cqw - 32px), calc(100cqh - 238px));
+  top: min(calc(50cqh + 28.125cqw - 16px), calc(100cqh - 171px));
   z-index: 1;
   display: flex;
   flex-direction: column;
@@ -479,9 +480,8 @@
      요소가 됐다 — auto 마진으로 하단(컨트롤바 바로 위)에 밀어붙인다. */
   margin-top: auto;
   margin-bottom: 0;
-  /* 자막이 영상 바로 아래로 내려오면서 Speak와 좁아졌다 — Speak를 컨트롤바
-     쪽으로 더 붙여(하단 여백 34→16px) 그 사이 공간을 자막에 넘긴다. */
-  padding-bottom: 0;
+  /* Speak를 컨트롤바에서 26px 띄운다 (오버레이 패딩 16 + 이 값 10) */
+  padding-bottom: 10px;
 }
 
 .captionCard {
