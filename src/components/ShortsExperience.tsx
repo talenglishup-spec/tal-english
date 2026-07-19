@@ -516,8 +516,12 @@ export default function ShortsPage() {
   }, []);
 
   // 4. 세로 스크롤 스냅 감지 (피드 = feedClips)
+  // loading 가드 필수: clips가 채워진 뒤에도 loading=true인 중간 렌더가
+  // 존재하고(로딩 조기 return → containerRef null), 그 시점에 이 effect가
+  // 돌면 IO/스크롤 리스너가 영영 등록되지 않는다 — 플레이어 생성 effect와
+  // 동일한 race. loading을 deps에 넣어 메인 JSX 커밋 후 등록한다.
   useEffect(() => {
-    if (!containerRef.current || feedClips.length === 0) return;
+    if (loading || !containerRef.current || feedClips.length === 0) return;
 
     const observerOptions = {
       root: containerRef.current,
@@ -567,7 +571,7 @@ export default function ShortsPage() {
       if (scrollDebounce) clearTimeout(scrollDebounce);
       el?.removeEventListener('scroll', onScrollEnd);
     };
-  }, [feedClips]);
+  }, [loading, feedClips]);
 
   // 탭 변경 시 정지 및 제어
   useEffect(() => {
