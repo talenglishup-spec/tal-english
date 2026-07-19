@@ -1436,7 +1436,14 @@ export default function ShortsPage() {
                         {/* 메인 투명 오버레이 패널 */}
                         <div className={`${styles.overlay} ${!isPlaying ? styles.overlayPaused : ''}`}>
                           
-                          {/* 상단 메타 바 - 배속 및 Advanced 토글 영상 상단 정렬 복원 */}
+                          {/* 중앙 탭 레이어 — 오버레이 전면을 덮으므로 가장 먼저 그려
+                              뒤의 배지·칩·Speak가 클릭을 먼저 가져가게 한다. */}
+                          <div
+                            className={styles.centerSection}
+                            onClick={() => handleCenterTap(clip.clip_id)}
+                          />
+
+                          {/* 상단 메타 바 — 영상 상단 바로 위(검은 배경)에 고정 */}
                           <div className={styles.topSection}>
                             {/* 스픽 모드는 1회차(1.0x)만 진행 → 감속 회차 배지 대신 실전 라벨 */}
                             <span className={styles.phaseBadge}>
@@ -1453,17 +1460,8 @@ export default function ShortsPage() {
                             </div>
                           </div>
 
-                          {/* 중앙 영역 — 탭하면 소리 켜기(음소거 중) 또는 일시정지/재생
-                              토글. 스크롤 컨테이너가 중앙부를 덮으므로 네이티브 중앙 탭
-                              대신 API로 동일 기능 제공(스와이프와 간섭 없음). */}
-                          <div
-                            className={styles.centerSection}
-                            onClick={() => handleCenterTap(clip.clip_id)}
-                          />
-
-                          {/* 하단 훈련 자막 및 컨트롤러 */}
-                          <div className={styles.bottomSection}>
-                            
+                          {/* 소리 켜기 칩 + 자막 — 영상 하단 기준으로 고정 */}
+                          <div className={styles.captionGroup}>
                             {/* muted 안내 — 활성 클립이 실제로 음소거인 동안 매 영상 노출.
                                 자막 박스보다 위에 둔다(자막이 영상 하단에 붙어야 하므로). */}
                             {isCurrentActive && isSoundMuted && !speakMode[clip.clip_id] && !speakStage[clip.clip_id] && (
@@ -1491,6 +1489,10 @@ export default function ShortsPage() {
                               {/* 커스텀 재생바 제거 — YouTube 네이티브 진행바와 중복되어
                                   "재생바 2개"로 보이던 문제 해소(네이티브 바는 정책상 유지). */}
                             </div>
+                          </div>
+
+                          {/* 하단 컨트롤러 — Speak 버튼은 컨트롤바 바로 위에 고정 */}
+                          <div className={styles.bottomSection}>
 
                             {speakMode[clip.clip_id] && !speakStage[clip.clip_id] && (
                               <div className={styles.actionArea}>

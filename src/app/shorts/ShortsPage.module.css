@@ -187,6 +187,13 @@
   flex: 1;
   overflow: hidden;
   background: #000;
+  /* 오버레이 요소를 "영상 가장자리" 기준으로 앉히기 위한 쿼리 컨테이너.
+     16:9 영상은 폭에 맞춰 렌더되고 세로 중앙 정렬되므로
+       영상 높이 = 폭 × 9/16  →  중심에서 위아래로 각각 28.125cqw
+     즉 영상 상단 = 50cqh - 28.125cqw, 하단 = 50cqh + 28.125cqw (스테이지 기준).
+     화면이 길수록 영상이 아래로 내려가므로, 스테이지 상단 기준 고정 px로
+     배지를 두면 긴 화면(실기기)에서 유튜브 제목 쪽에 붙어버린다. */
+  container-type: size;
 }
 
 .playerLayer {
@@ -313,12 +320,30 @@
 }
 
 .topSection {
-  /* 배지들을 영상 화면 "위"(유튜브 제목 스트립과 영상 상단 사이의 검은
-     배경)에 배치한다. 제목이 2줄로 접힐 때까지 감안해 겹치지 않도록
-     제목 스트립 아래로 조금 더 내린다. */
-  margin-top: 36px;
+  /* 영상 상단 바로 위(검은 배경)에 앉힌다 — 스테이지 상단 기준이 아니라
+     "영상 기준"이라 화면 길이가 달라도 항상 영상 바로 위, 유튜브 제목과는
+     멀리 떨어진다. 카드 하단 기준 거리 =
+       카드높이(100cqh-92px) - (영상상단 - 6px 여유)
+     min()은 화면이 짧을 때 배지가 카드 위로 튀어나가지 않게 하는 안전장치. */
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: min(calc(50cqh + 28.125cqw - 46px), calc(100cqh - 130px));
   display: flex;
   justify-content: space-between;
+  align-items: center;
+}
+
+/* 소리 켜기 칩 + 자막 묶음 — 영상 하단 기준으로 22px 위에 앉힌다.
+   max()는 화면이 짧을 때 Speak 버튼과 겹치지 않게 하는 최소 여유. */
+.captionGroup {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: max(78px, calc(50cqh - 28.125cqw - 30px));
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   align-items: center;
 }
 
@@ -388,13 +413,13 @@
 }
 
 .centerSection {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 60%;
   /* 중앙 탭 = 소리 켜기/일시정지 토글(onClick). 스크롤 컨테이너가 중앙부를
      덮어 네이티브 중앙 탭이 닿지 않으므로 API로 동일 기능을 제공한다.
-     드래그(스와이프)는 클릭이 아니므로 스크롤과 간섭 없음. */
+     드래그(스와이프)는 클릭이 아니므로 스크롤과 간섭 없음.
+     오버레이 전면을 덮되 JSX에서 가장 먼저 그려지므로, 뒤에 오는 배지·칩·
+     Speak 버튼이 위에 얹혀 클릭을 먼저 가져간다. */
+  position: absolute;
+  inset: 0;
   pointer-events: auto;
   cursor: pointer;
 }
@@ -428,6 +453,9 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  /* 배지·자막이 모두 절대배치가 되면서 이 블록이 오버레이의 유일한 흐름
+     요소가 됐다 — auto 마진으로 하단(컨트롤바 바로 위)에 밀어붙인다. */
+  margin-top: auto;
   margin-bottom: 0;
   /* 자막·칩을 영상 하단에 붙인다 — 오버레이 자체가 하단 컨트롤바 스트립
      (52px) 위에서 끝나므로 큰 안전 여백이 더는 필요 없다. */
@@ -435,12 +463,7 @@
 }
 
 .captionCard {
-  /* 음 소거 칩 + 자막 묶음을 영상 하단 쪽으로 32px 내린다. bottomSection이
-     오버레이 하단에 고정(space-between)이므로, 마지막 요소(Speak) 앞에서
-     높이를 32px 줄이면 위쪽 묶음만 내려가고 Speak 위치는 그대로 유지된다. */
-  margin-bottom: -32px;
-  /* 박스 없이 영상 위에 자막만 띄운다 — 배경/테두리/블러 제거,
-     가독성은 텍스트 그림자로 확보 */
+  /* 위치는 .captionGroup(영상 하단 기준)이 잡는다 */
   background: transparent;
   border: none;
   border-radius: 0;
