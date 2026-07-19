@@ -83,10 +83,32 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    // 지연 단축: STT(가장 긴 작업)를 먼저 시작해 두고, 시트 조회와 세션
+    // 확인(각각 네트워크 왕복)을 그 시간에 병렬로 흡수한다. 이전에는 넷이
+    // 직렬이라 시트 캐시 미스 시 채점 응답이 수 초까지 늘어졌다.
+    const sttPromise = (async () => {
+      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      const buffer = Buffer.from(await audio.arrayBuffer());
+      const file = await OpenAI.toFile(buffer, 'speech.webm', { type: 'audio/webm' });
+      // whisper-1보다 빠르고 저렴한 최신 STT 모델
+      const transcription = await openai.audio.transcriptions.create({
+        file,
+        model: 'gpt-4o-mini-transcribe',
+        language: 'en'
+      });
+      return transcription.text || '';
+    })();
+    const clipsPromise = getClipItems();
+    const authPromise = (async () => {
+      const supabase = await createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      return { supabase, user };
+    })();
+
     // 정답 문구는 클라이언트가 보낸 값을 신뢰하지 않고 clip_id로 서버에서
     // 직접 조회한다. 클라이언트가 target_phrase를 임의로 조작해 채점을
     // 우회하는 것을 막기 위함.
-    const clips = await getClipItems();
+    const clips = await clipsPromise;
     const clip = clips.find(c => c.clip_id === clip_id);
     if (!clip || !clip.target_phrase) {
       return NextResponse.json({ error: 'Unknown clip_id' }, { status: 400 });
@@ -95,25 +117,16 @@ export async function POST(req: NextRequest) {
 
     let transcript = '';
     try {
-      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-      const buffer = Buffer.from(await audio.arrayBuffer());
-      const file = await OpenAI.toFile(buffer, 'speech.webm', { type: 'audio/webm' });
-
-      const transcription = await openai.audio.transcriptions.create({
-        file,
-        model: 'whisper-1',
-        language: 'en'
-      });
-      transcript = transcription.text || '';
+      transcript = await sttPromise;
     } catch (sttErr: any) {
-      // Whisper 호출 실패를 자동 합격으로 처리하면 오디오를 일부러 깨뜨려
+      // STT 호출 실패를 자동 합격으로 처리하면 오디오를 일부러 깨뜨려
       // 채점을 우회할 수 있으므로, 실패는 실패로 응답한다(채점 실패를
       // 그대로 fail 처리하지 않고 클라이언트가 재시도하도록 에러를 반환).
-      console.error('[speak-score] Whisper STT failed:', sttErr);
+      console.error('[speak-score] STT failed:', sttErr);
       return NextResponse.json({ error: 'stt_failed' }, { status: 502 });
     }
 
-    console.log(`[Whisper STT] Result: "${transcript}" | Target: "${target_phrase}"`);
+    console.log(`[STT] Result: "${transcript}" | Target: "${target_phrase}"`);
 
     const score = getSimilarityScore(transcript, target_phrase); // 로그/분석용으로만 유지
     const words = wordDiff(target_phrase, transcript);
@@ -122,9 +135,8 @@ export async function POST(req: NextRequest) {
     // (왕기초 타깃 MVP 정책 — 쇼츠·챌린지·재도전 공통 단일 기준)
     const passed = words.length > 0 && words.every(w => w.ok);
 
-    // RLS Rerouting using @supabase/ssr Server Client
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    // RLS Rerouting using @supabase/ssr Server Client (STT와 병렬로 이미 조회됨)
+    const { supabase, user } = await authPromise;
 
     if (user) {
       const { error: dbError } = await supabase

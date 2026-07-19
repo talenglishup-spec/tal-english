@@ -890,13 +890,14 @@ export default function ShortsPage() {
         }
 
         // ⑦ 핸즈프리: 합격 시 잠시 후 자동으로 다음 클립으로 이동
+        // (결과 확인에 충분한 최소 시간만 두고 빠르게 전환)
         if (handsFreeRef.current) {
           setTimeout(() => {
             if (speakStageRef.current[clipId] === 'review') {
               finishSpeak(clipId);
               goNextClip(clipId);
             }
-          }, 2500);
+          }, 1500);
         }
       }
     } catch (err) {
