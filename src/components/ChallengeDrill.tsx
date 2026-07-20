@@ -470,10 +470,12 @@ export default function ChallengeDrill({ clips, passedIds, singleClip, onExit, o
         <div className={styles.drillCheer}>절반 넘었어요</div>
       )}
 
-      {/* 문항: 상황 그림(크게) → 한국어(위) → 영어(가림·탭하면 공개) → 듣기 */}
+      {/* 문항: 상황 그림 → 상황 배지(위) → 한국어(중심, 크게) → 영어(가림·탭하면 공개) → 듣기 */}
       <div className={styles.drillPhraseArea}>
-        {/* 상황 그림 — 크게 (situation_image 있을 때만 노출) */}
-        {current.situation_image && (
+        {/* 상황 그림 — 있으면 사진, 없으면 자리만 표시(아이콘 + 안내).
+            ANTIGRAVITY 생성 이미지가 아직 없는 표현이 많아 빈 자리를 그냥
+            건너뛰면 표현마다 레이아웃이 들쭉날쭉해진다. */}
+        {current.situation_image ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             className={styles.drillSituationImg}
@@ -481,14 +483,21 @@ export default function ChallengeDrill({ clips, passedIds, singleClip, onExit, o
             alt="상황 그림"
             loading="lazy"
           />
+        ) : (
+          <div className={styles.drillSituationPlaceholder}>
+            <span className={styles.drillSituationPlaceholderIcon}>⚽</span>
+            <span>경기 장면 사진</span>
+          </div>
         )}
 
-        {/* 한국어 뜻 — 먼저(위) */}
+        {/* 상황 배지 — 파란 필로 컨텍스트를 짧게 */}
+        {current.situation_desc && (
+          <span className={styles.drillSituationBadge}>{current.situation_desc}</span>
+        )}
+
+        {/* 한국어 뜻 — 화면의 시각적 중심 */}
         {current.translation && (
           <div className={styles.drillTransMain}>{current.translation}</div>
-        )}
-        {current.situation_desc && (
-          <div className={styles.drillSituationDesc}>{current.situation_desc}</div>
         )}
 
         {/* 영어 표현 — 불투명 가림막으로 가려짐. 탭하면 공개
@@ -505,11 +514,12 @@ export default function ChallengeDrill({ clips, passedIds, singleClip, onExit, o
           <span className={`${styles.drillPhrase} ${!revealed ? styles.drillPhraseHidden : ''}`}>
             {current.target_phrase}
           </span>
-          {!revealed && <span className={styles.revealMask}>👆 눌러서 영어 확인</span>}
+          {!revealed && <span className={styles.revealMask}>탭하여 영어 확인</span>}
         </div>
 
         {/* 오디오 듣기 — 버튼 눌렀을 때만 재생 */}
         <button type="button" className={styles.drillReplayPill} onClick={playExpressionAudio}>
+          <span className={styles.drillReplayIcon}>▶</span>
           듣기
         </button>
       </div>

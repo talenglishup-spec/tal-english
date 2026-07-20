@@ -1355,19 +1355,24 @@ export default function ShortsPage() {
                                     </div>
                                   )}
 
-                                  {/* ② 단어별 인식 결과 — 맞은 단어만 진하게 */}
-                                  <p className={styles.rvWords}>
+                                  {/* ② 영어 표현 — 이 화면의 시각적 중심. 인식된 단어는
+                                      진하게, 놓친 단어는 옅게(회색) 표시해 결과와 문장을
+                                      한 덩어리로 보여준다(단어 목록을 따로 안 둔다). */}
+                                  <p className={styles.rvPhrase}>
                                     {(wordFeedback[clip.clip_id] ??
                                       clip.target_phrase.split(' ').map((w: string) => ({ w, ok: false }))
                                     ).map((tok: { w: string; ok: boolean }, i: number) => (
                                       <span
                                         key={i}
-                                        className={`${styles.rvWord} ${tok.ok ? styles.rvWordOk : ''}`}
+                                        className={`${styles.rvWord} ${tok.ok ? styles.rvWordOk : styles.rvWordMiss}`}
                                       >
                                         {tok.w}
                                       </span>
                                     ))}
                                   </p>
+                                  {clip.translation && (
+                                    <p className={styles.rvTranslation}>{clip.translation}</p>
+                                  )}
 
                                   {/* ③ 두 가지 듣기 — 이 화면의 핵심 행동 */}
                                   <div className={styles.rvListenRow}>
