@@ -1288,132 +1288,6 @@ export default function ShortsPage() {
                         {/* 영상은 카드 뒤 고정 playerLayer의 단일 플레이어가 담당 —
                             카드는 투명하며 오버레이 UI만 얹는다 */}
 
-                        {/* 스픽 훈련 오버레이 (armed → recording → review) */}
-                        {isCurrentActive && speakStage[clip.clip_id] && (
-                          <div className={`${styles.lockOverlay} ${styles.overlayBlurActive}`}>
-                            <div className={styles.lockContent}>
-
-                              {/* ARMED: pause_at 자동 정지 → 원형 Speak 버튼 대기 */}
-                              {speakStage[clip.clip_id] === 'armed' && (
-                                <>
-                                  <h3 className={styles.lockTitle}>지금 말할 차례!</h3>
-                                  {/* ④ 말할 문장 힌트 — 흐리게 표시 */}
-                                  <p className={styles.targetFaded}>{clip.target_phrase}</p>
-                                  <button
-                                    type="button"
-                                    className={styles.speakCircleBtn}
-                                    onClick={() => startSpeaking(clip.clip_id)}
-                                  >
-                                    <span className={styles.speakCircleIcon}>🎙️</span>
-                                    <span className={styles.speakCircleLabel}>Speak</span>
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className={styles.skipSeqBtn}
-                                    style={{ marginTop: 18 }}
-                                    onClick={() => finishSpeak(clip.clip_id)}
-                                  >
-                                    넘어가기 →
-                                  </button>
-                                </>
-                              )}
-
-                              {/* RECORDING: 즉시 녹음 중 (④ 문장 흐리게 유지) */}
-                              {speakStage[clip.clip_id] === 'recording' && (
-                                <>
-                                  <p className={styles.targetFaded}>{clip.target_phrase}</p>
-                                  <div className={styles.recordingBox}>
-                                    <div className={styles.micCircleActive}>🎙️</div>
-                                    <p className={styles.speakStageText} style={{ color: '#ef4444' }}>
-                                      녹음 중... {recElapsed}초
-                                    </p>
-                                  </div>
-                                  <button
-                                    type="button"
-                                    className={styles.speakButton}
-                                    style={{ background: '#ef4444', boxShadow: '0 4px 12px rgba(239,68,68,0.3)' }}
-                                    onClick={stopSpeaking}
-                                  >
-                                    ■ 말하기 완료
-                                  </button>
-                                </>
-                              )}
-
-                              {/* REVIEW: ① 단어별 색상 피드백 + 결과 + 듣기 + ② 다시하기 + 넘어가기 */}
-                              {speakStage[clip.clip_id] === 'review' && (
-                                <>
-                                  {/* ① 결과 배지 — 통과면 초록 원형 체크 */}
-                                  {seqResult[clip.clip_id] == null ? (
-                                    <div className={styles.rvSpinnerBadge}>
-                                      <div className={styles.analyzingSpinner} />
-                                    </div>
-                                  ) : (
-                                    <div className={`${styles.rvBadge} ${seqResult[clip.clip_id] === 'pass' ? styles.rvBadgePass : styles.rvBadgeMiss}`}>
-                                      {seqResult[clip.clip_id] === 'pass' ? '✓' : '↻'}
-                                    </div>
-                                  )}
-
-                                  {/* ② 영어 표현 — 화면의 중심. 정확히 말한 단어는 초록색
-                                      (밑줄 포함), 놓친 단어는 옅은 회색. */}
-                                  <p className={styles.rvPhrase}>
-                                    {(wordFeedback[clip.clip_id] ??
-                                      clip.target_phrase.split(' ').map((w: string) => ({ w, ok: false }))
-                                    ).map((tok: { w: string; ok: boolean }, i: number) => (
-                                      <span
-                                        key={i}
-                                        className={`${styles.rvWord} ${tok.ok ? styles.rvWordOk : styles.rvWordMiss}`}
-                                      >
-                                        {tok.w}
-                                      </span>
-                                    ))}
-                                  </p>
-                                  {clip.translation && (
-                                    <p className={styles.rvTranslation}>{clip.translation}</p>
-                                  )}
-
-                                  {/* ③ 듣기 — 버튼 한 번 = 그 발음 재생. 억양 토글을 따로 두지
-                                      않고 미국/영국 버튼이 각각 바로 재생한다(혼란 제거).
-                                      한쪽 오디오만 있으면 '모범 발음' 하나로 합친다. */}
-                                  <div className={styles.rvListenRow}>
-                                    {clip.model_audio_us && clip.model_audio_uk ? (
-                                      <>
-                                        <button type="button" className={styles.rvListenBtn} onClick={() => playModelAnswer(clip.clip_id, 'us')}>
-                                          <span className={styles.rvListenIcon}>🔊</span>미국 발음
-                                        </button>
-                                        <button type="button" className={styles.rvListenBtn} onClick={() => playModelAnswer(clip.clip_id, 'uk')}>
-                                          <span className={styles.rvListenIcon}>🔊</span>영국 발음
-                                        </button>
-                                      </>
-                                    ) : (
-                                      <button type="button" className={styles.rvListenBtn} onClick={() => playModelAnswer(clip.clip_id)}>
-                                        <span className={styles.rvListenIcon}>🔊</span>모범 발음
-                                      </button>
-                                    )}
-                                    <button
-                                      type="button"
-                                      className={styles.rvListenBtn}
-                                      disabled={!myAudioUrl}
-                                      onClick={playMyRecording}
-                                    >
-                                      <span className={styles.rvListenIcon}>▶</span>내 발음
-                                    </button>
-                                  </div>
-
-                                  <p className={styles.rvHint}>듣고 따라하기</p>
-
-                                  {/* ④ 다시하기 — 알약 하나. 넘어가기는 맨 아래 옅은 글씨. */}
-                                  <button type="button" className={styles.rvRetryPill} onClick={() => retrySpeak(clip.clip_id)}>
-                                    <span className={styles.rvRetryIcon}>↻</span>다시하기
-                                  </button>
-                                  <button type="button" className={styles.rvNextText} onClick={() => finishSpeak(clip.clip_id)}>
-                                    다음으로 넘어가기
-                                  </button>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                        )}
-
                         {/* 메인 투명 오버레이 패널 */}
                         <div className={`${styles.overlay} ${!isPlaying ? styles.overlayPaused : ''}`}>
                           
@@ -1511,6 +1385,141 @@ export default function ShortsPage() {
                 </div>
               )}
               </div>
+
+              {/* 스픽 훈련 오버레이 (armed → recording → review) —
+                  스크롤 컨테이너(위 40px·아래 92px 인셋) 바깥, 스테이지 최상위에
+                  둔다. 카드 안에 두면 위아래 유튜브 검은 영역이 그대로 드러나
+                  흰 채점 배경이 화면을 다 덮지 못한다. */}
+              {(() => {
+                const sc = feedClips.find((c: any) => c.clip_id === activePresetId);
+                if (!sc || !speakStage[sc.clip_id]) return null;
+                return (
+                  <div className={`${styles.speakStageOverlay} ${styles.overlayBlurActive}`}>
+                    <div className={styles.lockContent}>
+
+                      {/* ARMED: pause_at 자동 정지 → 원형 Speak 버튼 대기 */}
+                      {speakStage[sc.clip_id] === 'armed' && (
+                        <>
+                          <h3 className={styles.lockTitle}>지금 말할 차례!</h3>
+                          {/* ④ 말할 문장 힌트 — 흐리게 표시 */}
+                          <p className={styles.targetFaded}>{sc.target_phrase}</p>
+                          <button
+                            type="button"
+                            className={styles.speakCircleBtn}
+                            onClick={() => startSpeaking(sc.clip_id)}
+                          >
+                            <span className={styles.speakCircleIcon}>🎙️</span>
+                            <span className={styles.speakCircleLabel}>Speak</span>
+                          </button>
+                          <button
+                            type="button"
+                            className={styles.skipSeqBtn}
+                            style={{ marginTop: 18 }}
+                            onClick={() => finishSpeak(sc.clip_id)}
+                          >
+                            넘어가기 →
+                          </button>
+                        </>
+                      )}
+
+                      {/* RECORDING: 빨간 원이 곧 정지 버튼 — 아래 별도 완료 버튼을
+                          두면 "눌러야 할 곳"이 둘로 나뉘어 헷갈린다. 녹음을 시작한
+                          자리에서 그대로 멈추게 한다. */}
+                      {speakStage[sc.clip_id] === 'recording' && (
+                        <>
+                          <p className={styles.targetFaded}>{sc.target_phrase}</p>
+                          <div className={styles.recordingBox}>
+                            <button
+                              type="button"
+                              className={styles.micCircleActive}
+                              onClick={stopSpeaking}
+                              aria-label="말하기 완료"
+                            >
+                              <span className={styles.micStopIcon} />
+                            </button>
+                            <p className={styles.recordingText}>
+                              녹음 중 {recElapsed}초
+                            </p>
+                            <p className={styles.recordingHint}>다 말했으면 버튼을 누르세요</p>
+                          </div>
+                        </>
+                      )}
+
+                      {/* REVIEW: ① 단어별 색상 피드백 + 결과 + 듣기 + ② 다시하기 + 넘어가기 */}
+                      {speakStage[sc.clip_id] === 'review' && (
+                        <>
+                          {/* ① 결과 배지 — 통과면 초록 원형 체크 */}
+                          {seqResult[sc.clip_id] == null ? (
+                            <div className={styles.rvSpinnerBadge}>
+                              <div className={styles.analyzingSpinner} />
+                            </div>
+                          ) : (
+                            <div className={`${styles.rvBadge} ${seqResult[sc.clip_id] === 'pass' ? styles.rvBadgePass : styles.rvBadgeMiss}`}>
+                              {seqResult[sc.clip_id] === 'pass' ? '✓' : '↻'}
+                            </div>
+                          )}
+
+                          {/* ② 영어 표현 — 화면의 중심. 정확히 말한 단어는 초록색
+                              (밑줄 포함), 놓친 단어는 옅은 회색. */}
+                          <p className={styles.rvPhrase}>
+                            {(wordFeedback[sc.clip_id] ??
+                              sc.target_phrase.split(' ').map((w: string) => ({ w, ok: false }))
+                            ).map((tok: { w: string; ok: boolean }, i: number) => (
+                              <span
+                                key={i}
+                                className={`${styles.rvWord} ${tok.ok ? styles.rvWordOk : styles.rvWordMiss}`}
+                              >
+                                {tok.w}
+                              </span>
+                            ))}
+                          </p>
+                          {sc.translation && (
+                            <p className={styles.rvTranslation}>{sc.translation}</p>
+                          )}
+
+                          {/* ③ 듣기 — 버튼 한 번 = 그 발음 재생. 억양 토글을 따로 두지
+                              않고 미국/영국 버튼이 각각 바로 재생한다(혼란 제거).
+                              한쪽 오디오만 있으면 '모범 발음' 하나로 합친다. */}
+                          <div className={styles.rvListenRow}>
+                            {sc.model_audio_us && sc.model_audio_uk ? (
+                              <>
+                                <button type="button" className={styles.rvListenBtn} onClick={() => playModelAnswer(sc.clip_id, 'us')}>
+                                  <span className={styles.rvListenIcon}>🔊</span>미국 발음
+                                </button>
+                                <button type="button" className={styles.rvListenBtn} onClick={() => playModelAnswer(sc.clip_id, 'uk')}>
+                                  <span className={styles.rvListenIcon}>🔊</span>영국 발음
+                                </button>
+                              </>
+                            ) : (
+                              <button type="button" className={styles.rvListenBtn} onClick={() => playModelAnswer(sc.clip_id)}>
+                                <span className={styles.rvListenIcon}>🔊</span>모범 발음
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              className={styles.rvListenBtn}
+                              disabled={!myAudioUrl}
+                              onClick={playMyRecording}
+                            >
+                              <span className={styles.rvListenIcon}>▶</span>내 발음
+                            </button>
+                          </div>
+
+                          <p className={styles.rvHint}>듣고 따라하기</p>
+
+                          {/* ④ 다시하기 — 알약 하나. 넘어가기는 맨 아래 옅은 글씨. */}
+                          <button type="button" className={styles.rvRetryPill} onClick={() => retrySpeak(sc.clip_id)}>
+                            <span className={styles.rvRetryIcon}>↻</span>다시하기
+                          </button>
+                          <button type="button" className={styles.rvNextText} onClick={() => finishSpeak(sc.clip_id)}>
+                            다음으로 넘어가기
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </div>
 

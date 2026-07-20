@@ -806,6 +806,22 @@
   -webkit-backdrop-filter: blur(8px);
 }
 
+/* 스픽 훈련 오버레이 — 스테이지(stageWrap) 전체를 덮는다.
+   스크롤 컨테이너 안에 두면 위 40px(유튜브 제목 줄)·아래 92px(컨트롤바)가
+   인셋으로 빠져 검은 배경이 드러나므로, 컨테이너 바깥 최상위에 둔다.
+   z-index는 컨테이너(1)보다 위. 이 동안 영상은 정지 상태다. */
+.speakStageOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-y: auto;
+  pointer-events: auto;
+}
+
 .lockContent {
   text-align: center;
   padding: 24px;
@@ -995,18 +1011,39 @@
   margin-bottom: 24px;
 }
 
+/* 녹음 중 빨간 원 = 정지 버튼 (아래 별도 완료 버튼 없음) */
 .micCircleActive {
-  width: 70px;
-  height: 70px;
+  width: 78px;
+  height: 78px;
   border-radius: 50%;
+  border: none;
   background: #ef4444;
-  color: var(--text-light);
-  font-size: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
+  cursor: pointer;
+  box-shadow: 0 0 0 10px rgba(239, 68, 68, 0.14);
   animation: pulseBg 1.2s infinite;
+}
+.micCircleActive:active { transform: scale(0.95); }
+/* 정지 표시 — 흰 사각형 */
+.micStopIcon {
+  width: 26px;
+  height: 26px;
+  border-radius: 5px;
+  background: #ffffff;
+}
+.recordingText {
+  font-size: 15px;
+  font-weight: 800;
+  color: #ef4444;
+  margin: 14px 0 4px;
+}
+.recordingHint {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin: 0;
 }
 
 @keyframes pulseBg {
