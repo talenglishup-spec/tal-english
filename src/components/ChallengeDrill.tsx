@@ -519,7 +519,7 @@ export default function ChallengeDrill({ clips, passedIds, singleClip, onExit, o
 
         {/* 오디오 듣기 — 버튼 눌렀을 때만 재생 */}
         <button type="button" className={styles.drillReplayPill} onClick={playExpressionAudio}>
-          <span className={styles.drillReplayIcon}>▶</span>
+          <span className={styles.drillReplayIcon}>🔊</span>
           듣기
         </button>
       </div>
@@ -548,7 +548,7 @@ export default function ChallengeDrill({ clips, passedIds, singleClip, onExit, o
         {/* 넘어가기 — 지금 문항을 오답 처리하고 다음으로 */}
         {stage === 'question' && !isRecording && !isScoring && (
           <button type="button" className={styles.drillSkipBtn} onClick={skipQuestion}>
-            넘어가기
+            다음으로 넘어가기
           </button>
         )}
       </div>

@@ -822,106 +822,114 @@
 /* ── 스픽 채점 결과 화면 ────────────────────────────────
    .lockOverlay는 흰색 반투명(rgba(255,255,255,.9))+블러 배경이다 — 이
    화면의 모든 색은 "밝은 바탕" 기준이어야 한다(흰 글자를 쓰면 안 보인다).
-   구성: 결과 필 → 영어 표현(중심, 크게) → 한글 뜻 → 듣기 2버튼 →
-   억양 토글(보조) → 다시하기/넘어가기(텍스트 링크). */
-.rvStatus {
+   구성: 결과 배지 → 영어 표현(중심, 맞은 단어 초록) → 한글 뜻 →
+   듣기 버튼(탭 = 즉시 재생) → 다시하기 알약 → 넘어가기 텍스트. */
+.rvBadge, .rvSpinnerBadge {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 7px 16px;
-  border-radius: 999px;
-  background: #eef1f6;
-  margin-bottom: 16px;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 900;
+  color: #ffffff;
+  margin-bottom: 20px;
 }
-.rvStatusPass { background: rgba(16, 185, 129, 0.13); }
-.rvStatusIcon { font-size: 14px; font-weight: 900; color: var(--text-muted); line-height: 1; }
-.rvStatusPass .rvStatusIcon { color: #10b981; }
-.rvStatusText { font-size: 13px; font-weight: 800; color: var(--text-muted); letter-spacing: -0.01em; }
-.rvStatusPass .rvStatusText { color: #059669; }
+.rvBadgePass { background: #16c47f; }
+.rvBadgeMiss { background: #cbd5e1; }
+.rvSpinnerBadge { background: #eef1f6; }
 
-/* 영어 표현 — 이 화면의 시각적 중심. 큼직하게, 인식 단어는 진한 TAL 블루,
-   놓친 단어는 옅은 회색으로 — 별도 단어 목록 없이 문장 자체가 결과다. */
+/* 영어 표현 — 화면의 중심. 정확히 말한 단어는 초록(밑줄), 놓친 단어는 옅은 회색 */
 .rvPhrase {
   font-size: 30px;
   font-weight: 900;
-  line-height: 1.3;
+  line-height: 1.35;
   letter-spacing: -0.01em;
   word-break: keep-all;
   margin: 0 0 8px;
 }
 .rvWord { color: #c7cedb; transition: color 0.2s; }
 .rvWord:not(:last-child)::after { content: ' '; }
-.rvWordOk { color: var(--tal-blue); }
+/* 놓친 단어 — 기본색과 같지만 JSX에서 명시적으로 붙이는 클래스라 정의해 둔다
+   (규칙이 없으면 styles.rvWordMiss가 undefined가 되어 class="undefined"가 붙는다) */
+.rvWordMiss { color: #c7cedb; }
+.rvWordOk {
+  color: #16a34a;
+  background: rgba(22, 196, 127, 0.14);
+  border-bottom: 2px solid #16c47f;
+  border-radius: 3px;
+  padding: 0 2px;
+}
 .rvTranslation {
   font-size: 14px;
   font-weight: 600;
   color: var(--text-muted);
-  margin: 0 0 22px;
+  margin: 0 0 20px;
 }
 
-/* 듣기 — 이 화면의 주 행동. 좌우 동일 비중의 큰 버튼 2개 */
-.rvListenRow { display: flex; gap: 10px; margin-bottom: 14px; }
-.rvListenBtn {
-  flex: 1;
+/* 듣기 — 아이콘 + 라벨의 가벼운 인라인 버튼. 탭하면 그 발음이 바로 재생된다
+   (억양 토글을 따로 두지 않아 "고르고 다시 누르는" 혼란이 없다). */
+.rvListenRow {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 18px;
+  margin-bottom: 10px;
+}
+.rvListenBtn {
+  display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 14px 10px;
-  border-radius: 16px;
-  border: 1px solid var(--border-color);
-  background: #ffffff;
-  color: var(--text-dark);
-  cursor: pointer;
-  transition: background 0.15s, transform 0.1s;
-}
-.rvListenBtn:active { transform: scale(0.97); }
-.rvListenBtn:disabled { opacity: 0.4; cursor: default; }
-.rvListenBtnModel { background: var(--tal-blue); border-color: transparent; color: #ffffff; }
-.rvListenIcon { font-size: 19px; line-height: 1; }
-.rvListenLabel { font-size: 13px; font-weight: 800; }
-
-/* 억양 — 모범 답안에 딸린 보조 선택지 */
-.rvAccentRow {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-.rvAccentLabel { font-size: 11px; font-weight: 700; color: var(--text-muted); }
-.rvAccentSeg {
-  display: inline-flex;
-  padding: 2px;
-  border-radius: 999px;
-  background: #eef1f6;
-}
-.rvAccentBtn {
-  padding: 4px 12px;
+  padding: 6px 2px;
   border: none;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--text-muted);
-  font-size: 11px;
+  background: none;
+  color: var(--tal-blue);
+  font-size: 14px;
   font-weight: 800;
   cursor: pointer;
 }
-.rvAccentBtnOn { background: var(--tal-blue); color: #ffffff; }
+.rvListenBtn:active { opacity: 0.6; }
+.rvListenBtn:disabled { opacity: 0.35; cursor: default; }
+.rvListenIcon { font-size: 14px; line-height: 1; }
 
-/* 보조 동작 — 텍스트 링크 수준으로 낮춤 */
-.rvMinorRow { display: flex; align-items: center; justify-content: center; gap: 14px; }
-.rvMinorBtn {
-  background: none;
-  border: none;
-  color: var(--text-muted);
+.rvHint {
   font-size: 13px;
-  font-weight: 700;
-  padding: 6px 2px;
-  cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin: 14px 0 18px;
 }
-.rvMinorDivider { width: 1px; height: 11px; background: var(--border-color); }
+
+/* 다시하기 — 연한 알약 하나 */
+.rvRetryPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 26px;
+  border: none;
+  border-radius: 999px;
+  background: #eaeef6;
+  color: var(--tal-blue);
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.rvRetryPill:active { transform: scale(0.97); }
+.rvRetryIcon { font-size: 15px; }
+
+/* 넘어가기 — 맨 아래 옅은 글씨 */
+.rvNextText {
+  display: block;
+  width: 100%;
+  margin-top: 22px;
+  padding: 6px 0;
+  border: none;
+  background: none;
+  color: #9aa5b4;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
 
 .lockTitle {
   font-size: 20px;
@@ -2330,23 +2338,26 @@
   gap: 10px;
   padding-bottom: 8px;
 }
+/* 마이크 — 연한 원형 바탕에 파란 아이콘. 진한 채움·그림자를 걷어내
+   가볍게(듣기 버튼과 같은 계열로 통일). */
 .drillMicBtn {
-  width: 84px;
-  height: 84px;
+  width: 76px;
+  height: 76px;
   border-radius: 50%;
   border: none;
-  /* 단색 + 옅은 링 — 그라데이션과 짙은 그림자를 걷어내 차분하게 */
-  background: var(--tal-blue);
-  color: #ffffff;
-  font-size: 30px;
+  background: #e8edf7;
+  color: var(--tal-blue);
+  font-size: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  box-shadow: 0 0 0 8px rgba(10, 34, 143, 0.07);
-  transition: transform 0.12s, box-shadow 0.2s;
+  transition: transform 0.12s, background 0.15s;
 }
 .drillMicBtn:active { transform: scale(0.94); }
 .drillMicRecording {
-  background: #ef4444;
-  box-shadow: 0 0 0 8px rgba(239, 68, 68, 0.12);
+  background: #fde8e8;
+  color: #dc2626;
   animation: drillPulse 1.1s ease-in-out infinite;
 }
 .drillMicHint {
@@ -2356,17 +2367,16 @@
   min-height: 16px;
 }
 .drillMicError { font-size: 12px; color: #b45309; font-weight: 700; }
+/* 넘어가기 — 밑줄 없이 옅은 회색 텍스트로 (강조하지 않는다) */
 .drillSkipBtn {
-  margin-top: 4px;
+  margin-top: 10px;
   padding: 8px 16px;
   border: none;
   background: none;
-  color: var(--text-muted);
+  color: #9aa5b4;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 3px;
 }
 .drillSkipBtn:active { opacity: 0.6; }
 .drillScoring {
