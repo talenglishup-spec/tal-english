@@ -3,11 +3,11 @@
 /**
  * CollectionBoard — 레벨 도장판 (MVP 중고등)
  *
- * 레벨(S1~)별 표현 카드 그리드. 카드 상태 3단계:
- *   ⬜ 미학습(회색·🔒) → 🟡 진행 중(주황·❗) → 🟢 완료(초록·✅)
- * 레벨 내 전 표현 완료 = 레벨 클리어(금테 배지) + 다음 레벨 해금.
- * 카드 탭 → 해당 표현만 바로 연습(부모가 ChallengeDrill 단일 모드 오픈).
- * 잠긴 레벨 탭 → "이전 레벨 완료하면 열려!" 안내.
+ * 레벨(S1~)마다 카드 하나. 카드 안에 도장 점(레벨 진행 한눈에) + 표현 목록.
+ * 표현 행 상태 3단계: ○ 미학습 → ! 진행 중(시도했으나 미통과) → ✓ 완료.
+ * 레벨 내 전 표현 완료 = 레벨 클리어(완료 배지 + 공유) + 다음 레벨 해금.
+ * 표현 행 탭 → 그 표현만 바로 연습(부모가 ChallengeDrill 단일 모드 오픈).
+ * 잠긴 레벨은 슬림한 한 줄로 접어 목록이 길어지지 않게 한다.
  */
 
 import React, { useState } from 'react';
@@ -49,9 +49,10 @@ export default function CollectionBoard({
   const levels = getLevels(clips);
   const unlocked = new Set(getUnlockedLevels(clips, passedIds));
   const currentLevel = getCurrentLevel(clips, passedIds);
+  const totalDone = clips.filter(c => passedIds.has(c.clip_id)).length;
 
   const showLockMsg = (prevLevel: string) => {
-    setLockMsg(`${prevLevel} 완료하면 열려! 🔓`);
+    setLockMsg(`${prevLevel} 완료하면 열려요 🔓`);
     setTimeout(() => setLockMsg(''), 1800);
   };
 
@@ -65,13 +66,15 @@ export default function CollectionBoard({
 
   return (
     <div className={styles.boardWrap}>
-      {/* 상단: 현재 레벨 + 총 XP */}
+      {/* 상단 요약 — 지금까지 모은 표현 수 + 총 XP */}
       <div className={styles.boardHeader}>
-        <div className={styles.boardHeaderLevel}>
-          <span className={styles.boardLevelChip}>{currentLevel || levels[0]}</span>
+        <div className={styles.boardHeaderLeft}>
           <span className={styles.boardHeaderTitle}>내 도장판</span>
+          <span className={styles.boardHeaderSub}>
+            표현 {totalDone} / {clips.length} 완료
+          </span>
         </div>
-        <div className={styles.boardXp}>⚡ {totalXp.toLocaleString()} XP</div>
+        <span className={styles.boardXp}>⚡ {totalXp.toLocaleString()} XP</span>
       </div>
 
       {lockMsg && <div className={styles.boardLockToast}>{lockMsg}</div>}
@@ -84,63 +87,97 @@ export default function CollectionBoard({
         const doneCount = members.filter(c => passedIds.has(c.clip_id)).length;
         const prevLevel = li > 0 ? levels[li - 1] : '';
 
+        // 잠긴 레벨 — 한 줄로 접어 목록을 짧게 유지
+        if (!isUnlocked) {
+          return (
+            <button
+              key={lv}
+              type="button"
+              className={styles.boardLockedRow}
+              onClick={() => showLockMsg(prevLevel)}
+            >
+              <span className={styles.boardLockedName}>🔒 {lv}</span>
+              <span className={styles.boardLockedHint}>{prevLevel} 완료하면 열려요</span>
+            </button>
+          );
+        }
+
         return (
-          <div key={lv} className={`${styles.boardLevel} ${!isUnlocked ? styles.boardLevelLocked : ''}`}>
+          <section
+            key={lv}
+            className={`${styles.boardLevelCard} ${lv === currentLevel ? styles.boardLevelCardCurrent : ''}`}
+          >
             <div className={styles.boardLevelHead}>
-              <span className={`${styles.boardLevelName} ${cleared ? styles.boardLevelNameClear : ''}`}>
-                {cleared ? '🏆 ' : ''}{lv}
-                {!isUnlocked && ' 🔒'}
-              </span>
-              <span className={styles.boardLevelHeadRight}>
+              <div className={styles.boardLevelHeadLeft}>
+                <span className={styles.boardLevelName}>{lv}</span>
+                <span className={cleared ? styles.boardStatusDone : styles.boardStatusGoing}>
+                  {cleared ? '완료' : '진행 중'}
+                </span>
+              </div>
+              <div className={styles.boardLevelHeadRight}>
                 {cleared && (
-                  <button
-                    type="button"
-                    className={styles.boardShareBtn}
-                    onClick={() => shareLevel(lv)}
-                  >
-                    📣 공유
+                  <button type="button" className={styles.boardShareBtn} onClick={() => shareLevel(lv)}>
+                    공유
                   </button>
                 )}
                 <span className={styles.boardLevelCount}>{doneCount}/{members.length}</span>
-              </span>
+              </div>
             </div>
 
-            <div className={styles.boardGrid}>
-              {members.map(clip => {
-                const passed = passedIds.has(clip.clip_id);
-                const attempted = !passed && attemptedIds.has(clip.clip_id);
-                const isToday = todayPassedIds?.has(clip.clip_id);
-                const stateClass = passed
-                  ? styles.boardCardDone
-                  : attempted
-                    ? styles.boardCardTried
-                    : styles.boardCardNew;
-
+            {/* 도장 점 — 레벨 진행을 한눈에 */}
+            <div className={styles.boardStamps}>
+              {members.map(c => {
+                const passed = passedIds.has(c.clip_id);
+                const tried = !passed && attemptedIds.has(c.clip_id);
                 return (
-                  <button
-                    key={clip.clip_id}
-                    type="button"
-                    className={`${styles.boardCard} ${stateClass} ${isToday ? styles.boardCardToday : ''}`}
-                    onClick={() => {
-                      if (!isUnlocked) { showLockMsg(prevLevel); return; }
-                      onPractice(clip);
-                    }}
-                  >
-                    <span className={styles.boardCardIcon}>
-                      {passed ? '✅' : attempted ? '❗' : isUnlocked ? '🎙️' : '🔒'}
-                    </span>
-                    <span className={styles.boardCardPhrase}>
-                      {isUnlocked ? clip.target_phrase : '???'}
-                    </span>
-                  </button>
+                  <span
+                    key={c.clip_id}
+                    className={`${styles.boardStamp} ${
+                      passed ? styles.boardStampDone : tried ? styles.boardStampTried : ''
+                    }`}
+                  />
                 );
               })}
             </div>
-          </div>
+
+            {/* 표현 목록 — 영어 + 한글 한 행씩 */}
+            <ul className={styles.boardExprList}>
+              {members.map(clip => {
+                const passed = passedIds.has(clip.clip_id);
+                const tried = !passed && attemptedIds.has(clip.clip_id);
+                const isToday = todayPassedIds?.has(clip.clip_id);
+
+                return (
+                  <li key={clip.clip_id}>
+                    <button
+                      type="button"
+                      className={`${styles.boardExprRow} ${isToday ? styles.boardExprRowToday : ''}`}
+                      onClick={() => onPractice(clip)}
+                    >
+                      <span
+                        className={`${styles.boardExprDot} ${
+                          passed ? styles.boardExprDotDone : tried ? styles.boardExprDotTried : ''
+                        }`}
+                      >
+                        {passed ? '✓' : tried ? '!' : ''}
+                      </span>
+                      <span className={styles.boardExprTexts}>
+                        <span className={styles.boardExprEn}>{clip.target_phrase}</span>
+                        {clip.translation && String(clip.translation).trim() !== '' && (
+                          <span className={styles.boardExprKo}>{clip.translation}</span>
+                        )}
+                      </span>
+                      <span className={styles.boardExprChevron}>›</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
         );
       })}
 
-      <p className={styles.boardHint}>카드를 탭하면 그 표현만 바로 연습할 수 있어요</p>
+      <p className={styles.boardHint}>표현을 탭하면 바로 연습할 수 있어요</p>
     </div>
   );
 }

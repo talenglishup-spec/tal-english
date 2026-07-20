@@ -2433,17 +2433,10 @@
   gap: 18px;
 }
 .boardEmpty { text-align: center; color: #94a3b8; padding: 60px 0; }
-.boardHeader { display: flex; align-items: center; justify-content: space-between; }
-.boardHeaderLevel { display: flex; align-items: center; gap: 8px; }
-.boardLevelChip {
-  background: var(--tal-blue);
-  color: #ffffff;
-  font-size: 13px;
-  font-weight: 900;
-  padding: 5px 12px;
-  border-radius: 10px;
-}
-.boardHeaderTitle { font-size: 16px; font-weight: 900; color: var(--text-dark); }
+.boardHeader { display: flex; align-items: flex-end; justify-content: space-between; }
+.boardHeaderLeft { display: flex; flex-direction: column; gap: 3px; }
+.boardHeaderTitle { font-size: 17px; font-weight: 900; color: var(--text-dark); }
+.boardHeaderSub { font-size: 12px; font-weight: 700; color: #94a3b8; }
 .boardXp { font-size: 13px; font-weight: 800; color: var(--tal-blue); }
 .boardLockToast {
   text-align: center;
@@ -2456,17 +2449,31 @@
   animation: drillPop 0.3s ease;
 }
 
-.boardLevel { display: flex; flex-direction: column; gap: 10px; }
-.boardLevelLocked { opacity: 0.55; filter: grayscale(0.4); }
-.boardLevelHead { display: flex; align-items: center; justify-content: space-between; }
-.boardLevelName { font-size: 15px; font-weight: 900; color: var(--text-dark); }
-.boardLevelNameClear {
-  background: linear-gradient(135deg, #fbbf24, #f59e0b);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+/* ── 레벨 카드 ── */
+.boardLevelCard {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 14px 6px;
+  border: 1px solid #e8edf5;
+  border-radius: 16px;
+  background: #ffffff;
 }
-.boardLevelCount { font-size: 12px; font-weight: 800; color: var(--text-muted); }
+/* 현재 진행 중인 레벨만 TAL 블루로 살짝 강조 */
+.boardLevelCardCurrent { border-color: rgba(10, 34, 143, 0.28); }
+
+.boardLevelHead { display: flex; align-items: center; justify-content: space-between; }
+.boardLevelHeadLeft { display: flex; align-items: center; gap: 8px; }
+.boardLevelName { font-size: 15px; font-weight: 900; color: var(--text-dark); }
+.boardStatusGoing, .boardStatusDone {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 9px;
+  border-radius: 999px;
+}
+.boardStatusGoing { background: rgba(10, 34, 143, 0.08); color: var(--tal-blue); }
+.boardStatusDone { background: var(--tal-blue); color: #ffffff; }
+.boardLevelCount { font-size: 12px; font-weight: 800; color: #94a3b8; }
 .boardLevelHeadRight { display: flex; align-items: center; gap: 8px; }
 .boardShareBtn {
   border: 1px solid rgba(10, 34, 143, 0.3);
@@ -2479,34 +2486,74 @@
   cursor: pointer;
 }
 
-.boardGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
+/* 도장 점 — 레벨 진행을 한 줄로 */
+.boardStamps { display: flex; gap: 6px; }
+.boardStamp {
+  width: 100%;
+  height: 5px;
+  border-radius: 999px;
+  background: #eef1f6;
 }
-.boardCard {
+.boardStampDone { background: var(--tal-blue); }
+.boardStampTried { background: #fbbf24; }
+
+/* 표현 목록 */
+.boardExprList { list-style: none; margin: 0; padding: 0; }
+.boardExprRow {
+  width: 100%;
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 2px;
+  background: none;
+  border: none;
+  border-top: 1px solid #f1f4f9;
+  text-align: left;
+  cursor: pointer;
+}
+.boardExprList li:first-child .boardExprRow { border-top: none; }
+.boardExprRowToday { animation: drillPop 0.4s ease; }
+.boardExprDot {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1.5px solid #dfe5ee;
+  display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  min-height: 76px;
-  padding: 12px 10px;
-  border-radius: 14px;
-  border: 1.5px solid transparent;
+  font-size: 11px;
+  font-weight: 900;
+  color: #ffffff;
+}
+.boardExprDotDone { background: var(--tal-blue); border-color: var(--tal-blue); }
+.boardExprDotTried { background: #fbbf24; border-color: #fbbf24; }
+.boardExprTexts { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.boardExprEn {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text-dark);
+  line-height: 1.35;
+  word-break: keep-all;
+}
+.boardExprKo { font-size: 12px; font-weight: 600; color: #94a3b8; line-height: 1.35; }
+.boardExprChevron { flex: 0 0 auto; font-size: 20px; color: #cbd5e1; line-height: 1; }
+
+/* 잠긴 레벨 — 한 줄 */
+.boardLockedRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px;
+  border: 1px dashed #e2e8f0;
+  border-radius: 16px;
+  background: #fafbfd;
   cursor: pointer;
-  text-align: center;
-  transition: all 0.15s;
 }
-.boardCardNew { background: #f1f5f9; border-color: #e2e8f0; color: #94a3b8; }
-.boardCardTried { background: #fff7ed; border-color: #fdba74; color: #9a3412; }
-.boardCardDone { background: #ecfdf5; border-color: #34d399; color: #065f46; }
-.boardCardToday {
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.3);
-  animation: drillPop 0.4s ease;
-}
-.boardCardIcon { font-size: 20px; }
-.boardCardPhrase { font-size: 13px; font-weight: 800; line-height: 1.3; word-break: keep-all; }
+.boardLockedName { font-size: 14px; font-weight: 900; color: #94a3b8; }
+.boardLockedHint { font-size: 12px; font-weight: 700; color: #b6c0cd; }
+
 .boardHint {
   text-align: center;
   font-size: 12px;

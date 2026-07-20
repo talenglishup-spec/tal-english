@@ -13,7 +13,7 @@ import styles from '@/app/shorts/ShortsPage.module.css';
 import ChallengeDrill from '@/components/ChallengeDrill';
 import CollectionBoard from '@/components/CollectionBoard';
 import PushSettings from '@/components/PushSettings';
-import { sortClipsByLevel, getCurrentLevel, clipsOfLevel } from '@/lib/levels';
+import { sortClipsByLevel, getCurrentLevel, clipsOfLevel, getLevels } from '@/lib/levels';
 import { initSessionTracking, trackTabEnter } from '@/lib/track';
 
 // ── 플레이어 아키텍처: 단일 영구 플레이어 ──────────────────────────
@@ -1650,19 +1650,14 @@ export default function ShortsPage() {
             const xp = s.xp ?? 0;
             const streakDays = s.streak_days ?? 0;
 
-            // ── 표현 레벨: 레벨당 5개 표현(=스픽 클립)을 모두 통과하면 다음 레벨 ──
-            const EXPR_PER_LEVEL = 5;
-            const MAX_LEVEL = 20;
-            const expressions = clips; // 스픽 클립(순서 = 표현 순서)
-            let exprLevel = 1;
-            for (let L = 1; L <= MAX_LEVEL; L++) {
-              const grp = expressions.slice((L - 1) * EXPR_PER_LEVEL, L * EXPR_PER_LEVEL);
-              exprLevel = L;
-              if (grp.length === 0) break; // 더 이상 표현 없음
-              if (!grp.every((c: any) => passedClips.has(c.clip_id))) break; // 이 레벨 미완료 = 현재 레벨
-              // 이 레벨 완료 → 다음 레벨 확인 (마지막 레벨이면 유지)
-            }
-            const curGroup = expressions.slice((exprLevel - 1) * EXPR_PER_LEVEL, exprLevel * EXPR_PER_LEVEL);
+            // ── 표현 레벨 — Collection 도장판과 같은 기준(lib/levels)을 쓴다.
+            // 예전에는 여기서만 "클립 5개씩 잘라 세기"를 따로 계산해, 레벨당
+            // 표현 수가 5가 아닌 레벨이 생기면 마이탭과 Collection이 서로 다른
+            // 레벨을 표시했다.
+            const allLevels = getLevels(clips);
+            const curLevelName = getCurrentLevel(clips, passedClips);
+            const curGroup = curLevelName ? clipsOfLevel(clips, curLevelName) : [];
+            const levelIdx = curLevelName ? allLevels.indexOf(curLevelName) + 1 : 0;
             const doneInLevel = curGroup.filter((c: any) => passedClips.has(c.clip_id)).length;
             const levelPct = curGroup.length > 0 ? Math.round((doneInLevel / curGroup.length) * 100) : 100;
             const remainInLevel = Math.max(0, curGroup.length - doneInLevel);
@@ -1687,43 +1682,27 @@ export default function ShortsPage() {
 
                 {myLoading && <div className={styles.myHint}>내 정보를 불러오는 중...</div>}
 
-                {/* 표현 레벨 — 레벨당 5개 표현 완료 시 다음 레벨 */}
+                {/* 현재 레벨 — 진행 상황만. 표현 목록은 Collection 탭에서 본다. */}
                 <div className={styles.myCard}>
                   <div className={styles.myCardRow}>
-                    <span className={styles.myLevelBadge}>레벨 {exprLevel} / {MAX_LEVEL}</span>
-                    <span className={styles.myXpText}>이번 레벨 {doneInLevel} / {curGroup.length || EXPR_PER_LEVEL} 완료</span>
+                    <span className={styles.myLevelBadge}>
+                      {curLevelName ? `레벨 ${levelIdx} · ${curLevelName}` : '레벨 준비 중'}
+                    </span>
+                    <span className={styles.myXpText}>
+                      {curGroup.length > 0 ? `${doneInLevel} / ${curGroup.length} 완료` : ''}
+                    </span>
                   </div>
                   <div className={styles.myXpBar}>
                     <div className={styles.myXpFill} style={{ width: `${levelPct}%` }} />
                   </div>
 
-                  <div className={styles.exprList}>
-                    {curGroup.length === 0 ? (
-                      <div className={styles.myHint} style={{ textAlign: 'center' }}>🎉 모든 표현을 완료했어요!</div>
-                    ) : (
-                      curGroup.map((c: any) => {
-                        const done = passedClips.has(c.clip_id);
-                        return (
-                          <div key={c.clip_id} className={styles.exprItem}>
-                            <span className={`${styles.exprCheck} ${done ? styles.exprCheckDone : ''}`}>
-                              {done ? '✓' : ''}
-                            </span>
-                            <span className={`${styles.exprText} ${done ? styles.exprTextDone : ''}`}>
-                              {c.target_phrase || c.title_ko || c.clip_id}
-                            </span>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-
-                  {curGroup.length > 0 && (
-                    <div className={styles.myHint} style={{ marginTop: 10, marginBottom: 0 }}>
-                      {remainInLevel > 0
+                  <div className={styles.myHint} style={{ marginTop: 10, marginBottom: 0 }}>
+                    {curGroup.length === 0
+                      ? '🎉 모든 표현을 완료했어요!'
+                      : remainInLevel > 0
                         ? `다음 레벨까지 ${remainInLevel}개 표현 남았어요`
                         : '이 레벨 완료! 다음 레벨로 이동합니다'}
-                    </div>
-                  )}
+                  </div>
                 </div>
 
                 {/* 요일 스트릭 */}
