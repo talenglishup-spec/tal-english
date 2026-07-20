@@ -37,6 +37,32 @@ function getSimilarityScore(s1: string, s2: string): number {
 const normWord = (w: string) => w.toLowerCase().replace(/[^a-z0-9]/g, '');
 
 /**
+ * 판정 완화 규칙 (중고등 왕기초 대상 — "넘어가는 기분"이 학습 지속의 핵심)
+ *
+ *  ① 철자 유사 허용: STT가 drop→drops, organized→organised 처럼 살짝 다르게
+ *     받아쓰는 경우가 잦다. 단어 길이에 비례해 편집거리를 허용한다.
+ *  ② 기능어 제외: a/the/to 같은 관사·전치사는 발음이 뭉개져도 의미 전달에
+ *     지장이 없으므로 합격 판정에서 뺀다(화면에는 그대로 표시).
+ *  ③ 전 단어 → 비율: 내용어의 PASS_RATIO 이상 맞으면 합격.
+ */
+const STOPWORDS = new Set([
+  'a', 'an', 'the', 'to', 'of', 'in', 'on', 'at', 'for', 'and', 'or',
+  'it', 'is', 'am', 'are', 'be', 'do', 'does', 'did', 'that', 'this',
+]);
+const PASS_RATIO = 0.6;
+
+/** 길이에 비례한 편집거리 허용 — 짧은 단어는 정확히, 길수록 관대하게 */
+function fuzzyEq(a: string, b: string): boolean {
+  if (!a || !b) return false;
+  if (a === b) return true;
+  const len = Math.max(a.length, b.length);
+  // 4글자 이하는 오차를 허용하지 않는다 — hold↔cold 처럼 뜻이 완전히 다른
+  // 단어가 통과해버린다. 한 단어짜리 표현은 이 검사가 유일한 관문이라 특히 중요.
+  if (len <= 4) return false;
+  return levenshtein(a, b) <= (len >= 7 ? 2 : 1);
+}
+
+/**
  * target 문장의 각 단어가 사용자가 말한 문장(spoken)에 (순서를 지키며)
  * 포함됐는지 LCS(최장 공통 부분수열)로 정렬해 표시한다.
  * SPEAK식 단어별 초록/회색 피드백을 위한 데이터.
@@ -49,11 +75,11 @@ function wordDiff(target: string, spoken: string): { w: string; ok: boolean }[] 
 
   const n = t.length;
   const m = s.length;
-  // LCS DP
+  // LCS DP — 완전 일치가 아니라 fuzzyEq(철자 유사 허용)로 맞춘다
   const dp: number[][] = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
   for (let i = n - 1; i >= 0; i--) {
     for (let j = m - 1; j >= 0; j--) {
-      dp[i][j] = t[i] && t[i] === s[j]
+      dp[i][j] = fuzzyEq(t[i], s[j])
         ? dp[i + 1][j + 1] + 1
         : Math.max(dp[i + 1][j], dp[i][j + 1]);
     }
@@ -62,7 +88,7 @@ function wordDiff(target: string, spoken: string): { w: string; ok: boolean }[] 
   const ok = new Array(n).fill(false);
   let i = 0, j = 0;
   while (i < n && j < m) {
-    if (t[i] && t[i] === s[j]) {
+    if (fuzzyEq(t[i], s[j])) {
       ok[i] = true; i++; j++;
     } else if (dp[i + 1][j] >= dp[i][j + 1]) {
       i++;
@@ -130,10 +156,13 @@ export async function POST(req: NextRequest) {
 
     const score = getSimilarityScore(transcript, target_phrase); // 로그/분석용으로만 유지
     const words = wordDiff(target_phrase, transcript);
-    // 판정: 점수 숫자가 아니라 "표현을 맞게 말했는가" — 타깃 표현의 모든
-    // 단어가 (순서 유지하며) 인식되면 합격. 앞뒤 군더더기 말은 허용한다.
+    // 판정: 점수 숫자가 아니라 "표현을 맞게 말했는가" — 내용어(기능어 제외)의
+    // PASS_RATIO 이상이 (순서 유지하며) 인식되면 합격. 앞뒤 군더더기 말은 허용.
     // (왕기초 타깃 MVP 정책 — 쇼츠·챌린지·재도전 공통 단일 기준)
-    const passed = words.length > 0 && words.every(w => w.ok);
+    const contentWords = words.filter(w => !STOPWORDS.has(normWord(w.w)));
+    const gate = contentWords.length > 0 ? contentWords : words; // 전부 기능어면 전체로 판정
+    const matchedRatio = gate.length > 0 ? gate.filter(w => w.ok).length / gate.length : 0;
+    const passed = transcript.trim().length > 0 && matchedRatio >= PASS_RATIO;
 
     // RLS Rerouting using @supabase/ssr Server Client (STT와 병렬로 이미 조회됨)
     const { supabase, user } = await authPromise;

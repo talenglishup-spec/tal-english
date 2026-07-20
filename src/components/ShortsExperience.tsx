@@ -1338,94 +1338,90 @@ export default function ShortsPage() {
                               {/* REVIEW: ① 단어별 색상 피드백 + 결과 + 듣기 + ② 다시하기 + 넘어가기 */}
                               {speakStage[clip.clip_id] === 'review' && (
                                 <>
-                                  {/* ① target 각 단어를 맞음(초록)/틀림(회색)으로 표시 */}
-                                  <p className={styles.targetWords}>
+                                  {/* ① 결과 — 채점 중 / 통과 / 다시 */}
+                                  {seqResult[clip.clip_id] == null ? (
+                                    <div className={styles.rvStatus}>
+                                      <div className={styles.analyzingSpinner} />
+                                      <span className={styles.rvStatusText}>발음 확인 중</span>
+                                    </div>
+                                  ) : (
+                                    <div className={`${styles.rvStatus} ${seqResult[clip.clip_id] === 'pass' ? styles.rvStatusPass : styles.rvStatusMiss}`}>
+                                      <span className={styles.rvStatusIcon}>
+                                        {seqResult[clip.clip_id] === 'pass' ? '✓' : '↻'}
+                                      </span>
+                                      <span className={styles.rvStatusText}>
+                                        {seqResult[clip.clip_id] === 'pass' ? '통과' : '한 번 더'}
+                                      </span>
+                                    </div>
+                                  )}
+
+                                  {/* ② 단어별 인식 결과 — 맞은 단어만 진하게 */}
+                                  <p className={styles.rvWords}>
                                     {(wordFeedback[clip.clip_id] ??
                                       clip.target_phrase.split(' ').map((w: string) => ({ w, ok: false }))
                                     ).map((tok: { w: string; ok: boolean }, i: number) => (
                                       <span
                                         key={i}
-                                        className={`${styles.wordChip} ${tok.ok ? styles.wordChipOk : styles.wordChipBad}`}
+                                        className={`${styles.rvWord} ${tok.ok ? styles.rvWordOk : ''}`}
                                       >
                                         {tok.w}
                                       </span>
                                     ))}
                                   </p>
 
-                                  {seqResult[clip.clip_id] == null ? (
-                                    <div className={styles.evaluationBox}>
-                                      <div className={styles.analyzingSpinner} />
-                                      <p className={styles.speakStageText}>AI 발음 분석 중...</p>
-                                    </div>
-                                  ) : seqResult[clip.clip_id] === 'pass' ? (
-                                    <div className={styles.evaluationSuccess}>
-                                      <span className={styles.evalIcon}>✓</span>
-                                      <p className={styles.speakStageText}>EXCELLENT! 합격 (XP +50점)</p>
-                                    </div>
-                                  ) : (
-                                    <div className={styles.evaluationFail}>
-                                      <span className={styles.evalIcon}>✗</span>
-                                      <p className={styles.speakStageText}>다시 도전해볼까요?</p>
-                                    </div>
-                                  )}
-
-                                  {/* AI 모범답안 억양 선택 — TTS URL이 있는 클립에서만 노출 */}
-                                  {(clip.model_audio_us || clip.model_audio_uk) && (
-                                    <div className={styles.accentToggleRow}>
-                                      <button
-                                        type="button"
-                                        className={`${styles.accentBtn} ${accent === 'us' ? styles.accentBtnOn : ''}`}
-                                        disabled={!clip.model_audio_us}
-                                        onClick={() => setAccent('us')}
-                                      >
-                                        🇺🇸 미국식
-                                      </button>
-                                      <button
-                                        type="button"
-                                        className={`${styles.accentBtn} ${accent === 'uk' ? styles.accentBtnOn : ''}`}
-                                        disabled={!clip.model_audio_uk}
-                                        onClick={() => setAccent('uk')}
-                                      >
-                                        🇬🇧 영국식
-                                      </button>
-                                    </div>
-                                  )}
-
-                                  <div className={styles.reviewBtnRow}>
+                                  {/* ③ 두 가지 듣기 — 이 화면의 핵심 행동 */}
+                                  <div className={styles.rvListenRow}>
                                     <button
                                       type="button"
-                                      className={styles.reviewBtn}
+                                      className={styles.rvListenBtn}
                                       disabled={!myAudioUrl}
                                       onClick={playMyRecording}
                                     >
-                                      🔊 내 발음 듣기
+                                      <span className={styles.rvListenIcon}>🎧</span>
+                                      <span className={styles.rvListenLabel}>내 발음</span>
                                     </button>
                                     <button
                                       type="button"
-                                      className={styles.reviewBtn}
+                                      className={`${styles.rvListenBtn} ${styles.rvListenBtnModel}`}
                                       onClick={() => playModelAnswer(clip.clip_id)}
                                     >
-                                      ⭐ 모범 답안 듣기
+                                      <span className={styles.rvListenIcon}>⭐</span>
+                                      <span className={styles.rvListenLabel}>모범 답안</span>
                                     </button>
                                   </div>
 
-                                  {/* ② 다시하기 */}
-                                  <div className={styles.reviewBtnRow}>
-                                    <button
-                                      type="button"
-                                      className={styles.reviewBtn}
-                                      style={{ borderColor: 'rgba(10,34,143,0.4)', color: '#0A228F' }}
-                                      onClick={() => retrySpeak(clip.clip_id)}
-                                    >
-                                      ↺ 다시하기
+                                  {/* 억양 — 모범 답안에 딸린 작은 선택지로 낮춰 배치.
+                                      두 오디오가 모두 있을 때만 노출한다. */}
+                                  {clip.model_audio_us && clip.model_audio_uk && (
+                                    <div className={styles.rvAccentRow}>
+                                      <span className={styles.rvAccentLabel}>모범 답안 발음</span>
+                                      <div className={styles.rvAccentSeg}>
+                                        <button
+                                          type="button"
+                                          className={`${styles.rvAccentBtn} ${accent === 'us' ? styles.rvAccentBtnOn : ''}`}
+                                          onClick={() => setAccent('us')}
+                                        >
+                                          미국
+                                        </button>
+                                        <button
+                                          type="button"
+                                          className={`${styles.rvAccentBtn} ${accent === 'uk' ? styles.rvAccentBtnOn : ''}`}
+                                          onClick={() => setAccent('uk')}
+                                        >
+                                          영국
+                                        </button>
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* ④ 보조 동작 — 강조하지 않는다 */}
+                                  <div className={styles.rvMinorRow}>
+                                    <button type="button" className={styles.rvMinorBtn} onClick={() => retrySpeak(clip.clip_id)}>
+                                      다시하기
                                     </button>
-                                    <button
-                                      type="button"
-                                      className={styles.reviewBtn}
-                                      style={{ background: '#0A228F', border: 'none', color: '#ffffff' }}
-                                      onClick={() => finishSpeak(clip.clip_id)}
-                                    >
-                                      넘어가기 →
+                                    <span className={styles.rvMinorDivider} />
+                                    <button type="button" className={styles.rvMinorBtn} onClick={() => finishSpeak(clip.clip_id)}>
+                                      넘어가기
                                     </button>
                                   </div>
                                 </>

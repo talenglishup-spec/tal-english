@@ -452,19 +452,22 @@ export default function ChallengeDrill({ clips, passedIds, singleClip, onExit, o
   if (!current) return null;
   return (
     <div className={styles.drillWrap}>
-      {/* 상단: 나가기 + 진행 도트 */}
+      {/* 상단: 나가기 + 진행 바 (도트보다 조용하고 한눈에 읽힌다) */}
       <div className={styles.drillTopBar}>
         <button type="button" className={styles.drillExit} onClick={() => { cleanup(); onExit(); }}>✕</button>
-        <div className={styles.drillDots}>
+        <div className={styles.drillProgress}>
           {items.map((_, i) => (
-            <span key={i} className={`${styles.drillDot} ${i < results.length ? styles.drillDotDone : ''} ${i === idx && stage === 'question' ? styles.drillDotNow : ''}`} />
+            <span
+              key={i}
+              className={`${styles.drillProgressSeg} ${i < results.length ? styles.drillProgressSegDone : ''} ${i === idx && stage === 'question' ? styles.drillProgressSegNow : ''}`}
+            />
           ))}
         </div>
         <span className={styles.drillCount}>{Math.min(idx + 1, items.length)}/{items.length}</span>
       </div>
 
       {cheer && idx === 3 && stage === 'question' && (
-        <div className={styles.drillCheer}>절반 넘었어! 잘하고 있어 💪</div>
+        <div className={styles.drillCheer}>절반 넘었어요</div>
       )}
 
       {/* 문항: 상황 그림(크게) → 한국어(위) → 영어(가림·탭하면 공개) → 듣기 */}
@@ -507,7 +510,7 @@ export default function ChallengeDrill({ clips, passedIds, singleClip, onExit, o
 
         {/* 오디오 듣기 — 버튼 눌렀을 때만 재생 */}
         <button type="button" className={styles.drillReplayPill} onClick={playExpressionAudio}>
-          🔊 듣기
+          듣기
         </button>
       </div>
 
@@ -517,7 +520,7 @@ export default function ChallengeDrill({ clips, passedIds, singleClip, onExit, o
         {isScoring ? (
           <div className={styles.drillScoring}>
             <div className={styles.analyzingSpinner} />
-            <span className={styles.drillScoringText}>듣는 중...</span>
+            <span className={styles.drillScoringText}>듣는 중</span>
           </div>
         ) : (
           <button
@@ -526,16 +529,16 @@ export default function ChallengeDrill({ clips, passedIds, singleClip, onExit, o
             onClick={isRecording ? stopRecording : startRecording}
             disabled={stage === 'feedback'}
           >
-            {isRecording ? '⏹' : '🎙️'}
+            {isRecording ? '■' : '🎙️'}
           </button>
         )}
         <span className={styles.drillMicHint}>
-          {isRecording ? '말한 뒤 버튼을 누르세요' : isScoring ? '' : '버튼을 누르고 말하세요'}
+          {isRecording ? '다 말했으면 다시 누르세요' : isScoring ? '' : '누르고 말하세요'}
         </span>
         {/* 넘어가기 — 지금 문항을 오답 처리하고 다음으로 */}
         {stage === 'question' && !isRecording && !isScoring && (
           <button type="button" className={styles.drillSkipBtn} onClick={skipQuestion}>
-            이 문제 넘어가기 →
+            넘어가기
           </button>
         )}
       </div>
@@ -543,7 +546,7 @@ export default function ChallengeDrill({ clips, passedIds, singleClip, onExit, o
       {/* 정답/오답 오버레이 */}
       {stage === 'feedback' && feedback && (
         <div className={`${styles.drillFeedback} ${feedback.ok ? styles.drillFeedbackOk : styles.drillFeedbackNo}`}>
-          <span className={styles.drillFeedbackIcon}>{feedback.ok ? '✅' : '⚠️'}</span>
+          <span className={styles.drillFeedbackIcon}>{feedback.ok ? '✓' : '↻'}</span>
           <span className={styles.drillFeedbackMsg}>{feedback.msg}</span>
         </div>
       )}
