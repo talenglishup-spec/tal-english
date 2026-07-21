@@ -170,6 +170,10 @@ export default function ShortsPage() {
   const modelWatchRef = useRef<any>(null);      // 모범 답안(영상 구간) 재생 감시 인터벌
   const myAudioElRef = useRef<HTMLAudioElement | null>(null); // 내 발음 재생 엘리먼트
 
+  // onError 자동 복구용 — 재생 불가 클립을 자동으로 넘길 때, 연속 실패가
+  // 무한 스킵으로 번지지 않게 막는다. 정상 재생(PLAYING) 진입 시 0으로 리셋.
+  const errorSkipCountRef = useRef(0);
+
   // 녹음 관련 Refs
   const streamRef = useRef<MediaStream | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -202,15 +206,22 @@ export default function ShortsPage() {
     setDailyStudied(saved);
     setGoalCelebrated(localStorage.getItem(goalKey) === '1');
 
+    // 성능: 매초 setState하면 이 큰 컴포넌트(카드 14장 포함)가 초당 1회
+    // 전체 리렌더돼 스크롤과 겹칠 때 프레임 드랍의 원인이 된다. 초 누적은
+    // ref+localStorage로만 하고, 화면 게이지 갱신(setState)은 5초마다 한 번
+    // 또는 목표 달성 순간에만 한다("N초 남음"은 초 단위 정확도가 UX에
+    // 중요하지 않은 진행 게이지라 5초 스텝으로도 체감 차이가 없다).
     const id = setInterval(() => {
       if (activeTabRef.current === 'shorts' && isPlayingRef.current) {
         const v = dailyStudiedRef.current + 1;
         dailyStudiedRef.current = v;
-        setDailyStudied(v);
         localStorage.setItem(key, String(v));
         if (v >= DAILY_GOAL_SEC && localStorage.getItem(goalKey) !== '1') {
           localStorage.setItem(goalKey, '1');
+          setDailyStudied(v);      // 목표 달성 순간은 즉시 반영
           setGoalCelebrated(true);
+        } else if (v % 5 === 0) {
+          setDailyStudied(v);      // 그 외에는 5초마다만 게이지 갱신
         }
       }
     }, 1000);
@@ -484,6 +495,7 @@ export default function ShortsPage() {
           const state = event.data;
           const activeId = activePresetIdRef.current;
           if (state === YT.PlayerState.PLAYING) {
+            errorSkipCountRef.current = 0; // 정상 재생 = 연속 실패 카운터 리셋
             maybeRestoreSound(activeId, event.target);
             setIsPlaying(true);
             // 스픽 오버레이 중엔 감시 루프 재가동 금지(발화 종료 시 명시 재시작)
@@ -497,7 +509,25 @@ export default function ShortsPage() {
         },
         onError: (event: any) => {
           // 2=잘못된 파라미터, 5=HTML5 오류, 100=영상 없음, 101/150=임베드 금지
-          console.error(`[Shorts] YT player error code=${event?.data} video=${loadedVideoIdRef.current}`);
+          const code = event?.data;
+          console.error(`[Shorts] YT player error code=${code} video=${loadedVideoIdRef.current}`);
+
+          // 재생 불가(영상 삭제·비공개 100, 임베드 금지 101/150)면 검은 화면에
+          // 멈추지 않도록 다음 클립으로 자동 이동한다. 스픽 오버레이 중이거나
+          // 쇼츠 탭이 아니면 개입하지 않는다. 연속 실패는 상한(3)으로 끊어
+          // 모든 클립이 막힌 경우의 무한 스킵을 막는다.
+          const unplayable = code === 100 || code === 101 || code === 150;
+          const activeId = activePresetIdRef.current;
+          if (
+            unplayable &&
+            activeTabRef.current === 'shorts' &&
+            activeId &&
+            !speakStageRef.current[activeId] &&
+            errorSkipCountRef.current < 3
+          ) {
+            errorSkipCountRef.current += 1;
+            goNextClip(activeId);
+          }
         },
       },
     });
@@ -715,7 +745,12 @@ export default function ShortsPage() {
     const id = setInterval(() => {
       const p = getPlayer();
       if (!p || typeof p.isMuted !== 'function') return;
-      try { setIsSoundMuted(!!p.isMuted()); } catch (e) {}
+      try {
+        const muted = !!p.isMuted();
+        // 값이 실제로 바뀔 때만 setState — 매 틱 무조건 set하면 값이 그대로여도
+        // 700ms마다 리렌더가 발생한다. 함수형 업데이트로 직전 값과 비교한다.
+        setIsSoundMuted(prev => (prev === muted ? prev : muted));
+      } catch (e) {}
     }, 700);
     return () => clearInterval(id);
   }, [activeTab, activePresetId]);

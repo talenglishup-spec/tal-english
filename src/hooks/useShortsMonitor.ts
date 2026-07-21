@@ -92,7 +92,21 @@ export function useShortsMonitor(): ShortsMonitorHandle {
         // "아래"에서 관측된 뒤에만(=아래→위로 통과할 때만) 정지를 허용한다.
         let armedForPause = false;
 
+        // 성능: getCurrentTime()·getPlayerState()는 iframe postMessage라 매
+        // 프레임(초당 ~60회) 호출하면 저사양 기기 메인 스레드에 부담이 쌓인다.
+        // 구간 끝·pause_at 감지는 초당 8~10회면 충분히 정확하므로, rAF 스케줄은
+        // 그대로 두되 실제 플레이어 판독은 ~120ms 간격으로만 게이트한다.
+        const POLL_MS = 120;
+        let lastPoll = 0;
+
         const tick = () => {
+            const now = performance.now();
+            if (now - lastPoll < POLL_MS) {
+                rafRef.current = requestAnimationFrame(tick);
+                return;
+            }
+            lastPoll = now;
+
             const player = cfg.getPlayer();
             if (!player || !player.getCurrentTime) {
                 rafRef.current = requestAnimationFrame(tick);

@@ -45,6 +45,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
+      <head>
+        {/* 쇼츠 첫 영상 로딩 단축 — YouTube 임베드가 쓰는 호스트에 DNS+TLS를
+            미리 맺어 둔다. 리소스 힌트일 뿐 플레이어 UI/동작에는 관여하지 않는다. */}
+        <link rel="preconnect" href="https://www.youtube.com" />
+        <link rel="preconnect" href="https://www.google.com" />
+        <link rel="preconnect" href="https://i.ytimg.com" />
+        <link rel="preconnect" href="https://googleads.g.doubleclick.net" />
+        <link rel="preconnect" href="https://static.doubleclick.net" />
+      </head>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <AuthProvider>
           <main>
