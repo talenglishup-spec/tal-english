@@ -1562,22 +1562,23 @@ export default function ShortsPage() {
                             <p className={styles.rvTranslation}>{sc.translation}</p>
                           )}
 
-                          {/* ③ AI 모범 발음 듣기 — 미국식/영국식(ElevenLabs 사전생성)을
-                              각각 버튼 한 번으로 재생한다. 해당 억양의 AI 오디오가 있는
-                              클립에서만 노출하며, 누르면 AI 발음만 재생한다(영상 원음
-                              폴백을 쓰지 않는다 — playModelAnswer에 which를 넘기고 URL이
-                              있는 버튼만 그리므로 폴백 경로가 실행되지 않는다). */}
+                          {/* ③ AI 모범 발음 듣기 — 왼쪽에 미국/영국을 세로로 쌓고,
+                              그 오른쪽에 내 발음을 둔다. 각 억양은 AI 오디오가 있는
+                              클립에서만 노출하며 누르면 AI 발음만 재생한다(영상 원음
+                              폴백 없음 — URL이 있는 버튼만 그린다). */}
                           <div className={styles.rvListenRow}>
-                            {sc.model_audio_us && (
-                              <button type="button" className={styles.rvListenBtn} onClick={() => playModelAnswer(sc.clip_id, 'us')}>
-                                <span className={styles.rvListenIcon}>🔊</span>🇺🇸 미국 발음
-                              </button>
-                            )}
-                            {sc.model_audio_uk && (
-                              <button type="button" className={styles.rvListenBtn} onClick={() => playModelAnswer(sc.clip_id, 'uk')}>
-                                <span className={styles.rvListenIcon}>🔊</span>🇬🇧 영국 발음
-                              </button>
-                            )}
+                            <div className={styles.rvAccentCol}>
+                              {sc.model_audio_us && (
+                                <button type="button" className={styles.rvListenBtn} onClick={() => playModelAnswer(sc.clip_id, 'us')}>
+                                  <span className={styles.rvListenIcon}>🔊</span>🇺🇸 미국 발음
+                                </button>
+                              )}
+                              {sc.model_audio_uk && (
+                                <button type="button" className={styles.rvListenBtn} onClick={() => playModelAnswer(sc.clip_id, 'uk')}>
+                                  <span className={styles.rvListenIcon}>🔊</span>🇬🇧 영국 발음
+                                </button>
+                              )}
+                            </div>
                             <button
                               type="button"
                               className={styles.rvListenBtn}
@@ -1587,8 +1588,6 @@ export default function ShortsPage() {
                               <span className={styles.rvListenIcon}>▶</span>내 발음
                             </button>
                           </div>
-
-                          <p className={styles.rvHint}>듣고 따라하기</p>
 
                           {/* ④ 다시하기 — 알약 하나. 넘어가기는 맨 아래 옅은 글씨. */}
                           <button type="button" className={styles.rvRetryPill} onClick={() => retrySpeak(sc.clip_id)}>
