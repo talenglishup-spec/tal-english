@@ -65,6 +65,13 @@ function getYoutubeId(url: string) {
   return (match && match[1].length === 11) ? match[1] : '';
 }
 
+// 유튜브 공개 썸네일 — 로딩 갭 마스킹 포스터 및 프리로드용.
+// mqdefault(320×180)는 모든 영상에 존재하는 16:9 프레임이라 영상과 비율이
+// 맞는다(hqdefault는 4:3이라 검은 띠가 생겨 영상 레터박스와 어긋난다).
+function thumbUrl(videoId: string) {
+  return videoId ? `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg` : '';
+}
+
 export default function ShortsPage() {
   const router = useRouter();
   const [clips, setClips] = useState<any[]>([]);
@@ -149,6 +156,11 @@ export default function ShortsPage() {
   const dailyStudiedRef = useRef(0);
   const isPlayingRef = useRef(false);
   useEffect(() => { isPlayingRef.current = isPlaying; }, [isPlaying]);
+
+  // 로딩 갭 마스킹(접근 A): 다른 video_id로 전환해 loadVideoById가 새 영상을
+  // 버퍼링하는 동안 검은 화면 대신 그 클립의 유튜브 썸네일을 포스터로 덮는다.
+  // PLAYING 진입 시 제거. 같은 영상 seekTo(즉시 전환)에는 띄우지 않는다.
+  const [posterUrl, setPosterUrl] = useState<string>('');
 
   // Collection 해금 보상 상태 카운트
   const [successCounts, setSuccessCounts] = useState<Record<string, number>>({});
@@ -242,6 +254,25 @@ export default function ShortsPage() {
   }, [clips, passedClips, isPrivilegedFeed]);
   const feedClipsRef = useRef<any[]>([]);
   useEffect(() => { feedClipsRef.current = feedClips; }, [feedClips]);
+
+  // 다음 클립 썸네일 프리로드 — 활성 클립이 바뀔 때마다 뒤 2개 클립의
+  // 썸네일을 미리 받아, 스크롤로 도착하는 순간 포스터가 지연 없이 뜨게 한다.
+  // (같은 video_id는 seekTo 즉시 전환이라 포스터가 안 뜨므로, 다른 영상만 대상)
+  useEffect(() => {
+    if (activeTab !== 'shorts' || feedClips.length === 0) return;
+    const idx = feedClips.findIndex((c: any) => c.clip_id === activePresetId);
+    if (idx < 0) return;
+    const curVid = getYoutubeId(feedClips[idx]?.youtube_url || '');
+    for (let i = 1; i <= 2; i++) {
+      const next = feedClips[idx + i];
+      if (!next) break;
+      const vId = getYoutubeId(next.youtube_url);
+      if (vId && vId !== curVid) {
+        const img = new Image();
+        img.src = thumbUrl(vId);
+      }
+    }
+  }, [activePresetId, activeTab, feedClips]);
 
   // 레벨 클리어로 피드가 다음 레벨로 바뀌면, 활성 클립을 새 피드의 첫
   // 클립으로 옮기고 스크롤을 맨 위로 되돌린다.
@@ -406,8 +437,13 @@ export default function ShortsPage() {
       if (loadedVideoIdRef.current === vId) {
         player.seekTo(start, true);
         player.playVideo();
+        // 같은 영상은 즉시 전환이라 포스터가 필요 없다(있으면 제거).
+        setPosterUrl('');
       } else {
         loadedVideoIdRef.current = vId;
+        // 다른 영상 = 버퍼링 갭 발생 → 그 클립 썸네일을 포스터로 먼저 덮고
+        // (PLAYING 시 onStateChange가 제거) loadVideoById로 로드한다.
+        setPosterUrl(thumbUrl(vId));
         // loadVideoById는 로드 완료 후 자동 재생한다. mute 여부는 플레이어
         // 속성이라 그대로 유지된다(첫 제스처 전엔 muted → 정책 안전).
         player.loadVideoById({ videoId: vId, startSeconds: start });
@@ -449,6 +485,8 @@ export default function ShortsPage() {
     mountDiv.style.height = '100%';
     host.appendChild(mountDiv);
     loadedVideoIdRef.current = vId;
+    // 첫 로드도 검은 화면 대신 포스터로 — PLAYING 시 제거된다.
+    if (activeTabRef.current === 'shorts') setPosterUrl(thumbUrl(vId));
 
     singlePlayerRef.current = new YT.Player(mountDiv, {
       videoId: vId,
@@ -496,6 +534,7 @@ export default function ShortsPage() {
           const activeId = activePresetIdRef.current;
           if (state === YT.PlayerState.PLAYING) {
             errorSkipCountRef.current = 0; // 정상 재생 = 연속 실패 카운터 리셋
+            setPosterUrl('');             // 실제 영상이 떴으니 포스터 제거
             maybeRestoreSound(activeId, event.target);
             setIsPlaying(true);
             // 스픽 오버레이 중엔 감시 루프 재가동 금지(발화 종료 시 명시 재시작)
@@ -1295,6 +1334,17 @@ export default function ShortsPage() {
             <div className={styles.stageWrap}>
               <div className={styles.playerLayer}>
                 <div id="yt-single-host" className={styles.singleHost}></div>
+                {/* 로딩 갭 포스터 — 다른 영상 버퍼링 동안 검은 화면 대신 그 클립
+                    썸네일을 덮는다. PLAYING 시 posterUrl='' 로 제거된다.
+                    pointer-events:none — 네이티브 컨트롤/스크롤을 가로채지 않는다. */}
+                {posterUrl && (
+                  <div
+                    className={styles.loadPoster}
+                    style={{ backgroundImage: `url("${posterUrl}")` }}
+                  >
+                    <div className={styles.loadPosterSpin} />
+                  </div>
+                )}
               </div>
 
               {/* 수직 스냅 스크롤링 쇼츠 피드 (투명 오버레이 카드) */}
