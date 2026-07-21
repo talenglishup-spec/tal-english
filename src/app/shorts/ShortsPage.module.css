@@ -202,11 +202,19 @@
   z-index: 0; /* pointer-events 기본 auto — 네이티브 컨트롤 직접 클릭 */
 }
 
+/* 2-플레이어 풀: 두 host가 같은 자리에 겹친다. front는 opacity 1/z 2,
+   back은 opacity 0/z 0으로 applyFrontVisual이 직접 토글한다. 초기값은
+   A=front, B=back (JS가 곧 재적용). */
 .singleHost {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   background: #000;
+  transition: opacity 0.12s linear;
 }
+#yt-host-a { opacity: 1; z-index: 2; }
+#yt-host-b { opacity: 0; z-index: 0; pointer-events: none; }
 
 .singleHost iframe {
   width: 100%;
