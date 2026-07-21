@@ -885,12 +885,12 @@
 
 /* 영어 표현 — 화면의 중심. 정확히 말한 단어는 초록(밑줄), 놓친 단어는 옅은 회색 */
 .rvPhrase {
-  font-size: 30px;
+  font-size: 36px;
   font-weight: 900;
-  line-height: 1.35;
+  line-height: 1.3;
   letter-spacing: -0.01em;
   word-break: keep-all;
-  margin: 0 0 8px;
+  margin: 0 0 10px;
 }
 .rvWord { color: #c7cedb; transition: color 0.2s; }
 .rvWord:not(:last-child)::after { content: ' '; }
@@ -905,10 +905,10 @@
   padding: 0 2px;
 }
 .rvTranslation {
-  font-size: 14px;
+  font-size: 18px;
   font-weight: 600;
   color: var(--text-muted);
-  margin: 0 0 20px;
+  margin: 0 0 22px;
 }
 
 /* 듣기 — 아이콘 + 라벨의 가벼운 인라인 버튼. 탭하면 그 발음이 바로 재생된다
@@ -923,18 +923,18 @@
 .rvListenBtn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 2px;
+  gap: 7px;
+  padding: 8px 4px;
   border: none;
   background: none;
   color: var(--tal-blue);
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 800;
   cursor: pointer;
 }
 .rvListenBtn:active { opacity: 0.6; }
 .rvListenBtn:disabled { opacity: 0.35; cursor: default; }
-.rvListenIcon { font-size: 14px; line-height: 1; }
+.rvListenIcon { font-size: 16px; line-height: 1; }
 
 .rvHint {
   font-size: 13px;
@@ -943,11 +943,12 @@
   margin: 14px 0 18px;
 }
 
-/* 다시하기 — 연한 알약 하나 */
+/* 다시하기 — 연한 알약 하나 (요청: 10px 아래로) */
 .rvRetryPill {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  margin-top: 10px;
   padding: 12px 26px;
   border: none;
   border-radius: 999px;
@@ -960,11 +961,11 @@
 .rvRetryPill:active { transform: scale(0.97); }
 .rvRetryIcon { font-size: 15px; }
 
-/* 넘어가기 — 맨 아래 옅은 글씨 */
+/* 넘어가기 — 맨 아래 옅은 글씨 (요청: 24px 더 아래로) */
 .rvNextText {
   display: block;
   width: 100%;
-  margin-top: 22px;
+  margin-top: 46px;
   padding: 6px 0;
   border: none;
   background: none;

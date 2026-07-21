@@ -1562,22 +1562,20 @@ export default function ShortsPage() {
                             <p className={styles.rvTranslation}>{sc.translation}</p>
                           )}
 
-                          {/* ③ 듣기 — 버튼 한 번 = 그 발음 재생. 억양 토글을 따로 두지
-                              않고 미국/영국 버튼이 각각 바로 재생한다(혼란 제거).
-                              한쪽 오디오만 있으면 '모범 발음' 하나로 합친다. */}
+                          {/* ③ AI 모범 발음 듣기 — 미국식/영국식(ElevenLabs 사전생성)을
+                              각각 버튼 한 번으로 재생한다. 해당 억양의 AI 오디오가 있는
+                              클립에서만 노출하며, 누르면 AI 발음만 재생한다(영상 원음
+                              폴백을 쓰지 않는다 — playModelAnswer에 which를 넘기고 URL이
+                              있는 버튼만 그리므로 폴백 경로가 실행되지 않는다). */}
                           <div className={styles.rvListenRow}>
-                            {sc.model_audio_us && sc.model_audio_uk ? (
-                              <>
-                                <button type="button" className={styles.rvListenBtn} onClick={() => playModelAnswer(sc.clip_id, 'us')}>
-                                  <span className={styles.rvListenIcon}>🔊</span>미국 발음
-                                </button>
-                                <button type="button" className={styles.rvListenBtn} onClick={() => playModelAnswer(sc.clip_id, 'uk')}>
-                                  <span className={styles.rvListenIcon}>🔊</span>영국 발음
-                                </button>
-                              </>
-                            ) : (
-                              <button type="button" className={styles.rvListenBtn} onClick={() => playModelAnswer(sc.clip_id)}>
-                                <span className={styles.rvListenIcon}>🔊</span>모범 발음
+                            {sc.model_audio_us && (
+                              <button type="button" className={styles.rvListenBtn} onClick={() => playModelAnswer(sc.clip_id, 'us')}>
+                                <span className={styles.rvListenIcon}>🔊</span>🇺🇸 미국 발음
+                              </button>
+                            )}
+                            {sc.model_audio_uk && (
+                              <button type="button" className={styles.rvListenBtn} onClick={() => playModelAnswer(sc.clip_id, 'uk')}>
+                                <span className={styles.rvListenIcon}>🔊</span>🇬🇧 영국 발음
                               </button>
                             )}
                             <button
