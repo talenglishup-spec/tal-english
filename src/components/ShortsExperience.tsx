@@ -483,12 +483,14 @@ export default function ShortsPage() {
     try {
       if (loadedVideoIdRef.current === vId) {
         // ① 같은 영상
+        console.log('[Shorts] 전환 경로 ① 같은영상 seek — ' + clipId);
         front.setPlaybackRate?.(1.0);
         front.seekTo(start, true);
         front.playVideo();
         setPosterUrl('');
       } else if (backVideoIdRef.current === vId && backReadyRef.current && getBackPlayer()) {
         // ② 미리 버퍼링된 back으로 스왑 → 무갭
+        console.log('[Shorts] 전환 경로 ② 스왑(무갭) — ' + clipId + ' video=' + vId);
         frontIsARef.current = !frontIsARef.current;
         applyFrontVisual();
         // 옛 front(이제 back)를 즉시 음소거·정지 — 안 하면 가려진 채 계속
@@ -506,6 +508,7 @@ export default function ShortsPage() {
         setPosterUrl(''); // 버퍼 warm → 검은 화면 없음
       } else {
         // ③ 미준비 → front에서 직접 로드 (포스터로 갭 마스킹)
+        console.log('[Shorts] 전환 경로 ③ 미준비 로드(버퍼링) — ' + clipId + ' video=' + vId + ' | backVid=' + backVideoIdRef.current + ' backReady=' + backReadyRef.current);
         front.setPlaybackRate?.(1.0);
         loadedVideoIdRef.current = vId;
         setPosterUrl(thumbUrl(vId));
@@ -566,14 +569,15 @@ export default function ShortsPage() {
     const onState = (slot: 'A' | 'B', event: any) => {
       const state = event.data;
       if (!isFrontSlot(slot)) {
-        // BACK: 프리버퍼 중. muted 자동재생이 PLAYING에 도달하면 즉시 정지해
-        // start 지점에 버퍼를 warm 상태로 얼린다(UI는 건드리지 않는다).
-        if (state === YT.PlayerState.PLAYING) {
-          try { event.target.pauseVideo(); } catch (e) {}
+        // BACK: 프리버퍼 중. 즉시 정지하면 버퍼가 ~1초뿐이라 스왑 후 다시
+        // 버퍼링이 생긴다. 대신 muted로 계속 재생해 디코더를 hot 상태로,
+        // 버퍼를 앞으로 채워 둔다(릴스가 다음 영상을 실제로 미리 재생하는 방식).
+        // 스왑 시 seekTo(start)는 이미 버퍼된 구간이라 즉시 시작된다.
+        if (state === YT.PlayerState.PLAYING && !backReadyRef.current) {
           backReadyRef.current = true;
           try {
             const vd = event.target.getVideoData?.();
-            console.log('[Shorts] 프리버퍼 완료(warm) — back video=' + (vd?.video_id || '?'));
+            console.log('[Shorts] 프리버퍼 hot(계속 재생) — back video=' + (vd?.video_id || '?'));
           } catch (e) {}
         }
         return;
