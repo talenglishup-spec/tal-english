@@ -707,7 +707,10 @@ export default function ShortsPage() {
     const observerOptions = {
       root: containerRef.current,
       rootMargin: '0px',
-      threshold: 0.6,
+      // 0.5 = 새 카드가 절반만 들어와도 전환을 시작한다(0.6보다 스냅 도중
+      // 더 일찍 발화 → 다음 영상으로 체감상 더 빨리 넘어간다). 스냅이 카드를
+      // 100%로 당기므로 조기 오전환 위험은 없다.
+      threshold: 0.5,
     };
 
     const observerCallback = (entries: IntersectionObserverEntry[]) => {
@@ -743,7 +746,7 @@ export default function ShortsPage() {
         if (clip && clip.clip_id !== activePresetIdRef.current) {
           handlePresetTransition(clip.clip_id);
         }
-      }, 150);
+      }, 90); // 150→90ms: 스크롤이 멈춘 뒤 전환을 더 빨리 시작
     };
     el?.addEventListener('scroll', onScrollEnd, { passive: true });
 
