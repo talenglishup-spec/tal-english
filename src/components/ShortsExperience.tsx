@@ -52,6 +52,12 @@ const REC_MAX_SEC = 12; // 녹음 안전 상한 (자동 종료)
 
 // ⑥ 연속 학습: 오늘의 스픽 훈련 목표 시청 시간(초)
 const DAILY_GOAL_SEC = 120;
+
+// 프리버퍼(back) 재생 상한(초) — 데이터 절감. 이 시간만큼만 다음 영상을
+// 미리 재생해 버퍼를 채운 뒤 정지한다(예전엔 영상 끝까지 재생해 데이터 폭식).
+// 대부분 스크롤은 이 안에 일어나 hot 스왑(즉시)을 받고, 이후엔 8초+ 버퍼가
+// 남아 거의 즉시. 클립 길이·체감 속도에 맞춰 조정 가능.
+const PREBUFFER_MAX_SEC = 8;
 // 오늘 날짜 키 (KST 기준 로컬 저장용)
 function todayKey() {
   const kst = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
@@ -183,6 +189,7 @@ export default function ShortsPage() {
   const loadedVideoIdRef = useRef<string>('');  // front에 로드된 video_id
   const backVideoIdRef = useRef<string>('');    // back에 미리 버퍼링한 video_id
   const backReadyRef = useRef(false);           // back이 warm(일시정지 대기) 상태인가
+  const backPauseTimerRef = useRef<any>(null);  // 프리버퍼 상한 도달 시 back 정지 타이머
   const soundRestoreTriedRef = useRef<Record<string, boolean>>({}); // clipId → unMute 시도 1회 제한
 
   // 어느 host가 앞/뒤인지 DOM 스타일로 직접 토글(React 리렌더 없이 — YT가
@@ -210,13 +217,15 @@ export default function ShortsPage() {
       backVideoIdRef.current = ''; backReadyRef.current = false; return;
     }
     if (backVideoIdRef.current === nextVid) return; // 이미 준비/준비 중
+    // 이전 프리버퍼의 정지 타이머 취소 (새 클립을 로드하므로)
+    if (backPauseTimerRef.current) { clearTimeout(backPauseTimerRef.current); backPauseTimerRef.current = null; }
     backVideoIdRef.current = nextVid;
     backReadyRef.current = false;
     console.log('[Shorts] 프리버퍼 시작 — 다음=' + next.clip_id + ' video=' + nextVid);
     try {
       back.mute();
       // loadVideoById는 muted 자동재생 → onStateChange(back, PLAYING)에서
-      // 즉시 pauseVideo하여 start 지점에 버퍼를 warm 상태로 얼린다.
+      // backReady를 세우고, PREBUFFER_MAX_SEC 후 정지해 데이터를 아낀다.
       back.loadVideoById({ videoId: nextVid, startSeconds: nextStart });
     } catch (e) {}
   };
@@ -496,6 +505,8 @@ export default function ShortsPage() {
         // 옛 front(이제 back)를 즉시 음소거·정지 — 안 하면 가려진 채 계속
         // 재생돼 이중 음성이 난다. (prepareBack이 early-return해도 안전하도록 여기서)
         try { const oldFront = getBackPlayer(); oldFront?.mute?.(); oldFront?.pauseVideo?.(); } catch (e) {}
+        // 새 front가 됐으니 남아있는 프리버퍼 정지 타이머는 취소
+        if (backPauseTimerRef.current) { clearTimeout(backPauseTimerRef.current); backPauseTimerRef.current = null; }
         const newFront = getPlayer();
         loadedVideoIdRef.current = vId;
         backVideoIdRef.current = '';
@@ -569,15 +580,21 @@ export default function ShortsPage() {
     const onState = (slot: 'A' | 'B', event: any) => {
       const state = event.data;
       if (!isFrontSlot(slot)) {
-        // BACK: 프리버퍼 중. 즉시 정지하면 버퍼가 ~1초뿐이라 스왑 후 다시
-        // 버퍼링이 생긴다. 대신 muted로 계속 재생해 디코더를 hot 상태로,
-        // 버퍼를 앞으로 채워 둔다(릴스가 다음 영상을 실제로 미리 재생하는 방식).
-        // 스왑 시 seekTo(start)는 이미 버퍼된 구간이라 즉시 시작된다.
+        // BACK: 프리버퍼 중. muted로 재생해 버퍼를 채우되, PREBUFFER_MAX_SEC초
+        // 뒤 정지해 데이터를 아낀다(예전엔 영상 끝까지 재생 → 데이터 폭식).
+        // 대부분 스크롤은 그 안에 일어나 hot 스왑(즉시), 이후엔 8초+ 버퍼가
+        // 남아 거의 즉시. 스왑 시 seekTo(start)는 버퍼된 구간이라 빠르다.
         if (state === YT.PlayerState.PLAYING && !backReadyRef.current) {
           backReadyRef.current = true;
+          const target = event.target;
+          if (backPauseTimerRef.current) clearTimeout(backPauseTimerRef.current);
+          backPauseTimerRef.current = setTimeout(() => {
+            try { target.pauseVideo(); } catch (e) {}
+            backPauseTimerRef.current = null;
+          }, PREBUFFER_MAX_SEC * 1000);
           try {
-            const vd = event.target.getVideoData?.();
-            console.log('[Shorts] 프리버퍼 hot(계속 재생) — back video=' + (vd?.video_id || '?'));
+            const vd = target.getVideoData?.();
+            console.log('[Shorts] 프리버퍼 시작(' + PREBUFFER_MAX_SEC + '초 후 정지) — back video=' + (vd?.video_id || '?'));
           } catch (e) {}
         }
         return;
@@ -667,6 +684,7 @@ export default function ShortsPage() {
   useEffect(() => {
     return () => {
       stopMonitoring();
+      if (backPauseTimerRef.current) { clearTimeout(backPauseTimerRef.current); backPauseTimerRef.current = null; }
       try { playerARef.current?.destroy?.(); } catch (e) {}
       try { playerBRef.current?.destroy?.(); } catch (e) {}
       playerARef.current = null;
