@@ -20,13 +20,13 @@ import {
   LevelClip, pickDrillItems, clipsOfLevel, isLevelCleared,
 } from '@/lib/levels';
 
-const PRAISE = ['Great!', 'Awesome!', 'Perfect!', 'Nice one!'];
-const ENCOURAGE = ['Try again next time!', "You'll get it!", 'Keep going!'];
 const SESSION_SIZE = 5;
 const REC_MAX_SEC = 8;
-const FEEDBACK_MS = 1400;
 
-type Stage = 'start' | 'question' | 'feedback' | 'celebrate' | 'result';
+// 채점 후 리뷰 화면 = 쇼츠 speak 채점과 동일한 구성(초록 단어 하이라이트 +
+// 미국/영국/내 발음 듣기 + 다시하기/다음). 'review' 단계에서 렌더한다.
+type Stage = 'start' | 'question' | 'review' | 'celebrate' | 'result';
+type WordTok = { w: string; ok: boolean };
 
 // 셀레브레이션 종이 꽃가루 색 (TAL 블루 + 골드 + 그린)
 const CONFETTI_COLORS = ['#0A228F', '#2563eb', '#fbbf24', '#f59e0b', '#10b981', '#93c5fd'];
@@ -47,12 +47,19 @@ export default function ChallengeDrill({ clips, passedIds, singleClip, onExit, o
   const [items, setItems] = useState<LevelClip[]>(single && singleClip ? [singleClip] : []);
   const [idx, setIdx] = useState(0);
   const [results, setResults] = useState<('pass' | 'fail')[]>([]);
-  const [feedback, setFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [isScoring, setIsScoring] = useState(false);
   const [micError, setMicError] = useState('');
   const [cheer, setCheer] = useState(false);
   const [revealed, setRevealed] = useState(false); // 영어 표현 공개 여부(탭하면 공개)
+
+  // 리뷰 화면(쇼츠 speak 채점 동일) — 현재 문항 채점 결과
+  const [reviewPassed, setReviewPassed] = useState(false);
+  const [reviewWords, setReviewWords] = useState<WordTok[]>([]);
+  const [myAudioUrl, setMyAudioUrl] = useState('');   // 내 발음 재생용
+  const [accent, setAccent] = useState<'us' | 'uk'>(
+    (typeof window !== 'undefined' && localStorage.getItem('tal_accent') === 'uk') ? 'uk' : 'us'
+  );
 
   // 세션 누적 (결과 화면용)
   const [xpEarned, setXpEarned] = useState(0);
@@ -87,6 +94,8 @@ export default function ChallengeDrill({ clips, passedIds, singleClip, onExit, o
     if (audioRef.current) { try { audioRef.current.pause(); } catch (e) {} audioRef.current = null; }
   };
   useEffect(() => cleanup, []);
+  // 내 발음 blob URL 정리 (언마운트 시)
+  useEffect(() => () => { if (myAudioUrl) URL.revokeObjectURL(myAudioUrl); }, [myAudioUrl]);
 
   // 문항이 바뀌면 영어 표현을 다시 가린다. 오디오는 자동재생하지 않고
   // '🔊 듣기' 버튼을 눌렀을 때만 재생한다(수정 요청 반영).
@@ -166,11 +175,15 @@ export default function ChallengeDrill({ clips, passedIds, singleClip, onExit, o
     }
   };
 
-  // ── 판정 ─────────────────────────────────────────────
+  // ── 판정 → 리뷰 진입 (결과 확정은 '다음'을 누를 때) ──────────
+  // 쇼츠 speak처럼 채점 직후 결과를 바로 확정/자동진행하지 않고, 리뷰 화면을
+  // 띄워 단어별 정답·모범 발음·내 발음을 확인하게 한다. 결과 확정(results
+  // 반영·XP·레벨 클리어)은 리뷰에서 '다음'을 누를 때 commitAndNext가 처리한다.
   const scoreAttempt = async (blob: Blob) => {
     if (!current) return;
     setIsScoring(true);
     let passed = false;
+    let words: WordTok[] = [];
     try {
       const formData = new FormData();
       formData.append('audio', blob, 'speech.webm');
@@ -182,6 +195,7 @@ export default function ChallengeDrill({ clips, passedIds, singleClip, onExit, o
       if (res.ok) {
         const data = await res.json();
         passed = !!data.passed;
+        words = Array.isArray(data.words) ? data.words : [];
       }
     } catch (e) {
       // 채점 실패는 오답이 아니라 "다시 시도" — 오답 처리하지 않는다
@@ -190,26 +204,52 @@ export default function ChallengeDrill({ clips, passedIds, singleClip, onExit, o
       return;
     }
     setIsScoring(false);
-    await handleVerdict(passed);
+    // 내 발음 재생용 URL (이전 것 정리)
+    const url = URL.createObjectURL(blob);
+    setMyAudioUrl(prev => { if (prev) URL.revokeObjectURL(prev); return url; });
+    setReviewPassed(passed);
+    setReviewWords(words.length > 0 ? words
+      : (current.target_phrase || '').split(' ').filter(Boolean).map(w => ({ w, ok: false })));
+    setStage('review');
   };
 
-  const handleVerdict = async (passed: boolean) => {
-    const clip = current;
-    setResults(prev => [...prev, passed ? 'pass' : 'fail']);
-    setFeedback({
-      ok: passed,
-      msg: passed
-        ? PRAISE[Math.floor(Math.random() * PRAISE.length)]
-        : ENCOURAGE[Math.floor(Math.random() * ENCOURAGE.length)],
-    });
-    setStage('feedback');
+  // 리뷰: 모범 발음(억양별) 재생 — AI 오디오가 있는 클립만 버튼 노출하므로 안전
+  const playModelReview = (which: 'us' | 'uk') => {
+    if (!current) return;
+    const modelUrl = which === 'uk' ? current.model_audio_uk : current.model_audio_us;
+    if (!modelUrl) return;
+    if (audioRef.current) { try { audioRef.current.pause(); } catch (e) {} }
+    const a = new Audio(modelUrl);
+    audioRef.current = a;
+    a.play().catch(() => {});
+    setAccent(which);
+    try { localStorage.setItem('tal_accent', which); } catch (e) {}
+  };
+  // 리뷰: 내 발음 재생
+  const playMineReview = () => {
+    if (!myAudioUrl) return;
+    if (audioRef.current) { try { audioRef.current.pause(); } catch (e) {} }
+    const a = new Audio(myAudioUrl);
+    audioRef.current = a;
+    a.play().catch(() => {});
+  };
+  // 리뷰: 다시하기 — 같은 문항을 다시 녹음 (결과 미확정이라 중복 집계 없음)
+  const retryQuestion = () => {
+    if (audioRef.current) { try { audioRef.current.pause(); } catch (e) {} }
+    setMicError('');
+    setStage('question');
+  };
 
+  // 리뷰: '다음' — 결과 확정(results·onResult·XP·레벨 클리어) 후 다음 문항/결과로
+  const commitAndNext = async () => {
+    const clip = current;
+    const passed = reviewPassed;
+    setResults(prev => [...prev, passed ? 'pass' : 'fail']);
     if (clip) onResult(clip.clip_id, passed);
 
     if (passed && clip) {
       const firstTime = !passedIds.has(clip.clip_id) && !sessionPassedRef.current.has(clip.clip_id);
       sessionPassedRef.current.add(clip.clip_id);
-
       if (firstTime) {
         // 첫 정답 XP (+15, 서버 가드)
         try {
@@ -251,17 +291,14 @@ export default function ChallengeDrill({ clips, passedIds, singleClip, onExit, o
       }
     }
 
-    // 자동 진행
-    advanceTimerRef.current = setTimeout(() => {
-      setFeedback(null);
-      if (idx + 1 >= items.length) {
-        finishSession();
-      } else {
-        if (idx + 1 === 3) setCheer(true); // 3문항 완료 후 응원
-        setIdx(i => i + 1);
-        setStage('question');
-      }
-    }, FEEDBACK_MS);
+    // 다음 문항 / 결과로
+    if (idx + 1 >= items.length) {
+      finishSession();
+    } else {
+      if (idx + 1 === 3) setCheer(true); // 3문항 완료 후 응원
+      setIdx(i => i + 1);
+      setStage('question');
+    }
   };
 
   // ── 넘어가기 (스킵) ──────────────────────────────────
@@ -270,7 +307,6 @@ export default function ChallengeDrill({ clips, passedIds, singleClip, onExit, o
     if (stage !== 'question' || isScoring || isRecording || !current) return;
     setResults(prev => [...prev, 'fail']);
     onResult(current.clip_id, false); // 시도 기록 (오답 → 나중에 다시)
-    setFeedback(null);
     if (idx + 1 >= items.length) {
       finishSession();
     } else {
@@ -448,7 +484,66 @@ export default function ChallengeDrill({ clips, passedIds, singleClip, onExit, o
     );
   }
 
-  // 문항/피드백 화면
+  // 리뷰 화면 — 쇼츠 speak 채점과 동일 구성(결과 배지 · 초록 단어 하이라이트 ·
+  // 미국/영국/내 발음 듣기 · 다시하기/다음). rv* 클래스는 쇼츠 CSS 모듈 공유.
+  if (stage === 'review' && current) {
+    const lastQuestion = idx + 1 >= items.length;
+    return (
+      <div className={styles.drillWrap}>
+        <div className={styles.drillTopBar}>
+          <button type="button" className={styles.drillExit} onClick={() => { cleanup(); onExit(); }}>✕</button>
+          <div className={styles.drillProgress}>
+            {items.map((_, i) => (
+              <span key={i} className={`${styles.drillProgressSeg} ${i <= idx ? styles.drillProgressSegDone : ''}`} />
+            ))}
+          </div>
+          <span className={styles.drillCount}>{idx + 1}/{items.length}</span>
+        </div>
+
+        <div className={styles.drillReviewBody}>
+          {/* 결과 배지 */}
+          <div className={`${styles.rvBadge} ${reviewPassed ? styles.rvBadgePass : styles.rvBadgeMiss}`}>
+            {reviewPassed ? '✓' : '↻'}
+          </div>
+          {/* 영어 표현 — 맞은 단어 초록, 놓친 단어 회색 */}
+          <p className={styles.rvPhrase}>
+            {reviewWords.map((t, i) => (
+              <span key={i} className={`${styles.rvWord} ${t.ok ? styles.rvWordOk : styles.rvWordMiss}`}>{t.w}</span>
+            ))}
+          </p>
+          {current.translation && <p className={styles.rvTranslation}>{current.translation}</p>}
+
+          {/* 듣기 — 왼쪽 미국/영국(있으면), 오른쪽 내 발음 */}
+          <div className={styles.rvListenRow}>
+            <div className={styles.rvAccentCol}>
+              {current.model_audio_us && (
+                <button type="button" className={styles.rvListenBtn} onClick={() => playModelReview('us')}>
+                  <span className={styles.rvListenIcon}>🔊</span>🇺🇸 미국 발음
+                </button>
+              )}
+              {current.model_audio_uk && (
+                <button type="button" className={styles.rvListenBtn} onClick={() => playModelReview('uk')}>
+                  <span className={styles.rvListenIcon}>🔊</span>🇬🇧 영국 발음
+                </button>
+              )}
+            </div>
+            <button type="button" className={styles.rvListenBtn} disabled={!myAudioUrl} onClick={playMineReview}>
+              <span className={styles.rvListenIcon}>▶</span>내 발음
+            </button>
+          </div>
+
+          <button type="button" className={styles.rvRetryPill} onClick={retryQuestion}>
+            <span className={styles.rvRetryIcon}>↻</span>다시하기
+          </button>
+          <button type="button" className={styles.rvNextText} onClick={commitAndNext}>
+            {lastQuestion ? '결과 보기' : '다음 문항으로'}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // 문항 화면
   if (!current) return null;
   return (
     <div className={styles.drillWrap}>
@@ -537,7 +632,6 @@ export default function ChallengeDrill({ clips, passedIds, singleClip, onExit, o
             type="button"
             className={`${styles.drillMicBtn} ${isRecording ? styles.drillMicRecording : ''}`}
             onClick={isRecording ? stopRecording : startRecording}
-            disabled={stage === 'feedback'}
           >
             {isRecording ? '■' : '🎙️'}
           </button>
@@ -552,14 +646,6 @@ export default function ChallengeDrill({ clips, passedIds, singleClip, onExit, o
           </button>
         )}
       </div>
-
-      {/* 정답/오답 오버레이 */}
-      {stage === 'feedback' && feedback && (
-        <div className={`${styles.drillFeedback} ${feedback.ok ? styles.drillFeedbackOk : styles.drillFeedbackNo}`}>
-          <span className={styles.drillFeedbackIcon}>{feedback.ok ? '✓' : '↻'}</span>
-          <span className={styles.drillFeedbackMsg}>{feedback.msg}</span>
-        </div>
-      )}
     </div>
   );
 }

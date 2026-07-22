@@ -2303,6 +2303,21 @@
   margin: 0 auto;
 }
 
+/* 챌린지 채점 후 리뷰 본문 — 쇼츠 speak 리뷰(rv*)를 세로 중앙에 담는다 */
+.drillReviewBody {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  width: 100%;
+  max-width: 380px;
+  margin: 0 auto;
+  padding: 10px 16px 24px;
+  box-sizing: border-box;
+}
+
 /* 상황 그림 — 크게 (화면을 채우는 느낌). 그림자 대신 옅은 테두리로 절제. */
 .drillSituationImg {
   width: 100%;
