@@ -57,7 +57,7 @@ const DAILY_GOAL_SEC = 120;
 // 미리 재생해 버퍼를 채운 뒤 정지한다(예전엔 영상 끝까지 재생해 데이터 폭식).
 // 대부분 스크롤은 이 안에 일어나 hot 스왑(즉시)을 받고, 이후엔 8초+ 버퍼가
 // 남아 거의 즉시. 클립 길이·체감 속도에 맞춰 조정 가능.
-const PREBUFFER_MAX_SEC = 8;
+const PREBUFFER_MAX_SEC = 12;
 // 오늘 날짜 키 (KST 기준 로컬 저장용)
 function todayKey() {
   const kst = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
