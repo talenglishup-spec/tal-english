@@ -169,11 +169,57 @@ export default function ShortsPage() {
   const activePresetIdRef = useRef<string>('');
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  // 단일 영구 플레이어 (파일 상단 아키텍처 주석 참조)
-  const singlePlayerRef = useRef<any>(null);
-  const loadedVideoIdRef = useRef<string>('');  // 현재 플레이어에 로드된 video_id
-  const getPlayer = () => singlePlayerRef.current; // 활성 클립 문맥 공용 접근자
+  // ── 제한된 2-플레이어 풀 (프리버퍼) ─────────────────────────
+  // 예전 "클립마다 플레이어(N개)" 지옥과 달리, 정확히 2개만 둔다.
+  //   front = 보이며 재생 중. 소리·모니터·스픽 오버레이를 "전부 여기만" 소유.
+  //   back  = 가려진 채(opacity 0) 다음 클립을 미리 버퍼링(muted).
+  // 스크롤로 다른 영상으로 넘어갈 때 back(이미 warm)을 앞으로 스왑 → 즉시 재생.
+  // 같은 video_id(클러스터)는 스왑 없이 front에서 seekTo로 즉시.
+  const playerARef = useRef<any>(null);
+  const playerBRef = useRef<any>(null);
+  const frontIsARef = useRef(true);            // true = A가 front
+  const getPlayer = () => (frontIsARef.current ? playerARef.current : playerBRef.current);
+  const getBackPlayer = () => (frontIsARef.current ? playerBRef.current : playerARef.current);
+  const loadedVideoIdRef = useRef<string>('');  // front에 로드된 video_id
+  const backVideoIdRef = useRef<string>('');    // back에 미리 버퍼링한 video_id
+  const backReadyRef = useRef(false);           // back이 warm(일시정지 대기) 상태인가
   const soundRestoreTriedRef = useRef<Record<string, boolean>>({}); // clipId → unMute 시도 1회 제한
+
+  // 어느 host가 앞/뒤인지 DOM 스타일로 직접 토글(React 리렌더 없이 — YT가
+  // host 자식 iframe을 직접 관리하므로 재조정 충돌을 피한다).
+  const applyFrontVisual = () => {
+    const aFront = frontIsARef.current;
+    const a = document.getElementById('yt-host-a');
+    const b = document.getElementById('yt-host-b');
+    if (a) { a.style.opacity = aFront ? '1' : '0'; a.style.zIndex = aFront ? '2' : '0'; a.style.pointerEvents = aFront ? 'auto' : 'none'; }
+    if (b) { b.style.opacity = aFront ? '0' : '1'; b.style.zIndex = aFront ? '0' : '2'; b.style.pointerEvents = aFront ? 'none' : 'auto'; }
+  };
+
+  // 다음 클립을 back에 미리 버퍼링한다. 다음이 같은 영상(seek 즉시)이면 생략.
+  const prepareBack = (currentClipId: string) => {
+    const back = getBackPlayer();
+    if (!back || !back.loadVideoById) return;
+    const list = feedClipsRef.current.length > 0 ? feedClipsRef.current : feedClips;
+    const idx = list.findIndex((c: any) => c.clip_id === currentClipId);
+    const next = idx >= 0 ? list[idx + 1] : null;
+    if (!next) { backVideoIdRef.current = ''; backReadyRef.current = false; return; }
+    const nextVid = getYoutubeId(next.youtube_url);
+    const nextStart = Number(next.start_sec || 0);
+    // 다음이 front와 같은 영상 → seekTo로 즉시라 프리버퍼 불필요
+    if (!nextVid || nextVid === loadedVideoIdRef.current) {
+      backVideoIdRef.current = ''; backReadyRef.current = false; return;
+    }
+    if (backVideoIdRef.current === nextVid) return; // 이미 준비/준비 중
+    backVideoIdRef.current = nextVid;
+    backReadyRef.current = false;
+    console.log('[Shorts] 프리버퍼 시작 — 다음=' + next.clip_id + ' video=' + nextVid);
+    try {
+      back.mute();
+      // loadVideoById는 muted 자동재생 → onStateChange(back, PLAYING)에서
+      // 즉시 pauseVideo하여 start 지점에 버퍼를 warm 상태로 얼린다.
+      back.loadVideoById({ videoId: nextVid, startSeconds: nextStart });
+    } catch (e) {}
+  };
 
   // 재생 감시 엔진 (배속 3단계 전이 · pause_at 자동 정지 · 버퍼링 가드)
   const monitor = useShortsMonitor();
@@ -421,165 +467,213 @@ export default function ShortsPage() {
     };
   }, []);
 
-  // 3. 단일 영구 플레이어를 활성 클립으로 재타깃한다 (파괴/재생성 없음).
-  //    같은 영상이면 seek만, 다른 영상이면 loadVideoById — 두 경우 모두
-  //    "이미 초기화된 플레이어"라 검은 화면 함정이 없다.
+  // 3. 활성 클립으로 재타깃한다. 세 경로:
+  //    ① 같은 영상  → front에서 seekTo (즉시)
+  //    ② 다른 영상이지만 back에 미리 버퍼링됨 → back을 앞으로 스왑 (즉시, 무갭)
+  //    ③ 다른 영상 + 미준비 → front에서 loadVideoById (포스터 마스킹, 폴백)
+  //    전환 후 항상 prepareBack으로 "다음 클립"을 back에 미리 버퍼링한다.
   const activateClip = (clipId: string) => {
-    const player = singlePlayerRef.current;
+    const front = getPlayer();
     const list = clipsRef.current.length > 0 ? clipsRef.current : clips;
     const clip = list.find((c: any) => c.clip_id === clipId);
-    if (!player || !clip) return;
+    if (!front || !clip) return;
     const vId = getYoutubeId(clip.youtube_url);
     if (!vId) return;
     const start = Number(clip.start_sec || 0);
     try {
-      player.setPlaybackRate?.(1.0);
       if (loadedVideoIdRef.current === vId) {
-        player.seekTo(start, true);
-        player.playVideo();
-        // 같은 영상은 즉시 전환이라 포스터가 필요 없다(있으면 제거).
+        // ① 같은 영상
+        console.log('[Shorts] 전환 경로 ① 같은영상 seek — ' + clipId);
+        front.setPlaybackRate?.(1.0);
+        front.seekTo(start, true);
+        front.playVideo();
         setPosterUrl('');
-      } else {
+      } else if (backVideoIdRef.current === vId && backReadyRef.current && getBackPlayer()) {
+        // ② 미리 버퍼링된 back으로 스왑 → 무갭
+        console.log('[Shorts] 전환 경로 ② 스왑(무갭) — ' + clipId + ' video=' + vId);
+        frontIsARef.current = !frontIsARef.current;
+        applyFrontVisual();
+        // 옛 front(이제 back)를 즉시 음소거·정지 — 안 하면 가려진 채 계속
+        // 재생돼 이중 음성이 난다. (prepareBack이 early-return해도 안전하도록 여기서)
+        try { const oldFront = getBackPlayer(); oldFront?.mute?.(); oldFront?.pauseVideo?.(); } catch (e) {}
+        const newFront = getPlayer();
         loadedVideoIdRef.current = vId;
-        // 다른 영상 = 버퍼링 갭 발생 → 그 클립 썸네일을 포스터로 먼저 덮고
-        // (PLAYING 시 onStateChange가 제거) loadVideoById로 로드한다.
+        backVideoIdRef.current = '';
+        backReadyRef.current = false;
+        try {
+          newFront.setPlaybackRate?.(1.0);
+          newFront.seekTo(start, true);
+          newFront.playVideo();
+        } catch (e) {}
+        setPosterUrl(''); // 버퍼 warm → 검은 화면 없음
+      } else {
+        // ③ 미준비 → front에서 직접 로드 (포스터로 갭 마스킹)
+        console.log('[Shorts] 전환 경로 ③ 미준비 로드(버퍼링) — ' + clipId + ' video=' + vId + ' | backVid=' + backVideoIdRef.current + ' backReady=' + backReadyRef.current);
+        front.setPlaybackRate?.(1.0);
+        loadedVideoIdRef.current = vId;
         setPosterUrl(thumbUrl(vId));
-        // loadVideoById는 로드 완료 후 자동 재생한다. mute 여부는 플레이어
-        // 속성이라 그대로 유지된다(첫 제스처 전엔 muted → 정책 안전).
-        player.loadVideoById({ videoId: vId, startSeconds: start });
+        front.loadVideoById({ videoId: vId, startSeconds: start });
       }
       setIsPlaying(true);
     } catch (e) {
       console.error('[Shorts] activateClip 실패:', e);
     }
+    // 새 활성 클립의 "다음"을 back에 미리 준비
+    prepareBack(clipId);
   };
 
-  // 단일 플레이어 생성 (1회). host(#yt-single-host)는 쇼츠 스테이지의 고정
-  // 레이어로 항상 DOM에 존재한다. React가 host 자식을 관리하지 않으므로
+  // 2-플레이어 풀 생성 (1회). host(#yt-host-a/#yt-host-b)는 쇼츠 스테이지의
+  // 고정 레이어로 항상 DOM에 존재한다. React가 host 자식을 관리하지 않으므로
   // YT의 DOM 조작과 재조정이 충돌하지 않는다.
   useEffect(() => {
     // loading 가드가 핵심: setClips 직후 await(합격 이력 로드) 때문에
     // "clips는 있는데 loading=true"인 중간 렌더가 존재하고, 그 렌더는 로딩
-    // 조기 return이라 #yt-single-host가 DOM에 없다. 그 시점에 이 effect가
-    // 돌면 host 부재로 생성이 조용히 실패하고 다시는 재시도되지 않아
-    // "영상·소리·컨트롤 전부 없음"이 됐다. loading을 deps에 넣어 메인 JSX
+    // 조기 return이라 host가 DOM에 없다. loading을 deps에 넣어 메인 JSX
     // (host 포함)가 커밋된 뒤에 생성한다.
     if (loading || !isApiReady || feedClips.length === 0) return;
-    if (singlePlayerRef.current) return;
+    if (playerARef.current) return;
 
     const YT = (window as any).YT;
     const firstClip = feedClips.find((c: any) => c.clip_id === activePresetIdRef.current) || feedClips[0];
     const vId = getYoutubeId(firstClip.youtube_url);
-    const host = document.getElementById('yt-single-host');
-    // 진단 로그 — 생성이 어느 단계에서 멈추는지 콘솔로 특정
-    console.log('[Shorts] 단일 플레이어 생성 시도: ' + JSON.stringify({
-      video: vId, clip: firstClip.clip_id, hostExists: !!host, hasYT: !!(YT && YT.Player),
+    const hostA = document.getElementById('yt-host-a');
+    const hostB = document.getElementById('yt-host-b');
+    console.log('[Shorts] 2-플레이어 생성 시도: ' + JSON.stringify({
+      video: vId, clip: firstClip.clip_id, hostA: !!hostA, hostB: !!hostB, hasYT: !!(YT && YT.Player),
     }));
-    if (!vId || !host) {
-      console.warn('[Shorts] 생성 중단 — vId=' + JSON.stringify(vId) + ' host=' + !!host);
+    if (!vId || !hostA || !hostB) {
+      console.warn('[Shorts] 생성 중단 — vId=' + JSON.stringify(vId) + ' hostA=' + !!hostA + ' hostB=' + !!hostB);
       return;
     }
 
-    const mountDiv = document.createElement('div');
-    mountDiv.style.width = '100%';
-    mountDiv.style.height = '100%';
-    host.appendChild(mountDiv);
+    const startSec = Number(firstClip.start_sec || 0);
     loadedVideoIdRef.current = vId;
-    // 첫 로드도 검은 화면 대신 포스터로 — PLAYING 시 제거된다.
     if (activeTabRef.current === 'shorts') setPosterUrl(thumbUrl(vId));
 
-    singlePlayerRef.current = new YT.Player(mountDiv, {
-      videoId: vId,
-      width: '100%',
-      height: '100%',
-      playerVars: {
-        autoplay: 0,
-        // controls:1 — 네이티브 컨트롤(재생/정지·진행바·볼륨·전체화면·YouTube
-        // 로고)을 노출한다. Developer Policy III.I.4 / RMF는 이 컨트롤을 숨기는
-        // 것(controls:0)을 금지하므로 반드시 1을 유지한다.
-        controls: 1,
-        iv_load_policy: 3,
-        // 자막 기본 꺼짐(공식 파라미터 — 버튼 무력화 아님, 정책 준수)
-        cc_load_policy: 0,
-        rel: 0,
-        playsinline: 1,
-        origin: typeof window !== 'undefined' ? window.location.origin : '',
-      },
-      events: {
-        onReady: (event: any) => {
-          console.log('[Shorts] onReady 발화 — tab=', activeTabRef.current);
-          // 반드시 muted로 시작 — unMute+play는 자동재생 정책이 재생 자체를
-          // 차단할 수 있다. 소리는 PLAYING 후 maybeRestoreSound/칩이 담당.
-          event.target.mute();
-          const startSec = Number(firstClip.start_sec || 0);
-          event.target.seekTo(startSec, true);
-          if (activeTabRef.current === 'shorts') {
-            setTimeout(() => {
-              try {
-                // 준비되는 사이 사용자가 이미 다른 클립으로 스크롤했다면 그 클립으로
-                if (activePresetIdRef.current && activePresetIdRef.current !== firstClip.clip_id) {
-                  activateClip(activePresetIdRef.current);
-                  return;
-                }
-                event.target.seekTo(startSec, true);
-                event.target.playVideo();
-                setIsPlaying(true);
-              } catch (e) {}
-            }, 300);
-          }
-        },
-        onStateChange: (event: any) => {
-          // 단일 플레이어 = 항상 활성 클립 소속
-          const state = event.data;
-          const activeId = activePresetIdRef.current;
-          if (state === YT.PlayerState.PLAYING) {
-            errorSkipCountRef.current = 0; // 정상 재생 = 연속 실패 카운터 리셋
-            setPosterUrl('');             // 실제 영상이 떴으니 포스터 제거
-            maybeRestoreSound(activeId, event.target);
-            setIsPlaying(true);
-            // 스픽 오버레이 중엔 감시 루프 재가동 금지(발화 종료 시 명시 재시작)
-            if (activeId && !speakStageRef.current[activeId]) {
-              startMonitoring(activeId);
-            }
-          } else if (state === YT.PlayerState.PAUSED ||
-                     state === YT.PlayerState.ENDED) {
-            setIsPlaying(false);
-          }
-        },
-        onError: (event: any) => {
-          // 2=잘못된 파라미터, 5=HTML5 오류, 100=영상 없음, 101/150=임베드 금지
-          const code = event?.data;
-          console.error(`[Shorts] YT player error code=${code} video=${loadedVideoIdRef.current}`);
+    const playerVars = {
+      autoplay: 0,
+      // controls:1 — 네이티브 컨트롤(재생/정지·진행바·볼륨·전체화면·YouTube
+      // 로고)을 노출한다. Developer Policy III.I.4 / RMF는 이 컨트롤을 숨기는
+      // 것(controls:0)을 금지하므로 반드시 1을 유지한다. (back도 동일 준수)
+      controls: 1,
+      iv_load_policy: 3,
+      cc_load_policy: 0,
+      rel: 0,
+      playsinline: 1,
+      origin: typeof window !== 'undefined' ? window.location.origin : '',
+    };
 
-          // 재생 불가(영상 삭제·비공개 100, 임베드 금지 101/150)면 검은 화면에
-          // 멈추지 않도록 다음 클립으로 자동 이동한다. 스픽 오버레이 중이거나
-          // 쇼츠 탭이 아니면 개입하지 않는다. 연속 실패는 상한(3)으로 끊어
-          // 모든 클립이 막힌 경우의 무한 스킵을 막는다.
-          const unplayable = code === 100 || code === 101 || code === 150;
-          const activeId = activePresetIdRef.current;
-          if (
-            unplayable &&
-            activeTabRef.current === 'shorts' &&
-            activeId &&
-            !speakStageRef.current[activeId] &&
-            errorSkipCountRef.current < 3
-          ) {
-            errorSkipCountRef.current += 1;
-            goNextClip(activeId);
-          }
+    // slot이 지금 front인지 판정 (frontIsARef 기준)
+    const isFrontSlot = (slot: 'A' | 'B') => (slot === 'A') === frontIsARef.current;
+
+    const onState = (slot: 'A' | 'B', event: any) => {
+      const state = event.data;
+      if (!isFrontSlot(slot)) {
+        // BACK: 프리버퍼 중. 즉시 정지하면 버퍼가 ~1초뿐이라 스왑 후 다시
+        // 버퍼링이 생긴다. 대신 muted로 계속 재생해 디코더를 hot 상태로,
+        // 버퍼를 앞으로 채워 둔다(릴스가 다음 영상을 실제로 미리 재생하는 방식).
+        // 스왑 시 seekTo(start)는 이미 버퍼된 구간이라 즉시 시작된다.
+        if (state === YT.PlayerState.PLAYING && !backReadyRef.current) {
+          backReadyRef.current = true;
+          try {
+            const vd = event.target.getVideoData?.();
+            console.log('[Shorts] 프리버퍼 hot(계속 재생) — back video=' + (vd?.video_id || '?'));
+          } catch (e) {}
+        }
+        return;
+      }
+      // FRONT: 활성 클립의 재생 상태 = UI 소스
+      const activeId = activePresetIdRef.current;
+      if (state === YT.PlayerState.PLAYING) {
+        errorSkipCountRef.current = 0;
+        setPosterUrl('');
+        maybeRestoreSound(activeId, event.target);
+        setIsPlaying(true);
+        if (activeId && !speakStageRef.current[activeId]) {
+          startMonitoring(activeId);
+        }
+      } else if (state === YT.PlayerState.PAUSED || state === YT.PlayerState.ENDED) {
+        setIsPlaying(false);
+      }
+    };
+
+    const onErr = (slot: 'A' | 'B', event: any) => {
+      const code = event?.data;
+      // back에서 난 오류는 프리버퍼 대상만 무효화하고 UI에 개입하지 않는다.
+      if (!isFrontSlot(slot)) {
+        console.warn(`[Shorts] back 플레이어 오류 code=${code} video=${backVideoIdRef.current} — 프리버퍼 취소`);
+        backVideoIdRef.current = '';
+        backReadyRef.current = false;
+        return;
+      }
+      console.error(`[Shorts] YT player error code=${code} video=${loadedVideoIdRef.current}`);
+      const unplayable = code === 100 || code === 101 || code === 150;
+      const activeId = activePresetIdRef.current;
+      if (
+        unplayable && activeTabRef.current === 'shorts' && activeId &&
+        !speakStageRef.current[activeId] && errorSkipCountRef.current < 3
+      ) {
+        errorSkipCountRef.current += 1;
+        goNextClip(activeId);
+      }
+    };
+
+    const makePlayer = (slot: 'A' | 'B', host: HTMLElement, videoId: string, isFrontInit: boolean) => {
+      const mountDiv = document.createElement('div');
+      mountDiv.style.width = '100%';
+      mountDiv.style.height = '100%';
+      host.appendChild(mountDiv);
+      return new YT.Player(mountDiv, {
+        videoId,
+        width: '100%',
+        height: '100%',
+        playerVars,
+        events: {
+          onReady: (event: any) => {
+            event.target.mute(); // 항상 muted로 시작 (정책·자동재생 안전)
+            event.target.seekTo(startSec, true);
+            // front만 초기 재생. back은 prepareBack이 로드/워밍할 때까지 정지 대기.
+            if (isFrontInit && activeTabRef.current === 'shorts') {
+              setTimeout(() => {
+                try {
+                  if (activePresetIdRef.current && activePresetIdRef.current !== firstClip.clip_id) {
+                    activateClip(activePresetIdRef.current);
+                    return;
+                  }
+                  event.target.seekTo(startSec, true);
+                  event.target.playVideo();
+                  setIsPlaying(true);
+                  // 첫 클립 재생 시작 → 다음 클립을 back에 미리 준비
+                  prepareBack(firstClip.clip_id);
+                } catch (e) {}
+              }, 300);
+            }
+          },
+          onStateChange: (event: any) => onState(slot, event),
+          onError: (event: any) => onErr(slot, event),
         },
-      },
-    });
+      });
+    };
+
+    // A = front(첫 클립 재생), B = back(같은 첫 영상으로 안전 생성 후 prepareBack이 교체)
+    frontIsARef.current = true;
+    playerARef.current = makePlayer('A', hostA, vId, true);
+    playerBRef.current = makePlayer('B', hostB, vId, false);
+    applyFrontVisual();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, isApiReady, feedClips]);
 
-  // 언마운트 시 감시 루프 및 플레이어 정리
+  // 언마운트 시 감시 루프 및 두 플레이어 정리
   useEffect(() => {
     return () => {
       stopMonitoring();
-      try { singlePlayerRef.current?.destroy?.(); } catch (e) {}
-      singlePlayerRef.current = null;
+      try { playerARef.current?.destroy?.(); } catch (e) {}
+      try { playerBRef.current?.destroy?.(); } catch (e) {}
+      playerARef.current = null;
+      playerBRef.current = null;
       loadedVideoIdRef.current = '';
+      backVideoIdRef.current = '';
+      backReadyRef.current = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -661,6 +755,10 @@ export default function ShortsPage() {
           setIsPlaying(true);
         } catch (e) {}
       }
+      // 쇼츠 탭 진입 시 다음 클립을 back에 미리 준비한다. 플레이어는 보통
+      // home 탭에서 생성되므로 onReady의 프리버퍼 경로가 실행되지 않는다 —
+      // 여기서 진입 시점에 확실히 한 번 건다.
+      if (activePresetIdRef.current) prepareBack(activePresetIdRef.current);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, clips]);
@@ -706,7 +804,7 @@ export default function ShortsPage() {
     const pauseAt = Number(clip.pause_at || start + 2.5);
 
     monitor.start({
-      getPlayer: () => singlePlayerRef.current,
+      getPlayer: () => getPlayer(), // 항상 front 플레이어
       start,
       end,
       pauseAt,
@@ -1333,7 +1431,12 @@ export default function ShortsPage() {
                 컨트롤 클릭 가능), 스와이프는 스크롤 체이닝으로 피드를 굴린다. */}
             <div className={styles.stageWrap}>
               <div className={styles.playerLayer}>
-                <div id="yt-single-host" className={styles.singleHost}></div>
+                {/* 2-플레이어 풀: A/B가 겹쳐 있고 front만 보인다(applyFrontVisual이
+                    opacity·z·pointer-events를 직접 토글). back은 가려진 채 다음
+                    클립을 미리 버퍼링한다. display:none을 쓰지 않는다 — 숨기면
+                    버퍼링이 멈춘다. */}
+                <div id="yt-host-a" className={styles.singleHost}></div>
+                <div id="yt-host-b" className={styles.singleHost}></div>
                 {/* 로딩 갭 포스터 — 다른 영상 버퍼링 동안 검은 화면 대신 그 클립
                     썸네일을 덮는다. PLAYING 시 posterUrl='' 로 제거된다.
                     pointer-events:none — 네이티브 컨트롤/스크롤을 가로채지 않는다. */}
