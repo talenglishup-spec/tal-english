@@ -111,6 +111,10 @@ export default function ShortsPage() {
   const [userEmail, setUserEmail] = useState<string>('');
   // 쇼츠 speak로 레벨을 완성한 순간 띄우는 축하 (레벨업의 유일한 성취 순간)
   const [celebrateLevel, setCelebrateLevel] = useState<string | null>(null);
+  // 저장(북마크)한 clip_id 집합 — 우측 레일 저장 버튼 + 마이 탭 "저장한 영상"
+  const [savedClips, setSavedClips] = useState<Set<string>>(new Set());
+  // 마이 탭 저장 영상 재생 모달 (선택된 clip)
+  const [savedPlayClip, setSavedPlayClip] = useState<any | null>(null);
   const [activePresetId, setActivePresetId] = useState<string>('');
   const [playerId, setPlayerId] = useState<string | null>(null);
   
@@ -421,6 +425,16 @@ export default function ShortsPage() {
           setAttemptedIds(aSet);
         } catch (e) {
           console.warn('[ShortsPage] attempts history load failed:', e);
+        }
+
+        // 저장(북마크) 목록 로드 — 테이블 미적용 환경에선 조용히 빈 집합 유지
+        try {
+          const { data: saved, error: sErr } = await supabase
+            .from('saved_clips')
+            .select('clip_id');
+          if (!sErr && saved) setSavedClips(new Set(saved.map((r: any) => r.clip_id)));
+        } catch (e) {
+          console.warn('[ShortsPage] saved_clips load skipped:', e);
         }
 
         if (items.length > 0) {
@@ -1122,6 +1136,39 @@ export default function ShortsPage() {
     }
   };
 
+  // 저장(북마크) 토글 — 낙관적 UI + 서버 upsert/delete. 테이블 미적용/오류
+  // 시엔 로컬 상태만 되돌린다(앱이 깨지지 않게).
+  const toggleSave = async (clipId: string) => {
+    const wasSaved = savedClips.has(clipId);
+    // 낙관적 반영
+    setSavedClips(prev => {
+      const n = new Set(prev);
+      if (wasSaved) n.delete(clipId); else n.add(clipId);
+      return n;
+    });
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('no user');
+      if (wasSaved) {
+        const { error } = await supabase.from('saved_clips')
+          .delete().eq('player_id', user.id).eq('clip_id', clipId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('saved_clips')
+          .upsert({ player_id: user.id, clip_id: clipId }, { onConflict: 'player_id,clip_id' });
+        if (error) throw error;
+      }
+    } catch (e) {
+      // 실패 → 낙관적 반영 되돌리기
+      console.warn('[Shorts] toggleSave 실패, 롤백:', e);
+      setSavedClips(prev => {
+        const n = new Set(prev);
+        if (wasSaved) n.add(clipId); else n.delete(clipId);
+        return n;
+      });
+    }
+  };
+
   // ⑦ 다음 클립으로 스크롤 이동 (스냅 → IntersectionObserver가 전환 처리)
   const goNextClip = (fromClipId: string) => {
     const list = feedClipsRef.current; // 유저에게 보이는 피드 기준
@@ -1376,6 +1423,33 @@ export default function ShortsPage() {
             hasInteracted가 켜지지 않아 "🔇 탭하여 소리 켜기" 안내가 노출되고,
             안내 버튼 또는 중앙 탭(실제 제스처)에서만 소리를 켠다. */}
         <div className={styles.phoneScreen}>
+
+          {/* 저장한 영상 재생 모달 — 마이 탭에서 썸네일 탭 시. 플레인 유튜브
+              임베드(controls=1)로 재생, 다운로드·저장이 아니라 스트리밍(정책 준수). */}
+          {savedPlayClip && (() => {
+            const vId = getYoutubeId(savedPlayClip.youtube_url);
+            const start = Math.floor(Number(savedPlayClip.start_sec || 0));
+            const origin = typeof window !== 'undefined' ? window.location.origin : '';
+            const src = `https://www.youtube.com/embed/${vId}?start=${start}&controls=1&rel=0&playsinline=1&autoplay=1&origin=${encodeURIComponent(origin)}`;
+            return (
+              <div className={styles.savedModal} onClick={() => setSavedPlayClip(null)}>
+                <div className={styles.savedModalInner} onClick={(e) => e.stopPropagation()}>
+                  <button type="button" className={styles.savedModalClose} onClick={() => setSavedPlayClip(null)} aria-label="닫기">✕</button>
+                  <div className={styles.savedModalVideo}>
+                    <iframe
+                      src={src}
+                      title={savedPlayClip.target_phrase || 'saved video'}
+                      allow="autoplay; encrypted-media; picture-in-picture"
+                      allowFullScreen
+                    />
+                  </div>
+                  {savedPlayClip.target_phrase && (
+                    <div className={styles.savedModalPhrase}>{savedPlayClip.target_phrase}</div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* 레벨 클리어 축하 — 쇼츠 speak로 한 레벨을 완성한 순간 (레벨업의
               유일한 성취 순간). 화면 전체를 덮는 오버레이, '계속'으로 닫는다. */}
@@ -1645,6 +1719,23 @@ export default function ShortsPage() {
                               </button>
                             )}
                           </div>
+
+                          {/* 우측 세로 액션 레일 — 저장(북마크). 활성 클립에만.
+                              추후 공유 등 확장 가능. YouTube 로고/컨트롤바(우하단)를
+                              가리지 않도록 중앙-우측에 둔다. */}
+                          {isCurrentActive && (
+                            <div className={styles.actionRail}>
+                              <button
+                                type="button"
+                                className={`${styles.railBtn} ${savedClips.has(clip.clip_id) ? styles.railBtnActive : ''}`}
+                                onClick={(e) => { e.stopPropagation(); toggleSave(clip.clip_id); }}
+                                aria-label={savedClips.has(clip.clip_id) ? '저장 해제' : '저장'}
+                              >
+                                <span className={styles.railIcon}>{savedClips.has(clip.clip_id) ? '🔖' : '📑'}</span>
+                                <span className={styles.railLabel}>{savedClips.has(clip.clip_id) ? '저장됨' : '저장'}</span>
+                              </button>
+                            </div>
+                          )}
 
                         </div>
                       </div>
@@ -1993,6 +2084,34 @@ export default function ShortsPage() {
                       <div className={styles.myStatLabel}>획득 카드</div>
                     </div>
                   </div>
+                </div>
+
+                {/* 저장한 영상 — 쇼츠 우측 레일에서 저장한 clip 썸네일 목록.
+                    탭하면 모달로 재생(유튜브 임베드). */}
+                <div className={styles.myCard}>
+                  <div className={styles.myCardTitle}>🔖 저장한 영상 {savedClips.size > 0 ? `(${savedClips.size})` : ''}</div>
+                  {savedClips.size === 0 ? (
+                    <p className={styles.myHint}>쇼츠에서 <b>저장</b>을 누르면 여기 모여요.</p>
+                  ) : (
+                    <div className={styles.savedGrid}>
+                      {clips.filter((c: any) => savedClips.has(c.clip_id)).map((c: any) => {
+                        const vId = getYoutubeId(c.youtube_url);
+                        return (
+                          <button
+                            key={c.clip_id}
+                            type="button"
+                            className={styles.savedThumbBtn}
+                            onClick={() => setSavedPlayClip(c)}
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img className={styles.savedThumbImg} src={thumbUrl(vId)} alt="" loading="lazy" />
+                            <span className={styles.savedThumbPlay}>▶</span>
+                            <span className={styles.savedThumbPhrase}>{c.target_phrase}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
 
                 {/* 공유 */}

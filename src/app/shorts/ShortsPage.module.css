@@ -1699,6 +1699,44 @@
   margin-top: 8px;
 }
 
+/* 우측 세로 액션 레일 (저장 등) — 영상 중앙-우측. 유튜브 로고/컨트롤바
+   (우하단 스트립)를 가리지 않도록 세로 중앙 근처에 둔다. */
+.actionRail {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  z-index: 3;
+  pointer-events: none; /* 레일 여백은 통과, 버튼만 auto */
+}
+.railBtn {
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 4px;
+}
+.railBtn:active { transform: scale(0.9); }
+.railIcon {
+  font-size: 26px;
+  line-height: 1;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.55));
+}
+.railLabel {
+  font-size: 10px;
+  font-weight: 800;
+  color: #ffffff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+.railBtnActive .railLabel { color: #fbbf24; }
+
 .speakFab {
   /* YouTube 정책 준수: 우하단 YouTube 로고와 겹치지 않도록 좌측 정렬로 이동.
      하단 컨트롤바 침범은 .bottomSection padding-bottom으로 함께 회피. */
@@ -2648,6 +2686,114 @@
   to { transform: scale(1); opacity: 1; }
 }
 /* 종이 꽃가루 */
+/* ── 저장한 영상 (마이 탭) ── */
+.savedGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 4px;
+}
+.savedThumbBtn {
+  position: relative;
+  border: none;
+  padding: 0;
+  background: #000;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  aspect-ratio: 16 / 9;
+  display: block;
+}
+.savedThumbImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.savedThumbPlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-left: 2px;
+}
+.savedThumbPhrase {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 12px 8px 6px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.72), transparent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  text-align: left;
+  line-height: 1.25;
+  word-break: keep-all;
+}
+
+/* 저장 영상 재생 모달 */
+.savedModal {
+  position: absolute;
+  inset: 0;
+  z-index: 70;
+  background: rgba(0, 0, 0, 0.82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
+}
+.savedModalInner {
+  width: 100%;
+  max-width: 340px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: relative;
+}
+.savedModalClose {
+  position: absolute;
+  top: -34px;
+  right: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+}
+.savedModalVideo {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #000;
+}
+.savedModalVideo iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+.savedModalPhrase {
+  color: #fff;
+  font-size: 15px;
+  font-weight: 800;
+  text-align: center;
+}
+
 /* 쇼츠 레벨 클리어 축하 — phoneScreen 전체를 덮는 오버레이 */
 .levelCelebrateOverlay {
   position: absolute;
