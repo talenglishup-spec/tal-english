@@ -2648,6 +2648,18 @@
   to { transform: scale(1); opacity: 1; }
 }
 /* 종이 꽃가루 */
+/* 쇼츠 레벨 클리어 축하 — phoneScreen 전체를 덮는 오버레이 */
+.levelCelebrateOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  background: var(--bg-white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
 .celebrateConfetti {
   position: absolute;
   top: 0;

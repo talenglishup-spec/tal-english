@@ -17,7 +17,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import styles from '@/app/shorts/ShortsPage.module.css';
 import {
-  LevelClip, pickDrillItems, clipsOfLevel, isLevelCleared,
+  LevelClip, pickDrillItems,
 } from '@/lib/levels';
 
 const SESSION_SIZE = 5;
@@ -25,11 +25,8 @@ const REC_MAX_SEC = 8;
 
 // 채점 후 리뷰 화면 = 쇼츠 speak 채점과 동일한 구성(초록 단어 하이라이트 +
 // 미국/영국/내 발음 듣기 + 다시하기/다음). 'review' 단계에서 렌더한다.
-type Stage = 'start' | 'question' | 'review' | 'celebrate' | 'result';
+type Stage = 'start' | 'question' | 'review' | 'result';
 type WordTok = { w: string; ok: boolean };
-
-// 셀레브레이션 종이 꽃가루 색 (TAL 블루 + 골드 + 그린)
-const CONFETTI_COLORS = ['#0A228F', '#2563eb', '#fbbf24', '#f59e0b', '#10b981', '#93c5fd'];
 
 type Props = {
   clips: LevelClip[];              // speak 가능한 전체 클립 (level 포함)
@@ -61,14 +58,10 @@ export default function ChallengeDrill({ clips, passedIds, singleClip, onExit, o
     (typeof window !== 'undefined' && localStorage.getItem('tal_accent') === 'uk') ? 'uk' : 'us'
   );
 
-  // 세션 누적 (결과 화면용)
+  // 세션 누적 (결과 화면용) — 챌린지는 연습이라 레벨 클리어 상태는 없다.
   const [xpEarned, setXpEarned] = useState(0);
   const [streakDays, setStreakDays] = useState<number | null>(null);
-  const [clearedLevel, setClearedLevel] = useState<string | null>(null);
-  // finishSession 시점의 최신 값을 읽기 위한 ref 미러 (setState 비동기 레이스 방지)
-  const clearedLevelRef = useRef<string | null>(null);
   const [xpShown, setXpShown] = useState(0); // 카운트업 표시값
-  const [shareMsg, setShareMsg] = useState('');
 
   // 세션 중 새로 합격한 clip_id (레벨 클리어 판정에 passedIds와 합산)
   const sessionPassedRef = useRef<Set<string>>(new Set());
@@ -126,9 +119,6 @@ export default function ChallengeDrill({ clips, passedIds, singleClip, onExit, o
     setXpEarned(0);
     setXpShown(0);
     setStreakDays(null);
-    setClearedLevel(null);
-    clearedLevelRef.current = null;
-    setShareMsg('');
     setCheer(false);
     setStage('question');
   };
@@ -188,6 +178,7 @@ export default function ChallengeDrill({ clips, passedIds, singleClip, onExit, o
       const formData = new FormData();
       formData.append('audio', blob, 'speech.webm');
       formData.append('clip_id', current.clip_id);
+      formData.append('mode', 'challenge'); // 연습 — 레벨(passedClips) 미반영, 참여도 데이터로만 기록
       const controller = new AbortController();
       const t = setTimeout(() => controller.abort(), 12000);
       const res = await fetch('/api/train/speak-score', { method: 'POST', body: formData, signal: controller.signal });
@@ -251,7 +242,9 @@ export default function ChallengeDrill({ clips, passedIds, singleClip, onExit, o
       const firstTime = !passedIds.has(clip.clip_id) && !sessionPassedRef.current.has(clip.clip_id);
       sessionPassedRef.current.add(clip.clip_id);
       if (firstTime) {
-        // 첫 정답 XP (+15, 서버 가드)
+        // 첫 정답 보너스 XP (+15, 서버 가드). 챌린지는 연습이라 레벨은 올리지
+        // 않지만, 참여 동기부여용 보너스 XP는 유지한다(레벨과 무관한 점수).
+        // 레벨 클리어 판정·축하는 쇼츠가 담당하므로 여기서 하지 않는다.
         try {
           const res = await fetch('/api/challenge/complete', {
             method: 'POST',
@@ -264,30 +257,6 @@ export default function ChallengeDrill({ clips, passedIds, singleClip, onExit, o
             if (typeof d?.streakDays === 'number') setStreakDays(d.streakDays);
           }
         } catch (e) {}
-
-        // 레벨 클리어 판정 (passedIds + 세션 합격 합산)
-        const lv = (clip.level || '').trim();
-        if (lv) {
-          const combined = new Set([...passedIds, ...sessionPassedRef.current]);
-          if (isLevelCleared(clips, lv, combined)) {
-            try {
-              const res = await fetch('/api/challenge/complete', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ event: 'level_clear', level: lv }),
-              });
-              if (res.ok) {
-                const d = await res.json();
-                if (d?.rewarded) {
-                  setXpEarned(x => x + (d.xpGained || 0));
-                  setClearedLevel(lv);
-                  clearedLevelRef.current = lv;
-                }
-                if (typeof d?.streakDays === 'number') setStreakDays(d.streakDays);
-              }
-            } catch (e) {}
-          }
-        }
       }
     }
 
@@ -331,23 +300,8 @@ export default function ChallengeDrill({ clips, passedIds, singleClip, onExit, o
         }
       } catch (e) {}
     }
-    // 이번 세션에서 레벨을 클리어했다면 결과 전에 셀레브레이션 먼저
-    setStage(clearedLevelRef.current ? 'celebrate' : 'result');
-  };
-
-  // 레벨 클리어 SNS 공유 — Web Share API, 미지원 시 클립보드 복사
-  const shareLevelClear = async (lv: string) => {
-    const url = typeof window !== 'undefined' ? window.location.origin : 'https://tal-english.vercel.app';
-    const text = `⚽ TAL ${lv} 레벨 클리어! 축구로 영어 표현 훈련 중 🔥`;
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: 'TAL English Up', text, url });
-        return;
-      }
-      await navigator.clipboard.writeText(`${text} ${url}`);
-      setShareMsg('링크가 복사되었습니다!');
-      setTimeout(() => setShareMsg(''), 2000);
-    } catch (e) {}
+    // 챌린지는 레벨 클리어를 판정하지 않으므로 항상 결과 화면으로.
+    setStage('result');
   };
 
   // ── 결과 화면 XP 카운트업 ─────────────────────────────
@@ -390,59 +344,8 @@ export default function ChallengeDrill({ clips, passedIds, singleClip, onExit, o
     );
   }
 
-  // Phase 2 — 레벨 클리어 셀레브레이션 (결과 화면 진입 전)
-  if (stage === 'celebrate' && clearedLevel) {
-    const members = clipsOfLevel(clips, clearedLevel);
-    return (
-      <div className={styles.drillWrap}>
-        {/* 종이 꽃가루 */}
-        <div className={styles.celebrateConfetti}>
-          {Array.from({ length: 18 }).map((_, i) => (
-            <span
-              key={i}
-              className={styles.confettiPiece}
-              style={{
-                left: `${(i * 5.3 + 4) % 96}%`,
-                background: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
-                animationDelay: `${(i % 6) * 0.18}s`,
-              }}
-            />
-          ))}
-        </div>
-
-        <div className={styles.celebrateWrap}>
-          <div className={styles.celebrateBadge}>🏆</div>
-          <h2 className={styles.celebrateTitle}>{clearedLevel} 완료! ⚡</h2>
-          <p className={styles.celebrateSub}>표현 {members.length}개 전부 정답! 다음 레벨 해금!</p>
-
-          {/* 모든 칸이 차례로 채워지는 도장판 애니메이션 */}
-          <div className={styles.celebrateGrid}>
-            {members.map((m, i) => (
-              <span
-                key={m.clip_id}
-                className={styles.celebrateCell}
-                style={{ animationDelay: `${0.5 + i * 0.18}s` }}
-              >
-                ✅
-              </span>
-            ))}
-          </div>
-
-          <span className={styles.celebrateShareMsg}>{shareMsg}</span>
-          <div className={styles.drillResultBtns}>
-            <button type="button" className={styles.drillBtnGhost} onClick={() => shareLevelClear(clearedLevel)}>
-              📣 공유하기
-            </button>
-            <button type="button" className={styles.drillBtnPrimary} onClick={() => setStage('result')}>
-              계속 →
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // 결과 화면
+  // 결과 화면 — 챌린지는 연습 요약(정답 n/5 · 보너스 XP · 스트릭). 레벨 클리어
+  // 축하는 쇼츠가 담당하므로 여기서 표시하지 않는다.
   if (stage === 'result') {
     return (
       <div className={styles.drillWrap}>
@@ -452,11 +355,8 @@ export default function ChallengeDrill({ clips, passedIds, singleClip, onExit, o
             <span className={styles.drillGoalNet}>🥅</span>
           </div>
           <h2 className={styles.drillResultTitle}>
-            {single ? '연습 완료 ⚽' : '오늘 세션 완료 ⚽'}
+            {single ? '연습 완료 ⚽' : '오늘 연습 완료 ⚽'}
           </h2>
-          {clearedLevel && (
-            <div className={styles.drillLevelClear}>🏆 {clearedLevel} 클리어! 다음 레벨 해금!</div>
-          )}
           <div className={styles.drillResultRow}>
             <div className={styles.drillResultStat}>
               <span className={styles.drillResultNum}>{passCount}/{items.length}</span>

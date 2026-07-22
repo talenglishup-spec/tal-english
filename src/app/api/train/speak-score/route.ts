@@ -104,6 +104,11 @@ export async function POST(req: NextRequest) {
     const data = await req.formData();
     const audio = data.get('audio') as Blob;
     const clip_id = data.get('clip_id') as string;
+    // 진행 소스: 'shorts'(레벨 반영, 기본) | 'challenge'(연습 — 레벨 미반영).
+    // 레벨(passedClips)은 source='shorts'만 집계하므로, 챌린지 통과는 레벨을
+    // 올리지 않고 참여도 데이터로만 남는다.
+    const modeRaw = (data.get('mode') as string) || 'shorts';
+    const source = modeRaw === 'challenge' ? 'challenge' : 'shorts';
 
     if (!audio || !clip_id) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -168,16 +173,22 @@ export async function POST(req: NextRequest) {
     const { supabase, user } = await authPromise;
 
     if (user) {
-      const { error: dbError } = await supabase
+      const baseRow = {
+        player_id: user.id,
+        clip_id,
+        stt_text: transcript,
+        levenshtein_score: score,
+        passed,
+      };
+      let { error: dbError } = await supabase
         .from('speak_attempts_log')
-        .insert({
-          player_id: user.id,
-          clip_id,
-          stt_text: transcript,
-          levenshtein_score: score,
-          passed
-        });
+        .insert({ ...baseRow, source }); // 'shorts'=레벨 반영 / 'challenge'=연습
 
+      // 마이그레이션(source 컬럼) 미적용 환경 폴백 — 컬럼 없이 기록해 기록
+      // 유실을 막는다. 컬럼이 생기면 자동으로 위 경로가 성공한다.
+      if (dbError && /source/i.test(dbError.message || '')) {
+        ({ error: dbError } = await supabase.from('speak_attempts_log').insert(baseRow));
+      }
       if (dbError) {
         console.error('[speak-score DB Log Error]:', dbError.message);
       }

@@ -13,7 +13,7 @@ import styles from '@/app/shorts/ShortsPage.module.css';
 import ChallengeDrill from '@/components/ChallengeDrill';
 import CollectionBoard from '@/components/CollectionBoard';
 import PushSettings from '@/components/PushSettings';
-import { sortClipsByLevel, getCurrentLevel, clipsOfLevel, getLevels } from '@/lib/levels';
+import { sortClipsByLevel, getCurrentLevel, clipsOfLevel, getLevels, isLevelCleared } from '@/lib/levels';
 import { initSessionTracking, trackTabEnter } from '@/lib/track';
 
 // ── 플레이어 아키텍처: 단일 영구 플레이어 ──────────────────────────
@@ -58,6 +58,9 @@ const DAILY_GOAL_SEC = 120;
 // 대부분 스크롤은 이 안에 일어나 hot 스왑(즉시)을 받고, 이후엔 8초+ 버퍼가
 // 남아 거의 즉시. 클립 길이·체감 속도에 맞춰 조정 가능.
 const PREBUFFER_MAX_SEC = 12;
+
+// 레벨 클리어 축하 종이 꽃가루 색
+const CELEBRATE_COLORS = ['#0A228F', '#2563eb', '#fbbf24', '#f59e0b', '#10b981', '#93c5fd'];
 // 오늘 날짜 키 (KST 기준 로컬 저장용)
 function todayKey() {
   const kst = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
@@ -106,6 +109,8 @@ export default function ShortsPage() {
   const [practiceClip, setPracticeClip] = useState<any | null>(null);
   // 피드 권한 판별용 (관리자·QA = 전체 열람)
   const [userEmail, setUserEmail] = useState<string>('');
+  // 쇼츠 speak로 레벨을 완성한 순간 띄우는 축하 (레벨업의 유일한 성취 순간)
+  const [celebrateLevel, setCelebrateLevel] = useState<string | null>(null);
   const [activePresetId, setActivePresetId] = useState<string>('');
   const [playerId, setPlayerId] = useState<string | null>(null);
   
@@ -396,9 +401,17 @@ export default function ShortsPage() {
         // (RLS로 본인 행만 조회됨)
         const pSet = new Set<string>();
         try {
-          const { data: attempts } = await supabase
+          // 레벨·도장판은 쇼츠 진행만 반영 — source='shorts'만 집계한다.
+          // (챌린지 연습(source='challenge')은 레벨/도장판에 영향 없음)
+          let { data: attempts, error: qErr } = await supabase
             .from('speak_attempts_log')
-            .select('clip_id, passed');
+            .select('clip_id, passed, source')
+            .eq('source', 'shorts');
+          // source 컬럼 미적용 환경 폴백 — 전체 집계(기존 동작). 마이그레이션
+          // 적용 후 자동으로 위 필터가 동작한다.
+          if (qErr && /source/i.test(qErr.message || '')) {
+            ({ data: attempts } = await supabase.from('speak_attempts_log').select('clip_id, passed'));
+          }
           const aSet = new Set<string>();
           (attempts || []).forEach((a: any) => {
             aSet.add(a.clip_id);
@@ -1069,6 +1082,16 @@ export default function ShortsPage() {
         setScores(prev => ({ ...prev, [clipId]: scoreVal }));
         setPassedClips(prev => new Set(prev).add(clipId));
         setTodayPassed(prev => new Set(prev).add(clipId));
+
+        // 레벨 클리어 감지 — 이 통과로 해당 레벨의 모든 표현이 완성되면
+        // 축하를 띄운다(레벨업은 쇼츠가 유일한 엔진이므로 성취 순간도 여기서).
+        const lv = (clip.level || '').trim();
+        if (lv) {
+          const combined = new Set([...passedClips, clipId]);
+          if (isLevelCleared(clips, lv, combined)) {
+            setCelebrateLevel(lv);
+          }
+        }
         if (playerId) {
           try {
             const syncRes = await fetch('/api/train/complete', {
@@ -1287,11 +1310,15 @@ export default function ShortsPage() {
         .maybeSingle();
       setMyStats(data || null);
 
-      // 스픽 성공 이력(표현 레벨 계산) — RLS로 본인 행만 조회됨
-      const { data: attempts } = await supabase
+      // 스픽 성공 이력(표현 레벨 계산) — 쇼츠 진행만 반영(source='shorts')
+      let { data: attempts, error: aErr } = await supabase
         .from('speak_attempts_log')
         .select('clip_id')
-        .eq('passed', true);
+        .eq('passed', true)
+        .eq('source', 'shorts');
+      if (aErr && /source/i.test(aErr.message || '')) {
+        ({ data: attempts } = await supabase.from('speak_attempts_log').select('clip_id').eq('passed', true));
+      }
       setPassedClips(new Set((attempts || []).map((a: any) => a.clip_id)));
     } catch (e) {
       console.error('[MyTab] load error:', e);
@@ -1349,7 +1376,43 @@ export default function ShortsPage() {
             hasInteracted가 켜지지 않아 "🔇 탭하여 소리 켜기" 안내가 노출되고,
             안내 버튼 또는 중앙 탭(실제 제스처)에서만 소리를 켠다. */}
         <div className={styles.phoneScreen}>
-          
+
+          {/* 레벨 클리어 축하 — 쇼츠 speak로 한 레벨을 완성한 순간 (레벨업의
+              유일한 성취 순간). 화면 전체를 덮는 오버레이, '계속'으로 닫는다. */}
+          {celebrateLevel && (() => {
+            const members = clipsOfLevel(clips, celebrateLevel);
+            return (
+              <div className={styles.levelCelebrateOverlay}>
+                <div className={styles.celebrateConfetti}>
+                  {Array.from({ length: 18 }).map((_, i) => (
+                    <span
+                      key={i}
+                      className={styles.confettiPiece}
+                      style={{
+                        left: `${(i * 5.3 + 4) % 96}%`,
+                        background: CELEBRATE_COLORS[i % CELEBRATE_COLORS.length],
+                        animationDelay: `${(i % 6) * 0.18}s`,
+                      }}
+                    />
+                  ))}
+                </div>
+                <div className={styles.celebrateWrap}>
+                  <div className={styles.celebrateBadge}>🏆</div>
+                  <h2 className={styles.celebrateTitle}>{celebrateLevel} 완료! ⚡</h2>
+                  <p className={styles.celebrateSub}>표현 {members.length}개 전부 통과! 다음 레벨 해금!</p>
+                  <div className={styles.celebrateGrid}>
+                    {members.map((m, i) => (
+                      <span key={m.clip_id} className={styles.celebrateCell} style={{ animationDelay: `${0.5 + i * 0.18}s` }}>✅</span>
+                    ))}
+                  </div>
+                  <button type="button" className={styles.drillBtnPrimary} onClick={() => setCelebrateLevel(null)}>
+                    계속 →
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
+
           <div style={{ display: activeTab === 'shorts' ? 'flex' : 'none', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
             {/* 상단 카테고리 필터바 복원 */}
             <div className={styles.presetBar}>
@@ -1745,13 +1808,11 @@ export default function ShortsPage() {
                     setActiveTab('home');
                   }
                 }}
-                onResult={(clipId: string, passed: boolean) => {
-                  setAttemptedIds(prev => new Set(prev).add(clipId));
-                  if (passed) {
-                    setPassedClips(prev => new Set(prev).add(clipId));
-                    setTodayPassed(prev => new Set(prev).add(clipId));
-                    setSuccessCounts(prev => ({ ...prev, [clipId]: (prev[clipId] || 0) + 1 }));
-                  }
+                onResult={() => {
+                  // 챌린지는 연습(보너스)이라 레벨·도장판에 관여하지 않는다(C2).
+                  // passedClips·attemptedIds·todayPassed 등 진행 상태를 건드리지
+                  // 않는다 — 도장판을 초록으로 만드는 유일한 길은 쇼츠 speak.
+                  // (연습 기록은 서버가 source='challenge'로 남겨 지표로만 활용)
                 }}
               />
             </div>
