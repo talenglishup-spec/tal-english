@@ -113,8 +113,10 @@ export default function ShortsPage() {
   const [celebrateLevel, setCelebrateLevel] = useState<string | null>(null);
   // 저장(북마크)한 clip_id 집합 — 우측 레일 저장 버튼 + 마이 탭 "저장한 영상"
   const [savedClips, setSavedClips] = useState<Set<string>>(new Set());
-  // 마이 탭 저장 영상 재생 모달 (선택된 clip)
-  const [savedPlayClip, setSavedPlayClip] = useState<any | null>(null);
+  // 저장 피드 모드 — 마이 탭 썸네일 탭 시 진입. 진입 시점의 저장 목록을
+  // 스냅샷으로 고정해(재생 중 언세이브해도 카드가 튀지 않음) 쇼츠 플레이어로
+  // 스와이프해 본다. null이면 일반(레벨 게이트) 피드.
+  const [savedFeedSnapshot, setSavedFeedSnapshot] = useState<any[] | null>(null);
   const [activePresetId, setActivePresetId] = useState<string>('');
   const [playerId, setPlayerId] = useState<string | null>(null);
   
@@ -312,10 +314,12 @@ export default function ShortsPage() {
   // 피드가 자동으로 다음 레벨로 전환된다. (챌린지·도장판은 전체 clips 유지)
   const isPrivilegedFeed = PRIVILEGED_FEED_EMAILS.includes(userEmail);
   const feedClips = useMemo(() => {
+    // 저장 피드 진입 중이면 스냅샷을 피드로 쓴다(레벨 게이트 무시).
+    if (savedFeedSnapshot) return savedFeedSnapshot;
     if (isPrivilegedFeed) return clips;
     const lv = getCurrentLevel(clips, passedClips);
     return lv ? clipsOfLevel(clips, lv) : clips;
-  }, [clips, passedClips, isPrivilegedFeed]);
+  }, [clips, passedClips, isPrivilegedFeed, savedFeedSnapshot]);
   const feedClipsRef = useRef<any[]>([]);
   useEffect(() => { feedClipsRef.current = feedClips; }, [feedClips]);
 
@@ -1169,6 +1173,30 @@ export default function ShortsPage() {
     }
   };
 
+  // 저장 피드 진입 — 마이 탭 썸네일 탭 시. 진입 시점의 저장 목록을 스냅샷으로
+  // 고정하고 쇼츠 탭으로 전환해, 탭한 클립부터 스와이프로 본다.
+  const enterSavedFeed = (clip: any) => {
+    const snapshot = clips.filter((c: any) => savedClips.has(c.clip_id));
+    if (snapshot.length === 0) return;
+    setSavedFeedSnapshot(snapshot);
+    activePresetIdRef.current = clip.clip_id; // feedClips 변경 effect의 리셋 방지
+    setActivePresetId(clip.clip_id);
+    activeTabRef.current = 'shorts';
+    setActiveTab('shorts');
+    // 렌더가 저장 피드로 커밋된 뒤 해당 클립으로 재타깃 + 스크롤
+    setTimeout(() => {
+      activateClip(clip.clip_id);
+      scrollToPreset(clip.clip_id);
+    }, 120);
+  };
+
+  // 저장 피드 나가기 — 마이 탭으로 복귀. 일반 피드로 되돌린다.
+  const exitSavedFeed = () => {
+    setSavedFeedSnapshot(null);
+    activeTabRef.current = 'my';
+    setActiveTab('my');
+  };
+
   // ⑦ 다음 클립으로 스크롤 이동 (스냅 → IntersectionObserver가 전환 처리)
   const goNextClip = (fromClipId: string) => {
     const list = feedClipsRef.current; // 유저에게 보이는 피드 기준
@@ -1424,33 +1452,6 @@ export default function ShortsPage() {
             안내 버튼 또는 중앙 탭(실제 제스처)에서만 소리를 켠다. */}
         <div className={styles.phoneScreen}>
 
-          {/* 저장한 영상 재생 모달 — 마이 탭에서 썸네일 탭 시. 플레인 유튜브
-              임베드(controls=1)로 재생, 다운로드·저장이 아니라 스트리밍(정책 준수). */}
-          {savedPlayClip && (() => {
-            const vId = getYoutubeId(savedPlayClip.youtube_url);
-            const start = Math.floor(Number(savedPlayClip.start_sec || 0));
-            const origin = typeof window !== 'undefined' ? window.location.origin : '';
-            const src = `https://www.youtube.com/embed/${vId}?start=${start}&controls=1&rel=0&playsinline=1&autoplay=1&origin=${encodeURIComponent(origin)}`;
-            return (
-              <div className={styles.savedModal} onClick={() => setSavedPlayClip(null)}>
-                <div className={styles.savedModalInner} onClick={(e) => e.stopPropagation()}>
-                  <button type="button" className={styles.savedModalClose} onClick={() => setSavedPlayClip(null)} aria-label="닫기">✕</button>
-                  <div className={styles.savedModalVideo}>
-                    <iframe
-                      src={src}
-                      title={savedPlayClip.target_phrase || 'saved video'}
-                      allow="autoplay; encrypted-media; picture-in-picture"
-                      allowFullScreen
-                    />
-                  </div>
-                  {savedPlayClip.target_phrase && (
-                    <div className={styles.savedModalPhrase}>{savedPlayClip.target_phrase}</div>
-                  )}
-                </div>
-              </div>
-            );
-          })()}
-
           {/* 레벨 클리어 축하 — 쇼츠 speak로 한 레벨을 완성한 순간 (레벨업의
               유일한 성취 순간). 화면 전체를 덮는 오버레이, '계속'으로 닫는다. */}
           {celebrateLevel && (() => {
@@ -1488,7 +1489,17 @@ export default function ShortsPage() {
           })()}
 
           <div style={{ display: activeTab === 'shorts' ? 'flex' : 'none', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
-            {/* 상단 카테고리 필터바 복원 */}
+            {/* 저장 피드 모드 헤더 — 나가기(마이 탭 복귀) + 저장한 영상 표시 */}
+            {savedFeedSnapshot ? (
+              <div className={styles.presetBar}>
+                <div className={styles.presetHeaderRow}>
+                  <button type="button" className={styles.savedFeedBack} onClick={exitSavedFeed}>‹ 저장함</button>
+                  <div style={{ flex: 1 }} />
+                  <div className={styles.levelProgressChip}>🔖 저장한 영상 · {savedFeedSnapshot.length}개</div>
+                </div>
+              </div>
+            ) : (
+            /* 상단 카테고리 필터바 복원 */
             <div className={styles.presetBar}>
               <div className={styles.presetHeaderRow}>
                 {/* 레벨 진행 표시 — "지금 어디쯤인지"가 보이면 조금만 더 심리 작동 */}
@@ -1539,9 +1550,11 @@ export default function ShortsPage() {
                 </div>
               )}
             </div>
+            )}
 
-            {/* 통합 쇼츠 상단 스트립: 세션 진행(⑧) · 연속 학습 게이지(⑥) · 핸즈프리(⑦) */}
-            {activeTab === 'shorts' && feedClips.length > 0 && (() => {
+            {/* 통합 쇼츠 상단 스트립: 세션 진행(⑧) · 연속 학습 게이지(⑥) · 핸즈프리(⑦).
+                저장 피드 모드에선 세션·목표 게이지가 저장 목록 기준이라 혼란스러우니 숨긴다. */}
+            {activeTab === 'shorts' && !savedFeedSnapshot && feedClips.length > 0 && (() => {
               const sessionClips = feedClips.slice(0, 8);
               const doneCount = sessionClips.filter(c => spokenDone[c.clip_id]).length;
               const remaining = Math.max(0, DAILY_GOAL_SEC - dailyStudied);
@@ -1731,7 +1744,11 @@ export default function ShortsPage() {
                                 onClick={(e) => { e.stopPropagation(); toggleSave(clip.clip_id); }}
                                 aria-label={savedClips.has(clip.clip_id) ? '저장 해제' : '저장'}
                               >
-                                <span className={styles.railIcon}>{savedClips.has(clip.clip_id) ? '🔖' : '📑'}</span>
+                                <svg className={styles.railIcon} viewBox="0 0 24 24" width="28" height="28"
+                                  fill={savedClips.has(clip.clip_id) ? '#ffffff' : 'none'} stroke="#ffffff" strokeWidth="2"
+                                  strokeLinejoin="round" strokeLinecap="round">
+                                  <path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z" />
+                                </svg>
                                 <span className={styles.railLabel}>{savedClips.has(clip.clip_id) ? '저장됨' : '저장'}</span>
                               </button>
                             </div>
@@ -2101,7 +2118,7 @@ export default function ShortsPage() {
                             key={c.clip_id}
                             type="button"
                             className={styles.savedThumbBtn}
-                            onClick={() => setSavedPlayClip(c)}
+                            onClick={() => enterSavedFeed(c)}
                           >
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img className={styles.savedThumbImg} src={thumbUrl(vId)} alt="" loading="lazy" />
