@@ -1707,9 +1707,9 @@
   right: 12px;
   bottom: 26px;
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
+  flex-direction: row;   /* 저장·공유를 가로로 나란히 */
+  align-items: flex-end;
+  gap: 18px;
   z-index: 3;
   pointer-events: none; /* 레일 여백은 통과, 버튼만 auto */
 }
