@@ -16,18 +16,18 @@ type TrackEvent = {
   event: 'session_start' | 'tab_dwell' | 'session_end';
   tab?: string;
   dwell_ms?: number;
-  source?: 'organic' | 'push';
+  source?: 'organic' | 'push' | 'share';
 };
 
 let buffer: TrackEvent[] = [];
 let flushTimer: any = null;
-let sessionSource: 'organic' | 'push' = 'organic';
+let sessionSource: 'organic' | 'push' | 'share' = 'organic';
 let currentTab: string | null = null;
 let lastTab = 'home'; // 백그라운드 복귀 시 체류 재개용
 let tabEnteredAt = 0;
 let initialized = false;
 
-export function setSessionSource(source: 'organic' | 'push') {
+export function setSessionSource(source: 'organic' | 'push' | 'share') {
   sessionSource = source;
 }
 
@@ -77,7 +77,7 @@ function flush(useBeacon: boolean) {
 }
 
 /** 세션 추적 시작 — 앱 마운트 시 1회 호출 */
-export function initSessionTracking(initialTab: string, source: 'organic' | 'push') {
+export function initSessionTracking(initialTab: string, source: 'organic' | 'push' | 'share') {
   if (initialized || typeof window === 'undefined') return;
   initialized = true;
   sessionSource = source;

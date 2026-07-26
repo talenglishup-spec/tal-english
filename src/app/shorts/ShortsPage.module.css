@@ -1699,16 +1699,17 @@
   margin-top: 8px;
 }
 
-/* 우측 세로 액션 레일 (저장 등) — 영상 중앙-우측. 유튜브 로고/컨트롤바
-   (우하단 스트립)를 가리지 않도록 세로 중앙 근처에 둔다. */
+/* 우측 하단 액션 레일 (저장·공유) — 영상 아래 검은 배경 밴드의 우측.
+   영상 내용·유튜브 로고·컨트롤바를 가리지 않고, 왼쪽 Speak와 좌우 균형.
+   Speak 버튼과 비슷한 높이에 오도록 하단에서 살짝 띄운다. */
 .actionRail {
   position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
+  right: 12px;
+  bottom: 26px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  align-items: center;
+  gap: 14px;
   z-index: 3;
   pointer-events: none; /* 레일 여백은 통과, 버튼만 auto */
 }
@@ -1735,6 +1736,21 @@
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
 }
 .railBtnActive .railLabel { color: #fbbf24; }
+/* 공유 링크 복사 안내 (클립보드 폴백 시) */
+.railToast {
+  pointer-events: none;
+  position: absolute;
+  right: 0;
+  bottom: 100%;
+  margin-bottom: 8px;
+  white-space: nowrap;
+  background: rgba(0, 0, 0, 0.78);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 6px 10px;
+  border-radius: 8px;
+}
 
 .speakFab {
   /* YouTube 정책 준수: 우하단 YouTube 로고와 겹치지 않도록 좌측 정렬로 이동.

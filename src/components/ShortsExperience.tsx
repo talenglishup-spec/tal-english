@@ -117,6 +117,8 @@ export default function ShortsPage() {
   // 스냅샷으로 고정해(재생 중 언세이브해도 카드가 튀지 않음) 쇼츠 플레이어로
   // 스와이프해 본다. null이면 일반(레벨 게이트) 피드.
   const [savedFeedSnapshot, setSavedFeedSnapshot] = useState<any[] | null>(null);
+  // 공유(클립 링크) 후 클립보드 폴백 시 잠깐 뜨는 안내
+  const [railToast, setRailToast] = useState('');
   const [activePresetId, setActivePresetId] = useState<string>('');
   const [playerId, setPlayerId] = useState<string | null>(null);
   
@@ -356,8 +358,10 @@ export default function ShortsPage() {
   // 학습 활동 추적 — 세션 시작(유입 경로 포함) + 탭별 체류시간
   // (학습 시간대·요일별 체류·지속율 분석의 원천 데이터, /api/track로 적재)
   useEffect(() => {
-    const fromPush = new URLSearchParams(window.location.search).get('from') === 'push';
-    initSessionTracking('home', fromPush ? 'push' : 'organic');
+    const params = new URLSearchParams(window.location.search);
+    const fromPush = params.get('from') === 'push';
+    const fromShare = !!params.get('clip'); // 클립 공유 링크 유입
+    initSessionTracking('home', fromPush ? 'push' : fromShare ? 'share' : 'organic');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -451,6 +455,17 @@ export default function ShortsPage() {
             const levelFirst = lv ? clipsOfLevel(items, lv)[0] : null;
             if (levelFirst) firstId = levelFirst.clip_id;
           }
+
+          // 공유 링크(?clip=...) 유입 — 그 클립이 존재하면 쇼츠 탭에서 해당
+          // 클립부터 시작한다(친구가 보낸 표현을 바로 보게). 잠긴 레벨 등으로
+          // 피드에 없으면 조용히 무시하고 평소처럼 시작.
+          const sharedClipId = new URLSearchParams(window.location.search).get('clip');
+          if (sharedClipId && items.some((c: any) => c.clip_id === sharedClipId)) {
+            firstId = sharedClipId;
+            activeTabRef.current = 'shorts';
+            setActiveTab('shorts');
+          }
+
           setActivePresetId(firstId);
           activePresetIdRef.current = firstId;
           
@@ -1173,6 +1188,23 @@ export default function ShortsPage() {
     }
   };
 
+  // 클립 링크 공유 — Web Share(모바일 네이티브 시트) 우선, 미지원 시 클립보드.
+  // 유튜브 영상 파일이 아니라 "이 표현을 볼 수 있는 앱 링크"만 공유한다(정책 준수).
+  const shareClip = async (clip: any) => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://tal-english.vercel.app';
+    const url = `${origin}/?clip=${encodeURIComponent(clip.clip_id)}`;
+    const text = `⚽ TAL에서 이 축구 영어 표현 배워봐: "${clip.target_phrase || ''}"`;
+    try {
+      if (typeof navigator !== 'undefined' && (navigator as any).share) {
+        await (navigator as any).share({ title: 'TAL English Up', text, url });
+        return;
+      }
+      await navigator.clipboard.writeText(`${text} ${url}`);
+      setRailToast('링크가 복사되었어요');
+      setTimeout(() => setRailToast(''), 2000);
+    } catch (e) { /* 사용자가 공유 취소 등 — 무시 */ }
+  };
+
   // 저장 피드 진입 — 마이 탭 썸네일 탭 시. 진입 시점의 저장 목록을 스냅샷으로
   // 고정하고 쇼츠 탭으로 전환해, 탭한 클립부터 스와이프로 본다.
   const enterSavedFeed = (clip: any) => {
@@ -1733,9 +1765,9 @@ export default function ShortsPage() {
                             )}
                           </div>
 
-                          {/* 우측 세로 액션 레일 — 저장(북마크). 활성 클립에만.
-                              추후 공유 등 확장 가능. YouTube 로고/컨트롤바(우하단)를
-                              가리지 않도록 중앙-우측에 둔다. */}
+                          {/* 우측 하단 액션 레일 — 저장(북마크) + 공유. 영상 아래
+                              검은 배경 밴드의 우측에 둬서 영상 내용·YouTube 로고·
+                              컨트롤바를 가리지 않는다(왼쪽 Speak와 좌우 균형). */}
                           {isCurrentActive && (
                             <div className={styles.actionRail}>
                               <button
@@ -1744,13 +1776,27 @@ export default function ShortsPage() {
                                 onClick={(e) => { e.stopPropagation(); toggleSave(clip.clip_id); }}
                                 aria-label={savedClips.has(clip.clip_id) ? '저장 해제' : '저장'}
                               >
-                                <svg className={styles.railIcon} viewBox="0 0 24 24" width="28" height="28"
+                                <svg className={styles.railIcon} viewBox="0 0 24 24" width="26" height="26"
                                   fill={savedClips.has(clip.clip_id) ? '#ffffff' : 'none'} stroke="#ffffff" strokeWidth="2"
                                   strokeLinejoin="round" strokeLinecap="round">
                                   <path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z" />
                                 </svg>
                                 <span className={styles.railLabel}>{savedClips.has(clip.clip_id) ? '저장됨' : '저장'}</span>
                               </button>
+                              <button
+                                type="button"
+                                className={styles.railBtn}
+                                onClick={(e) => { e.stopPropagation(); shareClip(clip); }}
+                                aria-label="공유"
+                              >
+                                <svg className={styles.railIcon} viewBox="0 0 24 24" width="26" height="26"
+                                  fill="none" stroke="#ffffff" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round">
+                                  <path d="M22 2 11 13" />
+                                  <path d="M22 2 15 22 11 13 2 9z" />
+                                </svg>
+                                <span className={styles.railLabel}>공유</span>
+                              </button>
+                              {railToast && <span className={styles.railToast}>{railToast}</span>}
                             </div>
                           )}
 
