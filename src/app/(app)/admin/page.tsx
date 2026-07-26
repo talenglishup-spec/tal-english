@@ -190,6 +190,35 @@ export default function AdminPage() {
         }
     };
 
+    // ── 콘텐츠 새로고침 (Clips 시트 캐시 무효화) ─────────────────────────
+    // 구글시트 Clips에 클립을 추가하거나 순서(level/level_order)를 바꾼 뒤 누르면
+    // 배포 없이 즉시 앱에 반영된다. (누르지 않으면 최대 1시간 뒤 자동 반영)
+    const [refreshingContent, setRefreshingContent] = useState(false);
+    const [contentResult, setContentResult] = useState<string>('');
+
+    const handleRefreshContent = async () => {
+        setRefreshingContent(true);
+        setContentResult('');
+        try {
+            const res = await fetch('/api/revalidate', { method: 'POST' });
+            const data = await res.json();
+            if (!res.ok || !data.revalidated) {
+                setContentResult(`❌ ${data.error || '새로고침 실패'}`);
+                return;
+            }
+            const time = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+            setContentResult(
+                data.clipCount != null
+                    ? `✅ ${time} 반영 완료 — 전체 ${data.clipCount}개 (Speak ${data.speakCount}개)`
+                    : `✅ ${time} 반영 완료`
+            );
+        } catch (e: any) {
+            setContentResult(`❌ ${e.message}`);
+        } finally {
+            setRefreshingContent(false);
+        }
+    };
+
     const handlePlayAudio = (url: string) => {
         const audio = new Audio(url);
         audio.play();
@@ -257,20 +286,90 @@ export default function AdminPage() {
         <div className={styles.page}>
             <header className={styles.header}>
                 <h1 className={styles.title}>Admin Dashboard</h1>
-                <div style={{ display: 'flex', gap: '1rem' }}>
-                    <button
-                        onClick={() => window.location.href = '/admin/intake'}
-                        className={styles.refreshButton}
-                        style={{ background: '#10b981' }}
-                    >
-                        🚀 Smart Intake Tool
-                    </button>
-                    <button onClick={handleSync} disabled={syncing} className={styles.refreshButton} style={{ background: '#6366f1', opacity: syncing ? 0.6 : 1 }}>
-                        {syncing ? '⏳ 동기화 중…' : '🔄 시트 동기화'}
-                    </button>
-                    <button onClick={() => (activeTab === 'players' ? fetchPlayers() : fetchAttempts())} className={styles.refreshButton}>새로고침</button>
-                </div>
+                <button
+                    onClick={() => (activeTab === 'players' ? fetchPlayers() : activeTab === 'attempts' ? fetchAttempts() : fetchExpressionProgress(lessonFilter))}
+                    className={styles.refreshButton}
+                    title="지금 보고 있는 표의 데이터를 다시 불러옵니다"
+                >
+                    ↻ 화면 새로고침
+                </button>
             </header>
+
+            {/* ── 콘텐츠 관리 도구 ────────────────────────────────────────────
+                버튼 이름만으로는 역할이 헷갈렸던 것들을 한 줄 설명과 함께 묶는다.
+                (콘텐츠 새로고침 = Clips 캐시 / 레슨 동기화 = ContentIntake 가공) */}
+            <section className={styles.toolBar}>
+                <div className={styles.toolBarTitle}>콘텐츠 관리</div>
+                <div className={styles.toolGrid}>
+                    {/* 1. 쇼츠 클립 반영 */}
+                    <div className={styles.toolCard}>
+                        <div className={styles.toolHead}>
+                            <span className={styles.toolName}>🎬 쇼츠 콘텐츠 새로고침</span>
+                            <button
+                                onClick={handleRefreshContent}
+                                disabled={refreshingContent}
+                                className={styles.toolBtn}
+                                style={{ background: '#0A228F', opacity: refreshingContent ? 0.6 : 1 }}
+                            >
+                                {refreshingContent ? '⏳ 반영 중…' : '지금 반영'}
+                            </button>
+                        </div>
+                        <p className={styles.toolDesc}>
+                            구글시트 <b>Clips</b>에 클립을 추가하거나 순서(level·level_order)를 바꾼 뒤 누르면
+                            <b> 배포 없이 즉시</b> 앱에 반영됩니다. (안 누르면 최대 1시간 뒤 자동 반영)
+                        </p>
+                        {contentResult && <div className={styles.toolResult}>{contentResult}</div>}
+                    </div>
+
+                    {/* 2. 레슨 콘텐츠 파이프라인 */}
+                    <div className={styles.toolCard}>
+                        <div className={styles.toolHead}>
+                            <span className={styles.toolName}>📥 레슨 콘텐츠 동기화</span>
+                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                <button
+                                    onClick={() => window.location.href = '/admin/intake'}
+                                    className={styles.toolBtn}
+                                    style={{ background: '#10b981' }}
+                                >
+                                    입력 도구
+                                </button>
+                                <button
+                                    onClick={handleSync}
+                                    disabled={syncing}
+                                    className={styles.toolBtn}
+                                    style={{ background: '#6366f1', opacity: syncing ? 0.6 : 1 }}
+                                >
+                                    {syncing ? '⏳ 동기화 중…' : '동기화 실행'}
+                                </button>
+                            </div>
+                        </div>
+                        <p className={styles.toolDesc}>
+                            <b>ContentIntake</b> 시트에 입력한 레슨·표현을 Items/Lessons 시트로 가공합니다.
+                            쇼츠 클립과는 <b>별개</b>이며, 수십 초 걸릴 수 있습니다.
+                        </p>
+                    </div>
+
+                    {/* 3. AI 모범답안 TTS */}
+                    <div className={styles.toolCard}>
+                        <div className={styles.toolHead}>
+                            <span className={styles.toolName}>🔊 AI 모범답안 (미국식/영국식)</span>
+                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                <button onClick={() => handleGenerateModelAudio(false)} disabled={ttsGenerating} className={styles.toolBtn} style={{ background: '#0ea5e9', opacity: ttsGenerating ? 0.6 : 1 }}>
+                                    {ttsGenerating ? '⏳ 생성 중…' : '누락분 생성'}
+                                </button>
+                                <button onClick={() => handleGenerateModelAudio(true)} disabled={ttsGenerating} className={styles.toolBtn} style={{ background: '#f59e0b', opacity: ttsGenerating ? 0.6 : 1 }}>
+                                    전체 재생성
+                                </button>
+                            </div>
+                        </div>
+                        <p className={styles.toolDesc}>
+                            Speak 클립의 원어민 발음을 ElevenLabs로 생성합니다. 발음 버튼이 안 보이는 클립이 있으면 <b>누락분 생성</b>을 누르세요.
+                            <b> ElevenLabs 요금이 발생</b>합니다.
+                        </p>
+                        {ttsResult && <div className={styles.toolResult}>{ttsResult}</div>}
+                    </div>
+                </div>
+            </section>
 
             {/* Tab bar */}
             <div style={{ display: 'flex', gap: '0.75rem', padding: '0 1.5rem', marginBottom: '1rem' }}>
@@ -298,18 +397,6 @@ export default function AdminPage() {
             {/* ── 학습자 대시보드 (요일 스트릭) Tab ─────────────────────────── */}
             {activeTab === 'players' && (
                 <div style={{ padding: '0 1.5rem 2rem' }}>
-                    {/* AI 모범답안 TTS 생성 (ElevenLabs US/UK) */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', padding: '0.75rem 1rem', marginBottom: '1rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px' }}>
-                        <span style={{ fontWeight: 700, fontSize: '0.85rem', color: '#334155' }}>🔊 AI 모범답안 (미국식/영국식)</span>
-                        <button onClick={() => handleGenerateModelAudio(false)} disabled={ttsGenerating} className={styles.refreshButton} style={{ background: '#0ea5e9', opacity: ttsGenerating ? 0.6 : 1 }}>
-                            {ttsGenerating ? '⏳ 생성 중…' : '누락분 생성'}
-                        </button>
-                        <button onClick={() => handleGenerateModelAudio(true)} disabled={ttsGenerating} className={styles.refreshButton} style={{ background: '#f59e0b', opacity: ttsGenerating ? 0.6 : 1 }}>
-                            전체 재생성
-                        </button>
-                        {ttsResult && <span style={{ fontSize: '0.8rem', color: '#334155' }}>{ttsResult}</span>}
-                    </div>
-
                     {playersError && (
                         <p style={{ color: '#dc2626', textAlign: 'center', fontWeight: 600, padding: '1rem' }}>{playersError}</p>
                     )}

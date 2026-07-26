@@ -31,6 +31,80 @@
     background: var(--color-border);
 }
 
+/* ── 콘텐츠 관리 도구 바 ──────────────────────────────────────
+   버튼만 나열하면 "시트 동기화 / 새로고침"처럼 이름이 비슷한 기능들의
+   역할이 헷갈린다. 카드로 나누고 한 줄 설명을 붙여 오작동을 막는다. */
+.toolBar {
+    margin-bottom: 1.75rem;
+}
+
+.toolBarTitle {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--color-text-muted);
+    letter-spacing: 0.04em;
+    margin-bottom: 0.6rem;
+}
+
+.toolGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 0.85rem;
+}
+
+.toolCard {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 0.9rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.toolHead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.toolName {
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.toolBtn {
+    padding: 0.4rem 0.9rem;
+    border: none;
+    border-radius: var(--radius-md);
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.toolBtn:active {
+    transform: scale(0.97);
+}
+
+.toolDesc {
+    margin: 0;
+    font-size: 0.78rem;
+    line-height: 1.5;
+    color: var(--color-text-muted);
+}
+
+.toolResult {
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 0.45rem 0.6rem;
+    background: rgba(0, 0, 0, 0.04);
+    border-radius: var(--radius-md);
+}
+
 .tableContainer {
     overflow-x: auto;
     background: var(--color-surface);
