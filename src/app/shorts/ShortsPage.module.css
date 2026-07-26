@@ -1705,7 +1705,7 @@
 .actionRail {
   position: absolute;
   right: 12px;
-  bottom: 26px;
+  bottom: 52px;
   display: flex;
   flex-direction: row;   /* 저장·공유를 가로로 나란히 */
   align-items: flex-end;
