@@ -52,6 +52,55 @@
   font-weight: 800;
 }
 
+/* ── 프로필 3문항 (체험단 집단 구분) ──────────────────────────
+   선택지는 버튼 토글로만 받는다(자유입력 없음 → 집계 가능한 값 보장). */
+.qBlock {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+  text-align: left;
+}
+.qLabel {
+  font-size: 13px;
+  font-weight: 800;
+  color: #001C3D;
+}
+.qDate {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #0A228F;
+  font-size: 16px;   /* 16px 미만이면 iOS가 포커스 시 화면을 확대한다 */
+  font-weight: 800;
+  box-sizing: border-box;
+}
+.qOptions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.qOption {
+  padding: 12px 10px;
+  border-radius: 12px;
+  border: 1.5px solid #e2e8f0;
+  background: #ffffff;
+  color: #475569;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.qOption:active { transform: scale(0.97); }
+.qOptionOn {
+  border-color: #0A228F;
+  background: rgba(10, 34, 143, 0.06);
+  color: #0A228F;
+}
+
 .installBox {
   width: 100%;
   background: #f2f6fa;

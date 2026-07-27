@@ -1,11 +1,18 @@
 'use client';
 
 /**
- * 온보딩 (/onboarding) — 가입 직후 2단계, 최소 마찰
+ * 온보딩 (/onboarding) — 가입 직후 3단계, 최소 마찰
  *
- *   ① 환영 → ② 알림 받을지 / 언제 (or iOS면 홈화면 추가 안내)
+ *   ① 환영 → ② 프로필 3문항(체험단 집단 구분) → ③ 알림 (or iOS면 홈화면 추가 안내)
  *
- * 강제 A/B 없이 "전원에게 선택권"을 주고, 유저의 선택이 자연 코호트를 만든다:
+ * ②는 체험단 결과를 집단별로 추적하기 위한 최소 정보다. 첫 사용 "전"에 받아야
+ * 100% 수집되고 사용 경험이 답변을 오염시키지 않는다. 문항은 3개가 상한이며
+ * 전부 버튼/선택으로만 받는다(자유입력은 집계 불가).
+ *   - 생년월일        → 나이는 분석 시점에 파생
+ *   - 영어 공부 기간  → 학습 이력 세그먼트
+ *   - 말하기 자신감   → 앱의 객관 레벨(S1~S3)과 대조해 "자신감 vs 실제" 분석
+ *
+ * 알림은 강제 A/B 없이 "전원에게 선택권"을 주고, 유저의 선택이 자연 코호트를 만든다:
  *   - 거부('나중에')            → notify_opt_in=false + onboarded_at set = 대조군
  *   - 추천 시간 그대로 수용      → notify_hour_updated_at NULL
  *   - 직접 시간 변경             → notify_hour_updated_at set
@@ -20,7 +27,22 @@ import styles from './OnboardingPage.module.css';
 import { getSupabase } from '@/utils/supabase';
 import { detectPushEnv, enablePush, setNotifyHour, type PushEnv } from '@/lib/push';
 
-type Step = 'welcome' | 'notify';
+type Step = 'welcome' | 'profile' | 'notify';
+
+// 영어 공부 기간 / 말하기 자신감 — 값은 DB에 그대로 저장(집계 키)
+const STUDY_YEARS = [
+  { v: 'under1', label: '1년 미만' },
+  { v: '1to3',   label: '1~3년' },
+  { v: '3to5',   label: '3~5년' },
+  { v: 'over5',  label: '5년 이상' },
+] as const;
+
+const SELF_LEVELS = [
+  { v: 'none',   label: '거의 못해요' },
+  { v: 'little', label: '조금 해요' },
+  { v: 'normal', label: '보통이에요' },
+  { v: 'good',   label: '잘해요' },
+] as const;
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -32,6 +54,13 @@ export default function OnboardingPage() {
   const [hour, setHour] = useState(20);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
+
+  // ② 프로필 3문항 (체험단 집단 구분)
+  const [birthDate, setBirthDate] = useState('');
+  const [studyYears, setStudyYears] = useState('');
+  const [selfLevel, setSelfLevel] = useState('');
+  const [profileMsg, setProfileMsg] = useState('');
+  const profileReady = !!birthDate && !!studyYears && !!selfLevel;
 
   useEffect(() => {
     setEnv(detectPushEnv());
@@ -56,6 +85,30 @@ export default function OnboardingPage() {
     router.replace('/home');
   };
 
+  // ② 프로필 저장 → ③ 알림 단계로. 저장 실패해도 온보딩을 막지 않는다
+  // (학습 시작이 최우선 — 값은 마이 탭에서 나중에 채울 수 있다).
+  const saveProfileAndNext = async () => {
+    if (!profileReady) return;
+    setBusy(true);
+    setProfileMsg('');
+    try {
+      if (playerId) {
+        const { error } = await supabase.from('profiles').update({
+          birth_date: birthDate,
+          study_years: studyYears,
+          self_level: selfLevel,
+          profile_filled_at: new Date().toISOString(),
+        }).eq('id', playerId);
+        if (error) throw error;
+      }
+    } catch (e: any) {
+      console.warn('[onboarding] 프로필 저장 실패(계속 진행):', e?.message);
+    } finally {
+      setBusy(false);
+      setStep('notify');
+    }
+  };
+
   const enableAndFinish = async () => {
     if (!playerId) return;
     setBusy(true);
@@ -74,12 +127,21 @@ export default function OnboardingPage() {
     }
   };
 
+  // 진행 점 (3단계)
+  const Dots = ({ at }: { at: 0 | 1 | 2 }) => (
+    <div className={styles.dots}>
+      {[0, 1, 2].map(i => (
+        <span key={i} className={`${styles.dot} ${i === at ? styles.dotOn : ''}`} />
+      ))}
+    </div>
+  );
+
   // ── 1단계: 환영 ─────────────────────────────
   if (step === 'welcome') {
     return (
       <div className={styles.wrap}>
         <div className={styles.card}>
-          <div className={styles.dots}><span className={`${styles.dot} ${styles.dotOn}`} /><span className={styles.dot} /></div>
+          <Dots at={0} />
           <div className={styles.hero}>⚽</div>
           <h1 className={styles.title}>환영해요!</h1>
           <p className={styles.sub}>
@@ -87,7 +149,7 @@ export default function OnboardingPage() {
             하루 5분, 표현 하나씩 말하면서 시작해요.
           </p>
           <div className={styles.btns}>
-            <button type="button" className={styles.primary} onClick={() => setStep('notify')}>
+            <button type="button" className={styles.primary} onClick={() => setStep('profile')}>
               시작하기
             </button>
           </div>
@@ -96,11 +158,85 @@ export default function OnboardingPage() {
     );
   }
 
-  // ── 2단계: 알림 ─────────────────────────────
+  // ── 2단계: 프로필 3문항 (체험단 집단 구분) ────
+  if (step === 'profile') {
+    return (
+      <div className={styles.wrap}>
+        <div className={styles.card}>
+          <Dots at={1} />
+          <div className={styles.hero}>📝</div>
+          <h1 className={styles.title}>먼저 알려주세요</h1>
+          <p className={styles.sub}>
+            딱 3가지만요. 나에게 맞는 훈련을 준비하는 데 쓰여요.
+          </p>
+
+          <div className={styles.qBlock}>
+            <label className={styles.qLabel} htmlFor="ob-birth">생년월일</label>
+            <input
+              id="ob-birth"
+              type="date"
+              className={styles.qDate}
+              value={birthDate}
+              max="2020-12-31"
+              min="1990-01-01"
+              onChange={(e) => setBirthDate(e.target.value)}
+            />
+          </div>
+
+          <div className={styles.qBlock}>
+            <span className={styles.qLabel}>영어 공부한 기간</span>
+            <div className={styles.qOptions}>
+              {STUDY_YEARS.map(o => (
+                <button
+                  key={o.v}
+                  type="button"
+                  className={`${styles.qOption} ${studyYears === o.v ? styles.qOptionOn : ''}`}
+                  onClick={() => setStudyYears(o.v)}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className={styles.qBlock}>
+            <span className={styles.qLabel}>영어 말하기, 지금 어때요?</span>
+            <div className={styles.qOptions}>
+              {SELF_LEVELS.map(o => (
+                <button
+                  key={o.v}
+                  type="button"
+                  className={`${styles.qOption} ${selfLevel === o.v ? styles.qOptionOn : ''}`}
+                  onClick={() => setSelfLevel(o.v)}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <p className={styles.msg}>{profileMsg}</p>
+          <div className={styles.btns}>
+            <button
+              type="button"
+              className={styles.primary}
+              disabled={!profileReady || busy}
+              style={!profileReady ? { opacity: 0.45 } : undefined}
+              onClick={saveProfileAndNext}
+            >
+              {busy ? '저장 중…' : profileReady ? '다음' : '3가지를 모두 선택해 주세요'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── 3단계: 알림 ─────────────────────────────
   return (
     <div className={styles.wrap}>
       <div className={styles.card}>
-        <div className={styles.dots}><span className={styles.dot} /><span className={`${styles.dot} ${styles.dotOn}`} /></div>
+        <Dots at={2} />
         <div className={styles.hero}>🔔</div>
 
         {env === 'ios_not_installed' ? (
