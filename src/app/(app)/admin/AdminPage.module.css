@@ -31,6 +31,103 @@
     background: var(--color-border);
 }
 
+/* ── 체험단 분석 ─────────────────────────────────────────────── */
+.kpiRow {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1.75rem;
+}
+.kpiCard {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 0.9rem 1rem;
+}
+.kpiLabel { font-size: 0.72rem; font-weight: 700; color: var(--color-text-muted); }
+.kpiValue { font-size: 1.4rem; font-weight: 800; margin: 0.25rem 0 0.15rem; }
+.kpiSub   { font-size: 0.7rem; color: var(--color-text-muted); }
+
+.sectionHead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-top: 0.5rem;
+}
+.sectionTitle { font-size: 1rem; font-weight: 800; margin: 0 0 0.35rem; }
+.sectionHint {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    line-height: 1.5;
+    margin: 0 0 0.75rem;
+}
+
+.segControls { display: flex; align-items: center; gap: 0.75rem; }
+.segSelect {
+    padding: 0.35rem 0.7rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+.segToggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    cursor: pointer;
+}
+
+.segTable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+}
+.segTable th {
+    text-align: left;
+    padding: 0.55rem 0.6rem;
+    border-bottom: 2px solid var(--color-border);
+    color: var(--color-text-muted);
+    font-weight: 700;
+    white-space: nowrap;
+}
+.segTable td {
+    padding: 0.55rem 0.6rem;
+    border-bottom: 1px solid var(--color-border);
+}
+.weakBadge {
+    margin-left: 0.4rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 999px;
+    background: #f3f4f6;
+    color: #9ca3af;
+    font-size: 0.65rem;
+    font-weight: 700;
+}
+
+/* 시간대 히트맵 */
+.hourRow {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 110px;
+    margin-bottom: 0.5rem;
+}
+.hourCol { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; }
+.hourBarWrap { flex: 1; width: 100%; display: flex; align-items: flex-end; }
+.hourBar {
+    width: 100%;
+    min-height: 2px;
+    background: #0A228F;
+    border-radius: 3px 3px 0 0;
+    opacity: 0.85;
+}
+.hourLabel { font-size: 0.6rem; color: var(--color-text-muted); margin-top: 3px; }
+
 /* ── 콘텐츠 관리 도구 바 ──────────────────────────────────────
    버튼만 나열하면 "시트 동기화 / 새로고침"처럼 이름이 비슷한 기능들의
    역할이 헷갈린다. 카드로 나누고 한 줄 설명을 붙여 오작동을 막는다. */

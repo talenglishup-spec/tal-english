@@ -1,7 +1,11 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import styles from './AdminPage.module.css';
+import {
+    AXIS_LABELS, MIN_CELL, ageOf, computeMetrics, groupMetrics, clipStats,
+    type SegmentAxis, type TrialPlayer, type PlayerClip,
+} from '@/lib/trialSegments';
 
 type Attempt = {
     attempt_id: string;
@@ -36,7 +40,7 @@ type PlayerExprSummary = {
     completion_rate: number;
 };
 
-type AdminTab = 'players' | 'attempts' | 'expressions';
+type AdminTab = 'trial' | 'players' | 'attempts' | 'expressions';
 
 type PlayerRow = {
     player_id: string;
@@ -51,8 +55,59 @@ type PlayerRow = {
     last_active_date: string | null;
 };
 
+type TrialData = {
+    generatedAt: string;
+    todayKst: string;
+    players: TrialPlayer[];
+    playerClip: PlayerClip[];
+    clipMeta: { clip_id: string; phrase: string; level: string; saved: number }[];
+    hourly: { hour: number; sessions: number; attempts: number }[];
+    daily: { date: string; activeUsers: number; sessions: number; attempts: number; passed: number }[];
+    notifSummary: { sent: number; delivered: number; opened: number };
+};
+
 export default function AdminPage() {
-    const [activeTab,  setActiveTab]  = useState<AdminTab>('players');
+    const [activeTab,  setActiveTab]  = useState<AdminTab>('trial');
+
+    // ── 체험단 분석 ───────────────────────────────────────────────────────
+    const [trial, setTrial] = useState<TrialData | null>(null);
+    const [trialLoading, setTrialLoading] = useState(false);
+    const [trialError, setTrialError] = useState('');
+    const [axis, setAxis] = useState<SegmentAxis>('study_years');
+    const [grouped, setGrouped] = useState(true);   // 기본은 2그룹 병합(표본 확보)
+
+    const fetchTrial = async () => {
+        setTrialLoading(true);
+        setTrialError('');
+        try {
+            const res = await fetch('/api/admin/trial-analytics');
+            const data = await res.json();
+            if (!res.ok) {
+                setTrialError(res.status === 401 || res.status === 403
+                    ? '관리자 권한이 필요합니다.'
+                    : (data.error || '데이터를 불러오지 못했습니다.'));
+                setTrial(null);
+                return;
+            }
+            setTrial(data);
+        } catch (e: any) {
+            setTrialError(e.message || '데이터를 불러오지 못했습니다.');
+        } finally {
+            setTrialLoading(false);
+        }
+    };
+
+    // 전체 지표 / 세그먼트 분해 (데이터가 바뀔 때만 재계산)
+    const overall = useMemo(() => trial ? computeMetrics(trial.players) : null, [trial]);
+    const segments = useMemo(
+        () => trial ? groupMetrics(trial.players, axis, grouped) : [],
+        [trial, axis, grouped]
+    );
+    const clips = useMemo(() => {
+        if (!trial) return [];
+        const ids = new Set(trial.players.map(p => p.player_id));
+        return clipStats(trial.playerClip, ids, trial.clipMeta);
+    }, [trial]);
 
     // ── 학습자 대시보드 state ─────────────────────────────────────────────
     const [players, setPlayers] = useState<PlayerRow[]>([]);
@@ -167,8 +222,8 @@ export default function AdminPage() {
     };
 
     useEffect(() => {
-        // 기본 탭이 학습자 대시보드 → 첫 로드 시 학습자 데이터 조회
-        fetchPlayers();
+        // 기본 탭이 체험단 분석 → 첫 로드 시 분석 데이터 조회
+        fetchTrial();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -271,6 +326,9 @@ export default function AdminPage() {
 
     const handleTabChange = (tab: AdminTab) => {
         setActiveTab(tab);
+        if (tab === 'trial' && !trial) {
+            fetchTrial();
+        }
         if (tab === 'expressions' && exprSummary.length === 0) {
             fetchExpressionProgress();
         }
@@ -287,7 +345,12 @@ export default function AdminPage() {
             <header className={styles.header}>
                 <h1 className={styles.title}>Admin Dashboard</h1>
                 <button
-                    onClick={() => (activeTab === 'players' ? fetchPlayers() : activeTab === 'attempts' ? fetchAttempts() : fetchExpressionProgress(lessonFilter))}
+                    onClick={() => (
+                        activeTab === 'trial' ? fetchTrial()
+                        : activeTab === 'players' ? fetchPlayers()
+                        : activeTab === 'attempts' ? fetchAttempts()
+                        : fetchExpressionProgress(lessonFilter)
+                    )}
                     className={styles.refreshButton}
                     title="지금 보고 있는 표의 데이터를 다시 불러옵니다"
                 >
@@ -373,7 +436,7 @@ export default function AdminPage() {
 
             {/* Tab bar */}
             <div style={{ display: 'flex', gap: '0.75rem', padding: '0 1.5rem', marginBottom: '1rem' }}>
-                {(['players', 'attempts', 'expressions'] as AdminTab[]).map(tab => (
+                {(['trial', 'players', 'attempts', 'expressions'] as AdminTab[]).map(tab => (
                     <button
                         key={tab}
                         onClick={() => handleTabChange(tab)}
@@ -389,10 +452,193 @@ export default function AdminPage() {
                             fontSize: '0.85rem',
                         }}
                     >
-                        {tab === 'players' ? '👥 학습자 대시보드' : tab === 'attempts' ? '🎙️ Attempts' : '📌 Expression Progress'}
+                        {tab === 'trial' ? '📊 체험단 분석'
+                            : tab === 'players' ? '👥 학습자 대시보드'
+                            : tab === 'attempts' ? '🎙️ Attempts (레거시)'
+                            : '📌 Expression Progress (레거시)'}
                     </button>
                 ))}
             </div>
+
+            {/* ── 체험단 분석 Tab ────────────────────────────────────────── */}
+            {activeTab === 'trial' && (
+                <div style={{ padding: '0 1.5rem 2rem' }}>
+                    {trialError && <p style={{ color: '#dc2626', textAlign: 'center', fontWeight: 600, padding: '1rem' }}>{trialError}</p>}
+                    {trialLoading && <p style={{ color: '#888', textAlign: 'center' }}>불러오는 중…</p>}
+
+                    {trial && overall && (
+                        <>
+                            {/* A. 요약 KPI */}
+                            <div className={styles.kpiRow}>
+                                {[
+                                    { label: '체험 참여자', value: `${overall.n}명`, sub: `프로필 응답 ${trial.players.filter(p => p.study_years).length}명` },
+                                    { label: '평균 학습시간', value: `${overall.avgMinutes}분`, sub: '1인 누적' },
+                                    { label: '평균 세션', value: `${overall.avgSessions}회`, sub: `활동일 ${overall.avgActiveDays}일` },
+                                    { label: 'Speak 합격률', value: `${overall.passRate}%`, sub: `평균 ${overall.avgAttempts}회 시도` },
+                                    { label: '유지율 D1/D3/D7', value: `${overall.d1}/${overall.d3}/${overall.d7}%`, sub: '가입일 기준' },
+                                ].map(k => (
+                                    <div key={k.label} className={styles.kpiCard}>
+                                        <div className={styles.kpiLabel}>{k.label}</div>
+                                        <div className={styles.kpiValue}>{k.value}</div>
+                                        <div className={styles.kpiSub}>{k.sub}</div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* B. 세그먼트 비교 */}
+                            <div className={styles.sectionHead}>
+                                <h2 className={styles.sectionTitle}>집단별 비교</h2>
+                                <div className={styles.segControls}>
+                                    <select className={styles.segSelect} value={axis} onChange={e => setAxis(e.target.value as SegmentAxis)}>
+                                        {(Object.keys(AXIS_LABELS) as SegmentAxis[]).map(a => (
+                                            <option key={a} value={a}>{AXIS_LABELS[a]}</option>
+                                        ))}
+                                    </select>
+                                    <label className={styles.segToggle}>
+                                        <input type="checkbox" checked={grouped} onChange={e => setGrouped(e.target.checked)} />
+                                        묶어보기(2그룹)
+                                    </label>
+                                </div>
+                            </div>
+                            <p className={styles.sectionHint}>
+                                체험단 규모에선 축을 잘게 쪼개면 칸마다 인원이 1~2명이 되어 해석이 위험합니다.
+                                기본은 <b>묶어보기</b>이며, <b>{MIN_CELL}명 미만</b> 그룹은 회색으로 표시됩니다.
+                            </p>
+
+                            <div style={{ overflowX: 'auto', marginBottom: '2rem' }}>
+                                <table className={styles.segTable}>
+                                    <thead>
+                                        <tr>
+                                            <th>{AXIS_LABELS[axis]}</th>
+                                            <th>인원</th>
+                                            <th>D1</th><th>D3</th><th>D7</th>
+                                            <th>평균 학습(분)</th>
+                                            <th>평균 세션</th>
+                                            <th>합격률</th>
+                                            <th>평균 완료표현</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {segments.map(s => {
+                                            const weak = s.metrics.n < MIN_CELL;
+                                            return (
+                                                <tr key={s.name} style={weak ? { color: '#9ca3af', background: '#fafafa' } : undefined}>
+                                                    <td style={{ fontWeight: 700 }}>
+                                                        {s.name}
+                                                        {weak && <span className={styles.weakBadge}>표본 부족</span>}
+                                                    </td>
+                                                    <td>{s.metrics.n}</td>
+                                                    <td>{s.metrics.d1}%</td>
+                                                    <td>{s.metrics.d3}%</td>
+                                                    <td>{s.metrics.d7}%</td>
+                                                    <td>{s.metrics.avgMinutes}</td>
+                                                    <td>{s.metrics.avgSessions}</td>
+                                                    <td>{s.metrics.passRate}%</td>
+                                                    <td>{s.metrics.avgPassedClips}</td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {/* C. 시간대 히트맵 */}
+                            <h2 className={styles.sectionTitle}>시간대별 활동 (KST)</h2>
+                            <p className={styles.sectionHint}>알림 시간 최적화 근거. 막대가 높은 시간대에 학습이 몰립니다.</p>
+                            <div className={styles.hourRow}>
+                                {trial.hourly.map(h => {
+                                    const max = Math.max(1, ...trial.hourly.map(x => x.sessions));
+                                    const pct = Math.round((h.sessions / max) * 100);
+                                    return (
+                                        <div key={h.hour} className={styles.hourCol} title={`${h.hour}시 · 세션 ${h.sessions} · 시도 ${h.attempts}`}>
+                                            <div className={styles.hourBarWrap}>
+                                                <div className={styles.hourBar} style={{ height: `${pct}%` }} />
+                                            </div>
+                                            <span className={styles.hourLabel}>{h.hour}</span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            {/* D. 콘텐츠 난이도 */}
+                            <h2 className={styles.sectionTitle} style={{ marginTop: '2rem' }}>표현별 성과</h2>
+                            <p className={styles.sectionHint}>합격률이 낮고 시도 횟수가 많은 표현 = 난이도 조정 후보.</p>
+                            <div style={{ overflowX: 'auto' }}>
+                                <table className={styles.segTable}>
+                                    <thead>
+                                        <tr>
+                                            <th>표현</th><th>레벨</th><th>학습자</th><th>시도</th>
+                                            <th>합격률</th><th>1인 평균시도</th><th>저장</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {clips.length === 0 ? (
+                                            <tr><td colSpan={7} style={{ textAlign: 'center', padding: '1.5rem', color: '#888' }}>아직 학습 기록이 없습니다.</td></tr>
+                                        ) : (
+                                            [...clips].sort((a, b) => a.passRate - b.passRate).map(c => (
+                                                <tr key={c.clip_id}>
+                                                    <td style={{ fontWeight: 600 }}>{c.phrase}</td>
+                                                    <td>{c.level || '-'}</td>
+                                                    <td>{c.learners}</td>
+                                                    <td>{c.attempts}</td>
+                                                    <td style={{ fontWeight: 700, color: c.passRate < 50 ? '#dc2626' : c.passRate < 75 ? '#f59e0b' : '#16a34a' }}>
+                                                        {c.passRate}%
+                                                    </td>
+                                                    <td>{c.avgAttempts}</td>
+                                                    <td>{c.saved}</td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {/* E. 학습자별 상세 */}
+                            <h2 className={styles.sectionTitle} style={{ marginTop: '2rem' }}>학습자별 상세</h2>
+                            <div style={{ overflowX: 'auto' }}>
+                                <table className={styles.segTable}>
+                                    <thead>
+                                        <tr>
+                                            <th>학습자</th><th>나이</th><th>학습기간</th><th>자신감</th>
+                                            <th>세션</th><th>학습(분)</th><th>시도</th><th>합격률</th>
+                                            <th>완료표현</th><th>알림</th><th>마지막 활동</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {[...trial.players].sort((a, b) => b.sessions - a.sessions).map(p => {
+                                            const age = ageOf(p.birth_date);
+                                            const rate = p.attempts > 0 ? Math.round((p.passed / p.attempts) * 100) : 0;
+                                            return (
+                                                <tr key={p.player_id}>
+                                                    <td>
+                                                        <div style={{ fontWeight: 700 }}>{p.display_name || '풋볼러'}</div>
+                                                        <div style={{ color: '#999', fontSize: '0.72rem' }}>{p.email}</div>
+                                                    </td>
+                                                    <td>{age ?? '-'}</td>
+                                                    <td>{p.study_years || '-'}</td>
+                                                    <td>{p.self_level || '-'}</td>
+                                                    <td>{p.sessions}</td>
+                                                    <td>{(p.totalDwellMs / 60000).toFixed(1)}</td>
+                                                    <td>{p.attempts}</td>
+                                                    <td>{rate}%</td>
+                                                    <td>{p.passedClips}</td>
+                                                    <td>{p.notify_opt_in ? `ON ${p.notify_hour ?? ''}시` : 'OFF'}</td>
+                                                    <td style={{ whiteSpace: 'nowrap', color: '#666' }}>{p.last_active_date || '-'}</td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p className={styles.sectionHint} style={{ marginTop: '1rem' }}>
+                                알림 발송 {trial.notifSummary.sent} · 전달 {trial.notifSummary.delivered} · 열람 {trial.notifSummary.opened}
+                                &nbsp;|&nbsp; 생성 {new Date(trial.generatedAt).toLocaleString('ko-KR')}
+                            </p>
+                        </>
+                    )}
+                </div>
+            )}
 
             {/* ── 학습자 대시보드 (요일 스트릭) Tab ─────────────────────────── */}
             {activeTab === 'players' && (
