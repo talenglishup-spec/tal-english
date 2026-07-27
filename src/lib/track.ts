@@ -19,7 +19,16 @@ type TrackEvent = {
   source?: 'organic' | 'push' | 'share';
 };
 
+/** 클립 시청 1건 — 쇼츠에서 클립이 비활성화될 때(스크롤 이동) 1건 쌓인다 */
+type ClipView = {
+  clip_id: string;
+  dwell_ms: number;
+  speak_triggered: boolean;   // 🎙️ Speak를 눌러 발화 모드에 진입했는가
+  speak_completed: boolean;   // 녹음까지 마쳐 채점을 받았는가
+};
+
 let buffer: TrackEvent[] = [];
+let clipBuffer: ClipView[] = [];
 let flushTimer: any = null;
 let sessionSource: 'organic' | 'push' | 'share' = 'organic';
 let currentTab: string | null = null;
@@ -35,6 +44,20 @@ export function trackEvent(e: TrackEvent) {
   buffer.push({ source: sessionSource, ...e });
   if (!flushTimer) {
     flushTimer = setTimeout(() => flush(false), 8000); // 8초 배칭
+  }
+}
+
+/**
+ * 클립 시청 1건 기록 — 쇼츠에서 클립이 비활성화되는 순간(다음 클립으로 이동,
+ * 탭 이탈, 앱 종료) 호출한다. 즉시 전송하지 않고 버퍼에 쌓아 활동 이벤트와
+ * 함께 배치로 보낸다(재생 중 네트워크가 튀지 않게).
+ * 0.5초 미만 스침은 스크롤 통과로 보고 버린다.
+ */
+export function trackClipView(v: ClipView) {
+  if (!v.clip_id || v.dwell_ms < 500) return;
+  clipBuffer.push(v);
+  if (!flushTimer) {
+    flushTimer = setTimeout(() => flush(false), 8000);
   }
 }
 
@@ -59,8 +82,11 @@ function closeDwell() {
 
 function flush(useBeacon: boolean) {
   if (flushTimer) { clearTimeout(flushTimer); flushTimer = null; }
-  if (buffer.length === 0) return;
-  const payload = JSON.stringify({ events: buffer.splice(0, buffer.length) });
+  if (buffer.length === 0 && clipBuffer.length === 0) return;
+  const payload = JSON.stringify({
+    events: buffer.splice(0, buffer.length),
+    clipViews: clipBuffer.splice(0, clipBuffer.length),
+  });
 
   try {
     if (useBeacon && navigator.sendBeacon) {

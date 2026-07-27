@@ -60,10 +60,14 @@ type TrialData = {
     todayKst: string;
     players: TrialPlayer[];
     playerClip: PlayerClip[];
-    clipMeta: { clip_id: string; phrase: string; level: string; saved: number }[];
+    clipMeta: {
+        clip_id: string; phrase: string; level: string; saved: number;
+        views: number; avgDwellSec: number; speakTriggered: number; speakCompleted: number;
+    }[];
     hourly: { hour: number; sessions: number; attempts: number }[];
     daily: { date: string; activeUsers: number; sessions: number; attempts: number; passed: number }[];
     notifSummary: { sent: number; delivered: number; opened: number };
+    speakFunnel: { triggered: number; completed: number; abandonRate: number; hasData: boolean };
 };
 
 export default function AdminPage() {
@@ -475,6 +479,13 @@ export default function AdminPage() {
                                     { label: '평균 학습시간', value: `${overall.avgMinutes}분`, sub: '1인 누적' },
                                     { label: '평균 세션', value: `${overall.avgSessions}회`, sub: `활동일 ${overall.avgActiveDays}일` },
                                     { label: 'Speak 합격률', value: `${overall.passRate}%`, sub: `평균 ${overall.avgAttempts}회 시도` },
+                                    {
+                                        label: 'Speak 포기율',
+                                        value: trial.speakFunnel.hasData ? `${trial.speakFunnel.abandonRate}%` : '—',
+                                        sub: trial.speakFunnel.hasData
+                                            ? `버튼 ${trial.speakFunnel.triggered} → 녹음 ${trial.speakFunnel.completed}`
+                                            : '수집 대기(013 필요)',
+                                    },
                                     { label: '유지율 D1/D3/D7', value: `${overall.d1}/${overall.d3}/${overall.d7}%`, sub: '가입일 기준' },
                                 ].map(k => (
                                     <div key={k.label} className={styles.kpiCard}>
@@ -567,18 +578,24 @@ export default function AdminPage() {
                                 <table className={styles.segTable}>
                                     <thead>
                                         <tr>
-                                            <th>표현</th><th>레벨</th><th>학습자</th><th>시도</th>
+                                            <th>표현</th><th>레벨</th><th>시청</th><th>평균 체류</th>
+                                            <th>Speak 포기율</th><th>학습자</th><th>시도</th>
                                             <th>합격률</th><th>1인 평균시도</th><th>저장</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {clips.length === 0 ? (
-                                            <tr><td colSpan={7} style={{ textAlign: 'center', padding: '1.5rem', color: '#888' }}>아직 학습 기록이 없습니다.</td></tr>
+                                            <tr><td colSpan={10} style={{ textAlign: 'center', padding: '1.5rem', color: '#888' }}>아직 학습 기록이 없습니다.</td></tr>
                                         ) : (
                                             [...clips].sort((a, b) => a.passRate - b.passRate).map(c => (
                                                 <tr key={c.clip_id}>
                                                     <td style={{ fontWeight: 600 }}>{c.phrase}</td>
                                                     <td>{c.level || '-'}</td>
+                                                    <td>{c.views || '-'}</td>
+                                                    <td>{c.avgDwellSec ? `${c.avgDwellSec}초` : '-'}</td>
+                                                    <td style={c.abandonRate != null && c.abandonRate >= 50 ? { color: '#dc2626', fontWeight: 700 } : undefined}>
+                                                        {c.abandonRate != null ? `${c.abandonRate}%` : '-'}
+                                                    </td>
                                                     <td>{c.learners}</td>
                                                     <td>{c.attempts}</td>
                                                     <td style={{ fontWeight: 700, color: c.passRate < 50 ? '#dc2626' : c.passRate < 75 ? '#f59e0b' : '#16a34a' }}>

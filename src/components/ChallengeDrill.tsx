@@ -178,7 +178,10 @@ export default function ChallengeDrill({ clips, passedIds, singleClip, onExit, o
       const formData = new FormData();
       formData.append('audio', blob, 'speech.webm');
       formData.append('clip_id', current.clip_id);
-      formData.append('mode', 'challenge'); // 연습 — 레벨(passedClips) 미반영, 참여도 데이터로만 기록
+      // 연습 — 레벨(passedClips) 미반영, 참여도 데이터로만 기록.
+      // Collection 카드에서 들어온 단일 표현 재도전은 'collection_retry'로
+      // 분리해 "이미 합격한 표현을 얼마나 다시 연습하는가"를 따로 볼 수 있게 한다.
+      formData.append('mode', single ? 'collection_retry' : 'challenge');
       const controller = new AbortController();
       const t = setTimeout(() => controller.abort(), 12000);
       const res = await fetch('/api/train/speak-score', { method: 'POST', body: formData, signal: controller.signal });

@@ -104,11 +104,16 @@ export async function POST(req: NextRequest) {
     const data = await req.formData();
     const audio = data.get('audio') as Blob;
     const clip_id = data.get('clip_id') as string;
-    // 진행 소스: 'shorts'(레벨 반영, 기본) | 'challenge'(연습 — 레벨 미반영).
-    // 레벨(passedClips)은 source='shorts'만 집계하므로, 챌린지 통과는 레벨을
-    // 올리지 않고 참여도 데이터로만 남는다.
+    // 진행 소스: 'shorts'(레벨 반영, 기본) | 'challenge' | 'collection_retry'
+    // (뒤 둘은 연습 — 레벨 미반영). 레벨(passedClips)은 source='shorts'만
+    // 집계하므로 연습 통과는 레벨을 올리지 않고 참여도 데이터로만 남는다.
+    // collection_retry를 따로 두는 이유: "이미 합격한 표현의 자발적 복습"은
+    // 챌린지 드릴과 학습 동기가 달라 분석에서 섞이면 안 된다.
     const modeRaw = (data.get('mode') as string) || 'shorts';
-    const source = modeRaw === 'challenge' ? 'challenge' : 'shorts';
+    const source =
+      modeRaw === 'challenge' ? 'challenge'
+      : modeRaw === 'collection_retry' ? 'collection_retry'
+      : 'shorts';
 
     if (!audio || !clip_id) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });

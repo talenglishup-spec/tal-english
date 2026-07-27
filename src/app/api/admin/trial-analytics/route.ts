@@ -78,7 +78,7 @@ export async function GET() {
     const supabase = getSupabaseAdmin();
 
     // 병렬 조회 — 서로 의존이 없다
-    const [profilesRes, statusRes, activityRes, attemptsRes, savedRes, notifRes, clipsRes] =
+    const [profilesRes, statusRes, activityRes, attemptsRes, savedRes, notifRes, clipsRes, clipViewRes] =
       await Promise.all([
         supabase.from('profiles').select(
           'id, email, display_name, created_at, onboarded_at, notify_opt_in, notify_hour, birth_date, study_years, self_level, profile_filled_at'
@@ -89,6 +89,8 @@ export async function GET() {
         supabase.from('saved_clips').select('player_id, clip_id'),
         supabase.from('notification_log').select('player_id, sent_at, template_code, cohort, delivered, opened_at, sent_hour_kst'),
         getClipItems().catch(() => []),
+        // 마이그레이션 013 미적용 환경에서도 나머지 지표는 나와야 하므로 개별 처리
+        supabase.from('clip_view_log').select('player_id, clip_id, dwell_ms, speak_triggered, speak_completed'),
       ]);
 
     const profiles = profilesRes.data || [];
@@ -98,6 +100,8 @@ export async function GET() {
     const saved = savedRes.data || [];
     const notifs = notifRes.data || [];
     const clipItems: any[] = (clipsRes as any) || [];
+    // 013 미적용이면 error가 오고 data는 null — 빈 배열로 낮춰 계속 진행한다
+    const clipViews = clipViewRes.data || [];
 
     // ── 학습자별 집계 ────────────────────────────────────────
     const statusById = new Map(statuses.map(s => [s.player_id, s]));
@@ -217,6 +221,18 @@ export async function GET() {
       savedByClip.set(s.clip_id, (savedByClip.get(s.clip_id) || 0) + 1);
     }
 
+    // ── 클립 시청 집계 (체류시간 · Speak 포기율) ─────────────
+    const viewAgg = new Map<string, { views: number; dwellMs: number; triggered: number; completed: number }>();
+    let totalTriggered = 0, totalCompleted = 0;
+    for (const v of clipViews) {
+      if (!viewAgg.has(v.clip_id)) viewAgg.set(v.clip_id, { views: 0, dwellMs: 0, triggered: 0, completed: 0 });
+      const a = viewAgg.get(v.clip_id)!;
+      a.views += 1;
+      a.dwellMs += v.dwell_ms || 0;
+      if (v.speak_triggered) { a.triggered += 1; totalTriggered += 1; }
+      if (v.speak_completed) { a.completed += 1; totalCompleted += 1; }
+    }
+
     // ── 클립 메타(표현 문구·레벨) ────────────────────────────
     const clipMeta = new Map<string, { phrase: string; level: string }>();
     for (const c of clipItems) {
@@ -239,10 +255,29 @@ export async function GET() {
       todayKst: kstDate(new Date().toISOString()),
       players: [...byPlayer.values()],
       playerClip: [...playerClip.values()],
-      clipMeta: [...clipMeta.entries()].map(([clip_id, m]) => ({ clip_id, ...m, saved: savedByClip.get(clip_id) || 0 })),
+      clipMeta: [...clipMeta.entries()].map(([clip_id, m]) => {
+        const v = viewAgg.get(clip_id);
+        return {
+          clip_id, ...m,
+          saved: savedByClip.get(clip_id) || 0,
+          views: v?.views || 0,
+          avgDwellSec: v && v.views > 0 ? +(v.dwellMs / v.views / 1000).toFixed(1) : 0,
+          speakTriggered: v?.triggered || 0,
+          speakCompleted: v?.completed || 0,
+        };
+      }),
       hourly,
       daily,
       notifSummary,
+      // Speak 포기율 — 버튼은 눌렀는데 녹음까지 안 간 비율
+      speakFunnel: {
+        triggered: totalTriggered,
+        completed: totalCompleted,
+        abandonRate: totalTriggered > 0
+          ? Math.round(((totalTriggered - totalCompleted) / totalTriggered) * 100)
+          : 0,
+        hasData: clipViews.length > 0,
+      },
     });
   } catch (e: any) {
     console.error('[trial-analytics] error:', e?.message || e);

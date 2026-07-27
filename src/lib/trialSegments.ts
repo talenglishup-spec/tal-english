@@ -194,10 +194,15 @@ export function groupMetrics(
 }
 
 /** 선택된 학습자 집합에 대한 클립별 성과 (난이도 파악) */
+export type ClipMeta = {
+  clip_id: string; phrase: string; level: string; saved: number;
+  views?: number; avgDwellSec?: number; speakTriggered?: number; speakCompleted?: number;
+};
+
 export function clipStats(
   playerClip: PlayerClip[],
   playerIds: Set<string>,
-  clipMeta: { clip_id: string; phrase: string; level: string; saved: number }[]
+  clipMeta: ClipMeta[]
 ) {
   const metaById = new Map(clipMeta.map(m => [m.clip_id, m]));
   const agg = new Map<string, { clip_id: string; attempts: number; passed: number; learners: number }>();
@@ -209,13 +214,27 @@ export function clipStats(
     a.passed += pc.passed;
     a.learners += 1;
   }
+  // 시청 기록만 있고 시도가 없는 클립(= 보기만 하고 Speak 안 함)도 표에 남겨야
+  // "이 영상에서 이탈한다"를 볼 수 있으므로, 메타 기준으로 합집합을 만든다.
+  for (const m of clipMeta) {
+    if ((m.views || 0) > 0 && !agg.has(m.clip_id)) {
+      agg.set(m.clip_id, { clip_id: m.clip_id, attempts: 0, passed: 0, learners: 0 });
+    }
+  }
+
   return [...agg.values()].map(a => {
     const m = metaById.get(a.clip_id);
+    const trig = m?.speakTriggered || 0;
+    const comp = m?.speakCompleted || 0;
     return {
       ...a,
       phrase: m?.phrase || a.clip_id,
       level: m?.level || '',
       saved: m?.saved || 0,
+      views: m?.views || 0,
+      avgDwellSec: m?.avgDwellSec || 0,
+      speakTriggered: trig,
+      abandonRate: trig > 0 ? Math.round(((trig - comp) / trig) * 100) : null,
       passRate: a.attempts > 0 ? Math.round((a.passed / a.attempts) * 100) : 0,
       avgAttempts: a.learners > 0 ? +(a.attempts / a.learners).toFixed(1) : 0,
     };

@@ -14,7 +14,7 @@ import ChallengeDrill from '@/components/ChallengeDrill';
 import CollectionBoard from '@/components/CollectionBoard';
 import PushSettings from '@/components/PushSettings';
 import { sortClipsByLevel, getCurrentLevel, clipsOfLevel, getLevels, isLevelCleared } from '@/lib/levels';
-import { initSessionTracking, trackTabEnter } from '@/lib/track';
+import { initSessionTracking, trackTabEnter, trackClipView } from '@/lib/track';
 
 // ── 플레이어 아키텍처: 단일 영구 플레이어 ──────────────────────────
 // YouTube 플레이어(iframe)를 딱 1개만 만들어 스크롤 피드 "뒤" 고정 레이어에
@@ -253,6 +253,30 @@ export default function ShortsPage() {
   // onError 자동 복구용 — 재생 불가 클립을 자동으로 넘길 때, 연속 실패가
   // 무한 스킵으로 번지지 않게 막는다. 정상 재생(PLAYING) 진입 시 0으로 리셋.
   const errorSkipCountRef = useRef(0);
+
+  // ── 클립 시청 추적 (체험단 분석: 클립별 체류 · Speak 포기율) ──────
+  // 클립이 활성화된 시각과 그 클립에서 Speak를 눌렀는지/녹음까지 갔는지를
+  // 들고 있다가, 비활성화되는 순간(다음 클립·탭 이탈·앱 종료) 1건 기록한다.
+  const clipViewRef = useRef<{ clipId: string; startedAt: number; triggered: boolean; completed: boolean } | null>(null);
+
+  /** 현재 보고 있던 클립의 시청 기록을 마감해 전송 버퍼에 넣는다 */
+  const closeClipView = () => {
+    const cv = clipViewRef.current;
+    if (!cv) return;
+    clipViewRef.current = null;
+    trackClipView({
+      clip_id: cv.clipId,
+      dwell_ms: Date.now() - cv.startedAt,
+      speak_triggered: cv.triggered,
+      speak_completed: cv.completed,
+    });
+  };
+
+  /** 새 클립 시청 시작 (이전 것은 마감) */
+  const openClipView = (clipId: string) => {
+    closeClipView();
+    clipViewRef.current = { clipId, startedAt: Date.now(), triggered: false, completed: false };
+  };
 
   // 녹음 관련 Refs
   const streamRef = useRef<MediaStream | null>(null);
@@ -730,6 +754,7 @@ export default function ShortsPage() {
   useEffect(() => {
     return () => {
       stopMonitoring();
+      closeClipView(); // 앱 이탈 — 마지막 클립 시청 기록을 흘리지 않는다
       if (backPauseTimerRef.current) { clearTimeout(backPauseTimerRef.current); backPauseTimerRef.current = null; }
       try { playerARef.current?.destroy?.(); } catch (e) {}
       try { playerBRef.current?.destroy?.(); } catch (e) {}
@@ -807,10 +832,15 @@ export default function ShortsPage() {
   useEffect(() => {
     if (activeTab !== 'shorts') {
       stopMonitoring();
+      closeClipView(); // 쇼츠를 떠나면 보고 있던 클립 시청을 마감
       resetSpeakArtifacts(activePresetIdRef.current);
       try { getPlayer()?.pauseVideo?.(); } catch (e) {}
       setIsPlaying(false);
     } else {
+      // 쇼츠 진입 — 현재 활성 클립의 시청 측정을 시작(전환 없이 들어온 경우)
+      if (activePresetIdRef.current && clipViewRef.current?.clipId !== activePresetIdRef.current) {
+        openClipView(activePresetIdRef.current);
+      }
       // 스픽 오버레이가 떠 있는 중이면 자동 재생하지 않는다 (사용자 입력 대기)
       if (speakStageRef.current[activePresetIdRef.current]) return;
       const player = getPlayer();
@@ -832,6 +862,8 @@ export default function ShortsPage() {
 
   const handlePresetTransition = (nextClipId: string) => {
     stopMonitoring();
+    // 이전 클립 시청 기록 마감 → 새 클립 시청 시작 (체험단 분석용)
+    openClipView(nextClipId);
     // 이전 클립의 진행 중이던 스픽 훈련(녹음/타이머 등)을 정리
     resetSpeakArtifacts(activePresetIdRef.current);
 
@@ -1049,6 +1081,10 @@ export default function ShortsPage() {
         const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         const url = URL.createObjectURL(blob);
         setMyAudioUrl(prev => { if (prev) URL.revokeObjectURL(prev); return url; });
+        // 녹음까지 완주 — Speak를 눌러놓고 그만둔 경우와 구분(포기율)
+        if (clipViewRef.current?.clipId === clipId) {
+          clipViewRef.current.completed = true;
+        }
         setStage(clipId, 'review');
         scoreRecording(clipId, blob);
       };
@@ -1340,6 +1376,11 @@ export default function ShortsPage() {
   const enterSpeakMode = (clipId: string) => {
     const clip = clipsRef.current.find(c => c.clip_id === clipId);
     if (!clip) return;
+
+    // Speak 진입 표시 — 녹음까지 갔는지(completed)와 대비해 포기율을 낸다
+    if (clipViewRef.current?.clipId === clipId) {
+      clipViewRef.current.triggered = true;
+    }
 
     // 🎙️ 버튼 클릭도 실제 제스처 — 소리 상호작용으로 인정 (안내 칩 해제)
     setHasInteracted(true);
