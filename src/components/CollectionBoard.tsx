@@ -22,7 +22,11 @@ type Props = {
   attemptedIds: Set<string>;   // 시도(성공 여부 무관) 이력 있는 clip_id
   totalXp: number;
   todayPassedIds?: Set<string>; // 오늘 새로 완료 — 하이라이트
-  onPractice: (clip: LevelClip) => void;
+  /**
+   * 표현 탭 → 연습(챌린지) 진입. 챌린지를 노출하지 않는 동안에는 넘기지 않는다.
+   * 없으면 표현 행이 정보 표시(탭 불가)로 렌더되어 막다른 탭이 생기지 않는다.
+   */
+  onPractice?: (clip: LevelClip) => void;
 };
 
 export default function CollectionBoard({
@@ -147,12 +151,16 @@ export default function CollectionBoard({
                 const tried = !passed && attemptedIds.has(clip.clip_id);
                 const isToday = todayPassedIds?.has(clip.clip_id);
 
+                const rowClass = `${styles.boardExprRow} ${isToday ? styles.boardExprRowToday : ''}`;
+                const RowTag = onPractice ? 'button' : 'div';
+
                 return (
                   <li key={clip.clip_id}>
-                    <button
-                      type="button"
-                      className={`${styles.boardExprRow} ${isToday ? styles.boardExprRowToday : ''}`}
-                      onClick={() => onPractice(clip)}
+                    <RowTag
+                      {...(onPractice
+                        ? { type: 'button' as const, onClick: () => onPractice(clip) }
+                        : {})}
+                      className={rowClass}
                     >
                       <span
                         className={`${styles.boardExprDot} ${
@@ -167,8 +175,8 @@ export default function CollectionBoard({
                           <span className={styles.boardExprKo}>{clip.translation}</span>
                         )}
                       </span>
-                      <span className={styles.boardExprChevron}>›</span>
-                    </button>
+                      {onPractice && <span className={styles.boardExprChevron}>›</span>}
+                    </RowTag>
                   </li>
                 );
               })}
@@ -177,7 +185,7 @@ export default function CollectionBoard({
         );
       })}
 
-      <p className={styles.boardHint}>표현을 탭하면 바로 연습할 수 있어요</p>
+      {onPractice && <p className={styles.boardHint}>표현을 탭하면 바로 연습할 수 있어요</p>}
     </div>
   );
 }

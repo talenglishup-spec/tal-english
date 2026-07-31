@@ -85,7 +85,10 @@ export default function ShortsPage() {
   const router = useRouter();
   const [clips, setClips] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  // 'challenge'는 코드만 남겨둔 보류 기능 — 탭 바·홈 어디에서도 진입로를 주지
+  // 않으므로 현재 도달 불가다. 재개할 때 탭 버튼만 되살리면 된다.
   const [activeTab, setActiveTab] = useState<'home' | 'shorts' | 'challenge' | 'collection' | 'my'>('home');
+  const [guideOpen, setGuideOpen] = useState(false);
 
   // 클립별 스픽 모드 (1회성): 쇼츠 피드에서 🎙️ 버튼을 누른 영상만 true.
   // true인 동안 1회차·1배속 고정 + pause_at 자동 정지가 활성화되고,
@@ -2013,68 +2016,56 @@ export default function ShortsPage() {
             </div>
           )}
 
-          {/* 홈 탭 — 앱 활용 가이드 */}
+          {/* 홈 탭 — 브랜드 소개 + 사용법(가이드 영상) 단 두 가지.
+              바로가기 카드·훈련 시작 버튼은 하단 탭과 중복이라 걷어냈다. */}
           {activeTab === 'home' && (
             <div className={styles.homeTab}>
-              <div className={styles.homeHero}>
-                <div className={styles.homeHeroIcon}>⚽️</div>
-                <h1 className={styles.homeHeroTitle}>TAL English Up</h1>
-                <p className={styles.homeHeroSub}>축구 인터뷰로 배우는 실전 영어 훈련소</p>
+              <div className={styles.homeBrand}>
+                <img
+                  className={styles.homeBrandLogo}
+                  src="/brand/tal-icon-blue.png"
+                  alt=""
+                  width={40}
+                  height={40}
+                />
+                <span className={styles.homeBrandName}>TAL</span>
               </div>
 
-              <div className={styles.homeSectionTitle}>이렇게 활용하세요</div>
+              <div className={styles.homeIntro}>
+                <p className={styles.homeIntroLead}>
+                  <b>Take A Leap</b> — 영어로 도약하라.
+                </p>
+                <p className={styles.homeIntroBody}>
+                  TAL은 축구 선수들이 가장 중요한 순간에 실제로 쓰는 영어를 배워
+                  해외 무대로 멀리 도약할 수 있도록, 선수들의 해외 진출을 돕는
+                  영어 교육 훈련소입니다.
+                </p>
+                <p className={styles.homeIntroKicker}>
+                  자, 그럼 이제 영어를 탈탈 털어볼까요?
+                </p>
+              </div>
 
-              {/* AI 코치 도슨트 가이드 (영상) — 쇼츠 쉐도잉(귀 트기), Speak 발화 훈련,
-                  선수 카드 수집, 매일 성장까지 모든 사용법을 이 한 영상에 담는다.
-                  개별 스텝 안내 박스는 제거하고 영상으로 통합. */}
-              <GuideDocent />
-
-              {/* 오늘 Challenge / 내 진도 바로가기 (MVP 중고등 홈 연결) */}
               <button
                 type="button"
-                className={styles.homeQuickCard}
-                onClick={() => setActiveTab('challenge')}
+                className={styles.homeGuideToggle}
+                aria-expanded={guideOpen}
+                onClick={() => setGuideOpen(v => !v)}
               >
-                <span className={styles.homeQuickIcon}>🎤</span>
-                <span className={styles.homeQuickBody}>
-                  <span className={styles.homeQuickTitle}>오늘 Challenge</span>
-                  <span className={styles.homeQuickSub}>랜덤 드릴 · 5문항</span>
+                <span className={styles.homeGuideToggleText}>사용법</span>
+                <span
+                  className={`${styles.homeGuideChevron} ${guideOpen ? styles.homeGuideChevronOpen : ''}`}
+                  aria-hidden="true"
+                >
+                  ⌄
                 </span>
-                <span className={styles.homeQuickArrow}>→</span>
               </button>
 
-              {(() => {
-                const curLv = getCurrentLevel(clips, passedClips);
-                if (!curLv) return null;
-                const members = clipsOfLevel(clips, curLv);
-                const done = members.filter(c => passedClips.has(c.clip_id)).length;
-                const pct = members.length > 0 ? Math.round((done / members.length) * 100) : 0;
-                return (
-                  <button
-                    type="button"
-                    className={styles.homeQuickCard}
-                    onClick={() => setActiveTab('collection')}
-                  >
-                    <span className={styles.homeQuickIcon}>📦</span>
-                    <span className={styles.homeQuickBody}>
-                      <span className={styles.homeQuickTitle}>내 진도</span>
-                      <span className={styles.homeQuickSub}>{curLv} · {done}/{members.length} 완료</span>
-                      <span className={styles.homeQuickBar}>
-                        <span className={styles.homeQuickBarFill} style={{ width: `${pct}%` }} />
-                      </span>
-                    </span>
-                    <span className={styles.homeQuickArrow}>→</span>
-                  </button>
-                );
-              })()}
-
-              <button
-                type="button"
-                className={styles.homeStartBtn}
-                onClick={() => setActiveTab('shorts')}
-              >
-                🎬 지금 훈련 시작하기
-              </button>
+              {/* 펼쳤을 때만 마운트 — 접힌 상태에서 영상을 미리 받지 않게 한다. */}
+              {guideOpen && (
+                <div className={styles.homeGuidePanel}>
+                  <GuideDocent embedded />
+                </div>
+              )}
             </div>
           )}
 
@@ -2087,10 +2078,9 @@ export default function ShortsPage() {
                 attemptedIds={attemptedIds}
                 todayPassedIds={todayPassed}
                 totalXp={(myStats?.xp as number) ?? 0}
-                onPractice={(clip) => {
-                  setPracticeClip(clip);
-                  setActiveTab('challenge');
-                }}
+                /* onPractice 미전달 = 표현 행이 탭 불가.
+                   챌린지가 유일한 연습 화면이라, 노출을 내린 동안 연결하면
+                   빈 화면으로 빠진다. 챌린지 복귀 시 다시 넘기면 된다. */
               />
             </div>
           )}
@@ -2239,43 +2229,22 @@ export default function ShortsPage() {
             );
           })()}
 
-          {/* 하단 고정 탭 바 */}
+          {/* 하단 고정 탭 바 — 홈·쇼츠·기록·마이 4개, 텍스트만 */}
           <div className={styles.bottomTabBar}>
-            <button
-              className={`${styles.tabItem} ${activeTab === 'home' ? styles.tabItemActive : ''}`}
-              onClick={() => setActiveTab('home')}
-            >
-              <span className={styles.tabIcon}>🏠</span>
-              <span className={styles.tabLabel}>홈</span>
-            </button>
-            <button
-              className={`${styles.tabItem} ${activeTab === 'shorts' ? styles.tabItemActive : ''}`}
-              onClick={() => setActiveTab('shorts')}
-            >
-              <span className={styles.tabIcon}>🎬</span>
-              <span className={styles.tabLabel}>쇼츠 모드</span>
-            </button>
-            <button
-              className={`${styles.tabItem} ${activeTab === 'challenge' ? styles.tabItemActive : ''}`}
-              onClick={() => setActiveTab('challenge')}
-            >
-              <span className={styles.tabIcon}>🎤</span>
-              <span className={styles.tabLabel}>챌린지</span>
-            </button>
-            <button
-              className={`${styles.tabItem} ${activeTab === 'collection' ? styles.tabItemActive : ''}`}
-              onClick={() => setActiveTab('collection')}
-            >
-              <span className={styles.tabIcon}>📦</span>
-              <span className={styles.tabLabel}>Collection</span>
-            </button>
-            <button
-              className={`${styles.tabItem} ${activeTab === 'my' ? styles.tabItemActive : ''}`}
-              onClick={() => setActiveTab('my')}
-            >
-              <span className={styles.tabIcon}>👤</span>
-              <span className={styles.tabLabel}>마이</span>
-            </button>
+            {([
+              ['home', '홈'],
+              ['shorts', '쇼츠'],
+              ['collection', '기록'],
+              ['my', '마이'],
+            ] as const).map(([key, label]) => (
+              <button
+                key={key}
+                className={`${styles.tabItem} ${activeTab === key ? styles.tabItemActive : ''}`}
+                onClick={() => setActiveTab(key)}
+              >
+                <span className={styles.tabLabel}>{label}</span>
+              </button>
+            ))}
           </div>
 
         </div>

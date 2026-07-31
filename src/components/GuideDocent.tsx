@@ -42,15 +42,22 @@ export const GUIDE_STEPS: GuideStep[] = [
 
 const SEEN_KEY = 'tal_guide_seen';
 
-export default function GuideDocent() {
-  const [open, setOpen] = useState(false);
+/**
+ * embedded=true — 접힌 카드를 그리지 않고 플레이어만 렌더한다.
+ * 홈의 "사용법" 펼치기가 이미 열림/닫힘을 쥐고 있어, 카드까지 두면
+ * 펼친 뒤 한 번 더 눌러야 영상이 나오는 이중 게이트가 된다.
+ */
+export default function GuideDocent({ embedded = false }: { embedded?: boolean }) {
+  const [open, setOpen] = useState(embedded);
   const [idx, setIdx] = useState(0);
   const [seen, setSeen] = useState(true); // 초기엔 true로 두어 SSR 깜빡임 방지
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
     setSeen(localStorage.getItem(SEEN_KEY) === '1');
-  }, []);
+    // 임베드 모드는 이미 펼쳐진 상태로 마운트되므로 그 자체가 "봤다"에 해당한다.
+    if (embedded) localStorage.setItem(SEEN_KEY, '1');
+  }, [embedded]);
 
   const step = GUIDE_STEPS[idx] || GUIDE_STEPS[0];
   const multi = GUIDE_STEPS.length > 1;
@@ -78,8 +85,8 @@ export default function GuideDocent() {
     setIdx(clamped);
   };
 
-  // 접힌 카드
-  if (!open) {
+  // 접힌 카드 (임베드 모드에선 부모가 접기를 담당하므로 그리지 않는다)
+  if (!open && !embedded) {
     return (
       <button type="button" className={styles.guideCard} onClick={openGuide}>
         <div className={styles.guideAvatar}>🎓</div>
@@ -98,10 +105,12 @@ export default function GuideDocent() {
   // 펼친 플레이어
   return (
     <div className={styles.guidePlayerCard}>
-      <div className={styles.guidePlayerHeader}>
-        <span className={styles.guidePlayerTitle}>🎓 {step.title}</span>
-        <button type="button" className={styles.guideClose} onClick={closeGuide}>✕</button>
-      </div>
+      {!embedded && (
+        <div className={styles.guidePlayerHeader}>
+          <span className={styles.guidePlayerTitle}>🎓 {step.title}</span>
+          <button type="button" className={styles.guideClose} onClick={closeGuide}>✕</button>
+        </div>
+      )}
 
       <div className={styles.guideVideoBox}>
         {step.videoUrl ? (

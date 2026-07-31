@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
@@ -83,7 +83,7 @@ export default function AdminInboxPage() {
     });
     const data = await res.json();
     if (data.success) {
-      alert(`Approved ${selectedIds.size} clips!`);
+      alert(`Approved ${data.updatedCount} clips!`);
       setSelectedIds(new Set());
       fetchInbox();
       setActiveClip(null);
