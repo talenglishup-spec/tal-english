@@ -20,7 +20,6 @@ type Props = {
   clips: LevelClip[];
   passedIds: Set<string>;
   attemptedIds: Set<string>;   // 시도(성공 여부 무관) 이력 있는 clip_id
-  totalXp: number;
   todayPassedIds?: Set<string>; // 오늘 새로 완료 — 하이라이트
   /**
    * 표현 탭 → 연습(챌린지) 진입. 챌린지를 노출하지 않는 동안에는 넘기지 않는다.
@@ -30,7 +29,7 @@ type Props = {
 };
 
 export default function CollectionBoard({
-  clips, passedIds, attemptedIds, totalXp, todayPassedIds, onPractice,
+  clips, passedIds, attemptedIds, todayPassedIds, onPractice,
 }: Props) {
   const [lockMsg, setLockMsg] = useState('');
   const [shareMsg, setShareMsg] = useState('');
@@ -70,7 +69,7 @@ export default function CollectionBoard({
 
   return (
     <div className={styles.boardWrap}>
-      {/* 상단 요약 — 지금까지 모은 표현 수 + 총 XP */}
+      {/* 상단 요약 — 지금까지 모은 표현 수 */}
       <div className={styles.boardHeader}>
         <div className={styles.boardHeaderLeft}>
           <span className={styles.boardHeaderTitle}>내 도장판</span>
@@ -78,7 +77,6 @@ export default function CollectionBoard({
             표현 {totalDone} / {clips.length} 완료
           </span>
         </div>
-        <span className={styles.boardXp}>⚡ {totalXp.toLocaleString()} XP</span>
       </div>
 
       {lockMsg && <div className={styles.boardLockToast}>{lockMsg}</div>}

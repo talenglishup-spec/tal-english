@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { getSupabase } from '@/utils/supabase';
-import XPToast from '@/components/XPToast';
 import GuideDocent from '@/components/GuideDocent';
 import { useShortsMonitor } from '@/hooks/useShortsMonitor';
 import styles from '@/app/shorts/ShortsPage.module.css';
@@ -125,8 +124,6 @@ export default function ShortsPage() {
   const [activePresetId, setActivePresetId] = useState<string>('');
   const [playerId, setPlayerId] = useState<string | null>(null);
   
-  // XP Toast
-  const [xpToastVisible, setXpToastVisible] = useState(false);
 
   // 플레이어 제어 및 상태
   const [isApiReady, setIsApiReady] = useState(false);
@@ -184,8 +181,6 @@ export default function ShortsPage() {
   // PLAYING 진입 시 제거. 같은 영상 seekTo(즉시 전환)에는 띄우지 않는다.
   const [posterUrl, setPosterUrl] = useState<string>('');
 
-  // Collection 해금 보상 상태 카운트
-  const [successCounts, setSuccessCounts] = useState<Record<string, number>>({});
   const [scores, setScores] = useState<Record<string, number>>({});
 
   const activePresetIdRef = useRef<string>('');
@@ -496,22 +491,19 @@ export default function ShortsPage() {
           setActivePresetId(firstId);
           activePresetIdRef.current = firstId;
           
-          // 초기 배속 및 경험치 카운트 맵 설정
+          // 초기 배속 및 점수 맵 설정
           const initPhases: Record<string, number> = {};
           const initRates: Record<string, number> = {};
-          const initSuccess: Record<string, number> = {};
           const initScores: Record<string, number> = {};
 
           items.forEach((item: any) => {
             initPhases[item.clip_id] = 1;
             initRates[item.clip_id] = 1.0;
-            initSuccess[item.clip_id] = 0;
             initScores[item.clip_id] = 0;
           });
           phasesRef.current = initPhases;
           setPhases(initPhases);
           setPlaybackRates(initRates);
-          setSuccessCounts(initSuccess);
           setScores(initScores);
         }
       } catch (err) {
@@ -1150,7 +1142,6 @@ export default function ShortsPage() {
       setAttemptedIds(prev => new Set(prev).add(clipId));
 
       if (passed) {
-        setSuccessCounts(prev => ({ ...prev, [clipId]: (prev[clipId] || 0) + 1 }));
         setScores(prev => ({ ...prev, [clipId]: scoreVal }));
         setPassedClips(prev => new Set(prev).add(clipId));
         setTodayPassed(prev => new Set(prev).add(clipId));
@@ -1166,12 +1157,13 @@ export default function ShortsPage() {
         }
         if (playerId) {
           try {
-            const syncRes = await fetch('/api/train/complete', {
+            // 서버는 계속 XP·카드를 적립한다(체험단에서 화면에만 안 보일 뿐).
+            // 나중에 다시 노출할 때 그동안의 기록이 비어 있지 않도록.
+            await fetch('/api/train/complete', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ clip_id: clip.clip_id, card_id: clip.player_name })
             });
-            if (syncRes.ok) setXpToastVisible(true);
           } catch (e) {
             console.error('[Complete API Sync Error]:', e);
           }
@@ -1510,14 +1502,6 @@ export default function ShortsPage() {
 
   return (
     <div className={styles.container}>
-      {/* XP Toast */}
-      <XPToast 
-        xp={50} 
-        visible={xpToastVisible} 
-        onClose={() => setXpToastVisible(false)} 
-      />
-
-
 
       {/* 모바일 스마트폰 목업 프레임 */}
       <div className={styles.phoneFrame}>
@@ -2077,7 +2061,6 @@ export default function ShortsPage() {
                 passedIds={passedClips}
                 attemptedIds={attemptedIds}
                 todayPassedIds={todayPassed}
-                totalXp={(myStats?.xp as number) ?? 0}
                 /* onPractice 미전달 = 표현 행이 탭 불가.
                    챌린지가 유일한 연습 화면이라, 노출을 내린 동안 연결하면
                    빈 화면으로 빠진다. 챌린지 복귀 시 다시 넘기면 된다. */
@@ -2088,7 +2071,6 @@ export default function ShortsPage() {
           {/* 마이 탭 — 내 레벨/학습/공유 */}
           {activeTab === 'my' && (() => {
             const s = myStats || {};
-            const xp = s.xp ?? 0;
             const streakDays = s.streak_days ?? 0;
 
             // ── 표현 레벨 — Collection 도장판과 같은 기준(lib/levels)을 쓴다.
@@ -2107,7 +2089,6 @@ export default function ShortsPage() {
             const displayName = s.display_name || '풋볼러';
             const email = s.email || '';
             const sub = s.subscription_status || 'free';
-            const unlockedCards = Object.values(successCounts).filter(v => (v as number) > 0).length;
 
             return (
               <div className={styles.myTab}>
@@ -2168,14 +2149,6 @@ export default function ShortsPage() {
                     <div className={styles.myStatItem}>
                       <div className={styles.myStatNum}>{passedClips.size}</div>
                       <div className={styles.myStatLabel}>완료 표현</div>
-                    </div>
-                    <div className={styles.myStatItem}>
-                      <div className={styles.myStatNum}>{xp.toLocaleString()}</div>
-                      <div className={styles.myStatLabel}>누적 XP</div>
-                    </div>
-                    <div className={styles.myStatItem}>
-                      <div className={styles.myStatNum}>{unlockedCards}</div>
-                      <div className={styles.myStatLabel}>획득 카드</div>
                     </div>
                   </div>
                 </div>
