@@ -2180,19 +2180,23 @@ export default function ShortsPage() {
                   )}
                 </div>
 
-                {/* ③ 설정 — 공유·알림·로그아웃은 내 학습 기록이 아니라 앱 설정이다.
-                    카드를 벗기고 목록 줄로 내려, 위 두 카드가 먼저 읽히게 한다. */}
+                {/* ③ 친구에게 공유 — 초대는 설정이 아니라 권하고 싶은 행동이라
+                    목록 줄이 아니라 카드로 둔다(버튼이 눈에 보여야 눌린다). */}
+                <div className={styles.myCard}>
+                  <div className={styles.myCardTitle}>🎁 친구에게 공유</div>
+                  <p className={styles.myHint}>친구를 초대하고 함께 축구 영어를 훈련하세요.</p>
+                  <button type="button" className={styles.speakButton} onClick={handleShare}>
+                    📤 앱 공유하기
+                  </button>
+                  {shareMsg && <div className={styles.myShareMsg}>{shareMsg}</div>}
+                </div>
+
+                {/* ④ 설정 — 알림·로그아웃은 학습 기록이 아니라 앱 설정이다. */}
                 <div className={styles.mySection}>
                   <div className={styles.mySectionTitle}>설정</div>
 
                   {/* 학습 알림 (웹푸시 · iOS 미설치 시 홈화면 추가 안내) */}
                   <PushSettings playerId={playerId} />
-
-                  <button type="button" className={styles.myRow} onClick={handleShare}>
-                    <span className={styles.myRowLabel}>친구에게 공유</span>
-                    <span className={styles.myRowChevron} aria-hidden="true">›</span>
-                  </button>
-                  {shareMsg && <div className={styles.myShareMsg}>{shareMsg}</div>}
 
                   <button
                     type="button"

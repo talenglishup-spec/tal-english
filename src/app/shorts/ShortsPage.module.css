@@ -1769,10 +1769,11 @@
 }
 
 .myShareMsg {
+  text-align: center;
   font-size: var(--fs-xs);
   font-weight: 700;
   color: var(--tal-blue);
-  padding: var(--sp-2) var(--sp-1) 0;
+  margin-top: var(--sp-2);
 }
 
 /* 우측 하단 액션 레일 (저장·공유) — 영상 아래 검은 배경 밴드의 우측.
