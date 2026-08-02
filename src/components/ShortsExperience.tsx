@@ -2015,19 +2015,22 @@ export default function ShortsPage() {
                 <span className={styles.homeBrandName}>TAL</span>
               </div>
 
-              <div className={styles.homeIntro}>
-                <p className={styles.homeIntroLead}>
-                  <b>Take A Leap</b> — 영어로 도약하라.
-                </p>
-                <p className={styles.homeIntroBody}>
-                  TAL은 축구 선수들이 가장 중요한 순간에 실제로 쓰는 영어를 배워
-                  해외 무대로 멀리 도약할 수 있도록, 선수들의 해외 진출을 돕는
-                  영어 교육 훈련소입니다.
-                </p>
-                <p className={styles.homeIntroKicker}>
-                  자, 그럼 이제 영어를 탈탈 털어볼까요?
-                </p>
-              </div>
+              {/* 큰 글씨는 이 태그라인 하나뿐이다. 나머지를 모두 작게 두어야
+                  화면을 여는 순간 시선이 한 곳에 꽂힌다. */}
+              <h1 className={styles.homeTagline}>
+                Take A Leap
+                <span className={styles.homeTaglineKo}>영어로 도약하라</span>
+              </h1>
+
+              <p className={styles.homeIntroBody}>
+                TAL은 축구 선수들이 가장 중요한 순간에 실제로 쓰는 영어를 배워
+                해외 무대로 멀리 도약할 수 있도록, 선수들의 해외 진출을 돕는
+                영어 교육 훈련소입니다.
+              </p>
+
+              <p className={styles.homeIntroKicker}>
+                자, 그럼 이제 영어를 탈탈 털어볼까요?
+              </p>
 
               <button
                 type="button"
@@ -2104,7 +2107,9 @@ export default function ShortsPage() {
 
                 {myLoading && <div className={styles.myHint}>내 정보를 불러오는 중...</div>}
 
-                {/* 현재 레벨 — 진행 상황만. 표현 목록은 Collection 탭에서 본다. */}
+                {/* ① 내 진행 — 레벨·연속 학습·완료 표현을 한 카드로 합쳤다.
+                    셋 다 "내가 얼마나 했나"라는 같은 질문의 답이라, 카드를
+                    따로 두면 무엇을 먼저 볼지 알 수 없었다. */}
                 <div className={styles.myCard}>
                   <div className={styles.myCardRow}>
                     <span className={styles.myLevelBadge}>
@@ -2117,19 +2122,21 @@ export default function ShortsPage() {
                   <div className={styles.myXpBar}>
                     <div className={styles.myXpFill} style={{ width: `${levelPct}%` }} />
                   </div>
-
-                  <div className={styles.myHint} style={{ marginTop: 10, marginBottom: 0 }}>
+                  <div className={styles.myHint}>
                     {curGroup.length === 0
-                      ? '🎉 모든 표현을 완료했어요!'
+                      ? '모든 표현을 완료했어요!'
                       : remainInLevel > 0
                         ? `다음 레벨까지 ${remainInLevel}개 표현 남았어요`
                         : '이 레벨 완료! 다음 레벨로 이동합니다'}
                   </div>
-                </div>
 
-                {/* 요일 스트릭 */}
-                <div className={styles.myCard}>
-                  <div className={styles.myCardTitle}>🔥 연속 학습 {streakDays}일</div>
+                  <div className={styles.myDivider} />
+
+                  {/* 🔥는 남긴다 — 연속이 끊기면 아깝다는 감각을 글자가 대신 못 한다 */}
+                  <div className={styles.myCardRow}>
+                    <span className={styles.mySubTitle}>🔥 연속 학습</span>
+                    <span className={styles.myXpText}>{streakDays}일</span>
+                  </div>
                   <div className={styles.myWeekRow}>
                     {dayLabels.map((d, i) => (
                       <div key={i} className={styles.myDayCol}>
@@ -2140,23 +2147,19 @@ export default function ShortsPage() {
                       </div>
                     ))}
                   </div>
-                </div>
 
-                {/* 학습 콘텐츠 요약 */}
-                <div className={styles.myCard}>
-                  <div className={styles.myCardTitle}>📚 내 학습 콘텐츠</div>
-                  <div className={styles.myStatGrid}>
-                    <div className={styles.myStatItem}>
-                      <div className={styles.myStatNum}>{passedClips.size}</div>
-                      <div className={styles.myStatLabel}>완료 표현</div>
-                    </div>
+                  <div className={styles.myDivider} />
+
+                  <div className={styles.myCardRow}>
+                    <span className={styles.mySubTitle}>완료한 표현</span>
+                    <span className={styles.myXpText}>{passedClips.size}개</span>
                   </div>
                 </div>
 
-                {/* 저장한 영상 — 쇼츠 우측 레일에서 저장한 clip 썸네일 목록.
-                    탭하면 모달로 재생(유튜브 임베드). */}
+                {/* ② 저장한 영상 — 쇼츠 우측 레일에서 저장한 clip 썸네일 목록.
+                    탭하면 저장 피드로 들어가 스와이프하며 본다. */}
                 <div className={styles.myCard}>
-                  <div className={styles.myCardTitle}>🔖 저장한 영상 {savedClips.size > 0 ? `(${savedClips.size})` : ''}</div>
+                  <div className={styles.myCardTitle}>저장한 영상 {savedClips.size > 0 ? `(${savedClips.size})` : ''}</div>
                   {savedClips.size === 0 ? (
                     <p className={styles.myHint}>쇼츠에서 <b>저장</b>을 누르면 여기 모여요.</p>
                   ) : (
@@ -2181,23 +2184,29 @@ export default function ShortsPage() {
                   )}
                 </div>
 
-                {/* 공유 */}
-                <div className={styles.myCard}>
-                  <div className={styles.myCardTitle}>🎁 친구에게 공유</div>
-                  <p className={styles.myHint}>친구를 초대하고 함께 축구 영어를 훈련하세요.</p>
-                  <button type="button" className={styles.speakButton} onClick={handleShare}>
-                    📤 앱 공유하기
+                {/* ③ 설정 — 공유·알림·로그아웃은 내 학습 기록이 아니라 앱 설정이다.
+                    카드를 벗기고 목록 줄로 내려, 위 두 카드가 먼저 읽히게 한다. */}
+                <div className={styles.mySection}>
+                  <div className={styles.mySectionTitle}>설정</div>
+
+                  {/* 학습 알림 (웹푸시 · iOS 미설치 시 홈화면 추가 안내) */}
+                  <PushSettings playerId={playerId} />
+
+                  <button type="button" className={styles.myRow} onClick={handleShare}>
+                    <span className={styles.myRowLabel}>친구에게 공유</span>
+                    <span className={styles.myRowChevron} aria-hidden="true">›</span>
                   </button>
                   {shareMsg && <div className={styles.myShareMsg}>{shareMsg}</div>}
+
+                  <button
+                    type="button"
+                    className={`${styles.myRow} ${styles.myRowQuiet}`}
+                    onClick={handleLogout}
+                  >
+                    <span className={styles.myRowLabel}>로그아웃</span>
+                    <span className={styles.myRowChevron} aria-hidden="true">›</span>
+                  </button>
                 </div>
-
-                {/* 학습 알림 설정 (웹푸시 · iOS 미설치 시 홈화면 추가 안내) */}
-                <PushSettings playerId={playerId} />
-
-                {/* 로그아웃 */}
-                <button type="button" className={styles.myLogoutBtn} onClick={handleLogout}>
-                  로그아웃 (Sign Out)
-                </button>
               </div>
             );
           })()}

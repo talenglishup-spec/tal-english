@@ -87,8 +87,8 @@ export default function PushSettings({ playerId }: { playerId: string | null }) 
   // iOS 미설치 — 알림 토글 대신 홈 화면 추가 안내
   if (env === 'ios_not_installed') {
     return (
-      <div className={styles.myCard}>
-        <div className={styles.myCardTitle}>🔔 학습 알림</div>
+      <div className={styles.pushBlock}>
+        <div className={styles.myRowLabel}>학습 알림</div>
         <div className={styles.pushInstallGuide}>
           <p className={styles.pushInstallText}>
             iPhone에서 알림을 받으려면 먼저 <b>홈 화면에 추가</b>해 주세요.
@@ -105,19 +105,17 @@ export default function PushSettings({ playerId }: { playerId: string | null }) 
 
   if (env === 'unsupported') {
     return (
-      <div className={styles.myCard}>
-        <div className={styles.myCardTitle}>🔔 학습 알림</div>
+      <div className={styles.pushBlock}>
+        <div className={styles.myRowLabel}>학습 알림</div>
         <p className={styles.pushInstallText}>이 브라우저는 알림을 지원하지 않아요. Chrome 등 다른 브라우저를 이용해 주세요.</p>
       </div>
     );
   }
 
   return (
-    <div className={styles.myCard}>
-      <div className={styles.myCardTitle}>🔔 학습 알림</div>
-
+    <div className={styles.pushBlock}>
       <div className={styles.pushRow}>
-        <span className={styles.pushLabel}>매일 훈련 리마인더</span>
+        <span className={styles.myRowLabel}>매일 훈련 리마인더</span>
         <button
           type="button"
           disabled={busy || !playerId}
