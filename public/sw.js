@@ -49,7 +49,7 @@ self.addEventListener('push', (event) => {
   let d = {};
   try { d = event.data ? event.data.json() : {}; } catch (e) {}
   event.waitUntil(
-    self.registration.showNotification(d.title || 'TAL English Up', {
+    self.registration.showNotification(d.title || 'TAL', {
       body: d.body || '오늘의 훈련이 기다리고 있어요 ⚽',
       icon: '/brand/tal-app-192.png',
       badge: '/brand/tal-app-192.png',

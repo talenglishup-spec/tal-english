@@ -1227,7 +1227,7 @@ export default function ShortsPage() {
     const text = `⚽ TAL에서 이 축구 영어 표현 배워봐: "${clip.target_phrase || ''}"`;
     try {
       if (typeof navigator !== 'undefined' && (navigator as any).share) {
-        await (navigator as any).share({ title: 'TAL English Up', text, url });
+        await (navigator as any).share({ title: 'TAL — Take A Leap', text, url });
         return;
       }
       await navigator.clipboard.writeText(`${text} ${url}`);
@@ -1478,10 +1478,10 @@ export default function ShortsPage() {
   // 공유: Web Share API → 실패 시 클립보드 복사
   const handleShare = async () => {
     const shareUrl = typeof window !== 'undefined' ? window.location.origin : 'https://tal-english.vercel.app';
-    const text = 'TAL English Up — 축구로 배우는 실전 영어 훈련소 ⚽️';
+    const text = 'TAL — 축구 상황에서 실제 쓰는 영어로 해외 진출까지 ⚽️';
     try {
       if (navigator.share) {
-        await navigator.share({ title: 'TAL English Up', text, url: shareUrl });
+        await navigator.share({ title: 'TAL — Take A Leap', text, url: shareUrl });
         return;
       }
       await navigator.clipboard.writeText(`${text} ${shareUrl}`);
@@ -2015,21 +2015,17 @@ export default function ShortsPage() {
                 <span className={styles.homeBrandName}>TAL</span>
               </div>
 
-              {/* 큰 글씨는 이 태그라인 하나뿐이다. 나머지를 모두 작게 두어야
-                  화면을 여는 순간 시선이 한 곳에 꽂힌다. */}
-              <h1 className={styles.homeTagline}>
-                Take A Leap
-                <span className={styles.homeTaglineKo}>영어로 도약하라</span>
-              </h1>
-
               <p className={styles.homeIntroBody}>
-                TAL은 축구 선수들이 가장 중요한 순간에 실제로 쓰는 영어를 배워
-                해외 무대로 멀리 도약할 수 있도록, 선수들의 해외 진출을 돕는
-                영어 교육 훈련소입니다.
+                <b>Take A Leap</b>은 영어로 도약하다는 의미입니다. TAL은 축구
+                선수들이 실제 축구 상황에서 쓰는 영어를 배워 해외 무대에서도
+                멀리 도약할 수 있도록, 선수들의 해외 진출 성공을 돕는 영어
+                교육 프로그램입니다.
               </p>
 
+              {/* 화면에서 두 번째로 큰 글씨. 소개를 읽고 나서 시선이 여기서
+                  멈추고 사용법으로 이어지도록 — 이 문장이 곧 행동 유도다. */}
               <p className={styles.homeIntroKicker}>
-                자, 그럼 이제 영어를 탈탈 털어볼까요?
+                자, 그럼 이제 영어를 <span className={styles.homeKickerPun}>tal-tal</span> 털어볼까요?
               </p>
 
               <button
@@ -2038,7 +2034,7 @@ export default function ShortsPage() {
                 aria-expanded={guideOpen}
                 onClick={() => setGuideOpen(v => !v)}
               >
-                <span className={styles.homeGuideToggleText}>사용법</span>
+                <span className={styles.homeGuideToggleText}>사용법 펼치기</span>
                 <span
                   className={`${styles.homeGuideChevron} ${guideOpen ? styles.homeGuideChevronOpen : ''}`}
                   aria-hidden="true"

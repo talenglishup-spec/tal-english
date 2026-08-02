@@ -1944,52 +1944,49 @@
 }
 
 .homeBrandLogo {
-  width: 28px;
-  height: 28px;
+  width: 36px;
+  height: 36px;
   border-radius: var(--r-sm);
   object-fit: contain;
   flex-shrink: 0;
 }
 
-/* 로고 옆 워드마크는 큰 글씨 자리를 태그라인에 양보한다 */
+/* 태그라인을 걷어낸 뒤로 워드마크가 화면에서 가장 큰 글씨다 */
 .homeBrandName {
-  font-size: var(--fs-lg);
+  font-size: var(--fs-xl);
   font-weight: 900;
   letter-spacing: 0.02em;
   color: var(--tal-blue);
   line-height: 1;
 }
 
-.homeTagline {
-  margin: var(--sp-2) 0 0;
-  font-size: var(--fs-xl);
-  font-weight: 900;
-  letter-spacing: -0.02em;
-  line-height: 1.25;
-  color: var(--text-dark);
-  display: flex;
-  flex-direction: column;
-}
-
-.homeTaglineKo {
-  color: var(--tal-blue);
-}
-
 .homeIntroBody {
   margin: 0;
   font-size: var(--fs-sm);
-  line-height: 1.65;
+  line-height: 1.75;
   color: var(--text-muted);
   font-weight: 600;
   word-break: keep-all;
 }
 
-.homeIntroKicker {
-  margin: 0;
-  font-size: var(--fs-md);
+.homeIntroBody b {
+  color: var(--text-dark);
   font-weight: 800;
+}
+
+.homeIntroKicker {
+  margin: var(--sp-1) 0 0;
+  font-size: var(--fs-lg);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1.4;
   color: var(--text-dark);
   word-break: keep-all;
+}
+
+/* TAL과 "탈탈"을 겹친 말장난이라 강조해야 읽는 사람이 알아챈다 */
+.homeKickerPun {
+  color: var(--tal-blue);
 }
 
 .homeGuideToggle {

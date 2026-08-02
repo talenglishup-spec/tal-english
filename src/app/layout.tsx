@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TAL",
-  description: "Football English Training",
+  title: "TAL — Take A Leap",
+  description: "축구 상황에서 실제 쓰는 영어로 해외 진출까지. TAL.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,

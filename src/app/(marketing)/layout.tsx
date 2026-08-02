@@ -1,18 +1,26 @@
 import type { Metadata } from 'next';
 import React from 'react';
 
+/**
+ * 공유 링크 미리보기(카카오톡·문자·SNS)에 그대로 나오는 값들이다.
+ * 앱에서 "앱 공유하기"를 누르면 이 페이지 주소가 나가므로, 브랜드 표기는
+ * TAL / Take A Leap 로만 통일한다.
+ */
 export const metadata: Metadata = {
-  title: 'TAL — Lead in two languages.',
+  title: 'TAL — Take A Leap',
   description:
-    'English education built for footballers. Five-minute drills around real moments: press conferences, team talks, contract days.',
+    '축구 선수들이 실제 축구 상황에서 쓰는 영어를 배워 해외 무대로 도약하도록 돕는 영어 교육 프로그램.',
   themeColor: '#0A228F',
   openGraph: {
-    title: 'TAL — Lead in two languages.',
+    title: 'TAL — Take A Leap',
     description: '피치 위 언어 그대로. TAL.',
     type: 'website',
-    url: 'https://tal.com',
-    locale: 'en_US',
-    images: [{ url: '/brand/tal-og.png', width: 1200, height: 630 }],
+    // url·locale을 고정하지 않는다 — 예전엔 소유하지 않은 tal.com이 og:url로
+    // 나가 크롤러가 그쪽을 정본으로 삼을 수 있었다. 비워두면 실제 배포 주소가 쓰인다.
+    locale: 'ko_KR',
+    // tal-og.png는 저장소에 없어 미리보기 이미지가 깨져 있었다. 전용
+    // 1200x630 이미지가 준비되기 전까지 실제 존재하는 앱 아이콘을 쓴다.
+    images: [{ url: '/brand/tal-app-512.png', width: 512, height: 512, alt: 'TAL' }],
   },
   twitter: { card: 'summary_large_image' },
 };

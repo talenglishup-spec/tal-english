@@ -40,7 +40,7 @@ export default function CollectionBoard({
     const text = `⚽ TAL ${lv} 레벨 클리어! 축구로 영어 표현 훈련 중 🔥`;
     try {
       if (navigator.share) {
-        await navigator.share({ title: 'TAL English Up', text, url });
+        await navigator.share({ title: 'TAL — Take A Leap', text, url });
         return;
       }
       await navigator.clipboard.writeText(`${text} ${url}`);
