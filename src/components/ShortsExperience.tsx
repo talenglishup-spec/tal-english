@@ -12,7 +12,7 @@ import styles from '@/app/shorts/ShortsPage.module.css';
 import ChallengeDrill from '@/components/ChallengeDrill';
 import CollectionBoard from '@/components/CollectionBoard';
 import PushSettings from '@/components/PushSettings';
-import { sortClipsByLevel, getCurrentLevel, clipsOfLevel, getLevels, isLevelCleared } from '@/lib/levels';
+import { sortClipsByLevel, getCurrentLevel, clipsOfLevel, getLevels, isLevelCleared, levelLabel } from '@/lib/levels';
 import { initSessionTracking, trackTabEnter, trackClipView } from '@/lib/track';
 
 // ── 플레이어 아키텍처: 단일 영구 플레이어 ──────────────────────────
@@ -1533,8 +1533,8 @@ export default function ShortsPage() {
                 </div>
                 <div className={styles.celebrateWrap}>
                   <div className={styles.celebrateBadge}>🏆</div>
-                  <h2 className={styles.celebrateTitle}>{celebrateLevel} 완료! ⚡</h2>
-                  <p className={styles.celebrateSub}>표현 {members.length}개 전부 통과! 다음 레벨 해금!</p>
+                  <h2 className={styles.celebrateTitle}>{levelLabel(celebrateLevel)} 완료! ⚡</h2>
+                  <p className={styles.celebrateSub}>표현 {members.length}개 전부 통과! 다음 스텝 해금!</p>
                   <div className={styles.celebrateGrid}>
                     {members.map((m, i) => (
                       <span key={m.clip_id} className={styles.celebrateCell} style={{ animationDelay: `${0.5 + i * 0.18}s` }}>✅</span>
@@ -1577,7 +1577,7 @@ export default function ShortsPage() {
                   const done = members.filter(c => passedClips.has(c.clip_id)).length;
                   return (
                     <div className={styles.levelProgressChip}>
-                      {curLv} · {done}/{members.length} 완료
+                      {levelLabel(curLv)} · {done}/{members.length} 완료
                     </div>
                   );
                 })()}
@@ -2004,29 +2004,33 @@ export default function ShortsPage() {
               바로가기 카드·훈련 시작 버튼은 하단 탭과 중복이라 걷어냈다. */}
           {activeTab === 'home' && (
             <div className={styles.homeTab}>
-              <div className={styles.homeBrand}>
-                <img
-                  className={styles.homeBrandLogo}
-                  src="/brand/tal-icon-blue.png"
-                  alt=""
-                  width={40}
-                  height={40}
-                />
-                <span className={styles.homeBrandName}>TAL</span>
+              {/* 브랜드부터 문구까지 한 덩어리로 묶어 화면 가운데에 세운다.
+                  아래 사용법 버튼은 이 묶음 밖에 두어 흐름의 끝에 남는다. */}
+              <div className={styles.homeCenter}>
+                <div className={styles.homeBrand}>
+                  <img
+                    className={styles.homeBrandLogo}
+                    src="/brand/tal-icon-blue.png"
+                    alt=""
+                    width={44}
+                    height={44}
+                  />
+                  <span className={styles.homeBrandName}>TAL</span>
+                </div>
+
+                <p className={styles.homeIntroBody}>
+                  <b>Take A Leap</b>은 영어로 도약하다는 의미입니다. TAL은 축구
+                  선수들이 실제 축구 상황에서 쓰는 영어를 배워 해외 무대에서도
+                  멀리 도약할 수 있도록, 선수들의 해외 진출 성공을 돕는 영어
+                  교육 프로그램입니다.
+                </p>
+
+                {/* 화면에서 두 번째로 큰 글씨. 소개를 읽고 나서 시선이 여기서
+                    멈추고 사용법으로 이어지도록 — 이 문장이 곧 행동 유도다. */}
+                <p className={styles.homeIntroKicker}>
+                  자, 그럼 이제 영어를 <span className={styles.homeKickerPun}>tal-tal</span> 털어볼까요?
+                </p>
               </div>
-
-              <p className={styles.homeIntroBody}>
-                <b>Take A Leap</b>은 영어로 도약하다는 의미입니다. TAL은 축구
-                선수들이 실제 축구 상황에서 쓰는 영어를 배워 해외 무대에서도
-                멀리 도약할 수 있도록, 선수들의 해외 진출 성공을 돕는 영어
-                교육 프로그램입니다.
-              </p>
-
-              {/* 화면에서 두 번째로 큰 글씨. 소개를 읽고 나서 시선이 여기서
-                  멈추고 사용법으로 이어지도록 — 이 문장이 곧 행동 유도다. */}
-              <p className={styles.homeIntroKicker}>
-                자, 그럼 이제 영어를 <span className={styles.homeKickerPun}>tal-tal</span> 털어볼까요?
-              </p>
 
               <button
                 type="button"
@@ -2072,14 +2076,12 @@ export default function ShortsPage() {
             const s = myStats || {};
             const streakDays = s.streak_days ?? 0;
 
-            // ── 표현 레벨 — Collection 도장판과 같은 기준(lib/levels)을 쓴다.
+            // ── 표현 스텝 — 기록 탭과 같은 기준(lib/levels)을 쓴다.
             // 예전에는 여기서만 "클립 5개씩 잘라 세기"를 따로 계산해, 레벨당
             // 표현 수가 5가 아닌 레벨이 생기면 마이탭과 Collection이 서로 다른
             // 레벨을 표시했다.
-            const allLevels = getLevels(clips);
             const curLevelName = getCurrentLevel(clips, passedClips);
             const curGroup = curLevelName ? clipsOfLevel(clips, curLevelName) : [];
-            const levelIdx = curLevelName ? allLevels.indexOf(curLevelName) + 1 : 0;
             const doneInLevel = curGroup.filter((c: any) => passedClips.has(c.clip_id)).length;
             const levelPct = curGroup.length > 0 ? Math.round((doneInLevel / curGroup.length) * 100) : 100;
             const remainInLevel = Math.max(0, curGroup.length - doneInLevel);
@@ -2109,7 +2111,7 @@ export default function ShortsPage() {
                 <div className={styles.myCard}>
                   <div className={styles.myCardRow}>
                     <span className={styles.myLevelBadge}>
-                      {curLevelName ? `레벨 ${levelIdx} · ${curLevelName}` : '레벨 준비 중'}
+                      {curLevelName ? levelLabel(curLevelName) : '스텝 준비 중'}
                     </span>
                     <span className={styles.myXpText}>
                       {curGroup.length > 0 ? `${doneInLevel} / ${curGroup.length} 완료` : ''}
@@ -2122,8 +2124,8 @@ export default function ShortsPage() {
                     {curGroup.length === 0
                       ? '모든 표현을 완료했어요!'
                       : remainInLevel > 0
-                        ? `다음 레벨까지 ${remainInLevel}개 표현 남았어요`
-                        : '이 레벨 완료! 다음 레벨로 이동합니다'}
+                        ? `다음 스텝까지 ${remainInLevel}개 표현 남았어요`
+                        : '이 스텝 완료! 다음 스텝으로 이동합니다'}
                   </div>
 
                   <div className={styles.myDivider} />

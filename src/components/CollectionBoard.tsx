@@ -14,6 +14,7 @@ import React, { useState } from 'react';
 import styles from '@/app/shorts/ShortsPage.module.css';
 import {
   LevelClip, getLevels, clipsOfLevel, isLevelCleared, getUnlockedLevels, getCurrentLevel,
+  levelLabel,
 } from '@/lib/levels';
 
 type Props = {
@@ -37,7 +38,7 @@ export default function CollectionBoard({
   // 클리어한 레벨 SNS 공유 — Web Share API, 미지원 시 클립보드 복사
   const shareLevel = async (lv: string) => {
     const url = typeof window !== 'undefined' ? window.location.origin : 'https://tal-english.vercel.app';
-    const text = `⚽ TAL ${lv} 레벨 클리어! 축구로 영어 표현 훈련 중 🔥`;
+    const text = `⚽ TAL ${levelLabel(lv)} 클리어! 축구로 영어 표현 훈련 중 🔥`;
     try {
       if (navigator.share) {
         await navigator.share({ title: 'TAL — Take A Leap', text, url });
@@ -55,7 +56,7 @@ export default function CollectionBoard({
   const totalDone = clips.filter(c => passedIds.has(c.clip_id)).length;
 
   const showLockMsg = (prevLevel: string) => {
-    setLockMsg(`${prevLevel} 완료하면 열려요 🔓`);
+    setLockMsg(`${levelLabel(prevLevel)} 완료하면 열려요 🔓`);
     setTimeout(() => setLockMsg(''), 1800);
   };
 
@@ -72,9 +73,10 @@ export default function CollectionBoard({
       {/* 상단 요약 — 지금까지 모은 표현 수 */}
       <div className={styles.boardHeader}>
         <div className={styles.boardHeaderLeft}>
-          <span className={styles.boardHeaderTitle}>내 도장판</span>
+          <span className={styles.boardHeaderTitle}>학습한 표현</span>
+          {/* 제목이 이미 "표현"이라 여기서 또 붙이면 두 번 읽힌다 */}
           <span className={styles.boardHeaderSub}>
-            표현 {totalDone} / {clips.length} 완료
+            {totalDone} / {clips.length} 완료
           </span>
         </div>
       </div>
@@ -98,8 +100,8 @@ export default function CollectionBoard({
               className={styles.boardLockedRow}
               onClick={() => showLockMsg(prevLevel)}
             >
-              <span className={styles.boardLockedName}>🔒 {lv}</span>
-              <span className={styles.boardLockedHint}>{prevLevel} 완료하면 열려요</span>
+              <span className={styles.boardLockedName}>🔒 {levelLabel(lv)}</span>
+              <span className={styles.boardLockedHint}>{levelLabel(prevLevel)} 완료하면 열려요</span>
             </button>
           );
         }
@@ -111,7 +113,7 @@ export default function CollectionBoard({
           >
             <div className={styles.boardLevelHead}>
               <div className={styles.boardLevelHeadLeft}>
-                <span className={styles.boardLevelName}>{lv}</span>
+                <span className={styles.boardLevelName}>{levelLabel(lv)}</span>
                 <span className={cleared ? styles.boardStatusDone : styles.boardStatusGoing}>
                   {cleared ? '완료' : '진행 중'}
                 </span>

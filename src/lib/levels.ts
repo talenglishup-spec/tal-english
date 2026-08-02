@@ -20,6 +20,18 @@ const levelNum = (level?: string): number => {
   return m ? parseInt(m[1], 10) : Number.MAX_SAFE_INTEGER; // 미배정은 맨 뒤
 };
 
+/**
+ * 화면에 보여줄 레벨 이름. "S1" → "스텝 1".
+ *
+ * 시트의 값(S1)은 그대로 두고 표시만 바꾼다 — 진행 상황·시도 기록이 전부
+ * 이 문자열로 묶여 있어서, 데이터를 바꾸면 기존 기록과 이어지지 않는다.
+ * S+숫자 형식이 아니면 손대지 않고 그대로 내보낸다.
+ */
+export function levelLabel(level?: string): string {
+  const m = (level || '').trim().match(/^S(\d+)$/i);
+  return m ? `스텝 ${parseInt(m[1], 10)}` : (level || '').trim();
+}
+
 /** S1 → S2 → ... , 레벨 내에서는 level_order 순. 미배정은 원래 순서 유지로 맨 뒤. */
 export function sortClipsByLevel<T extends LevelClip>(clips: T[]): T[] {
   return [...clips].sort((a, b) => {
