@@ -2030,29 +2030,38 @@ export default function ShortsPage() {
                 <p className={styles.homeIntroKicker}>
                   자, 그럼 이제 영어를 <span className={styles.homeKickerPun}>tal-tal</span> 털어볼까요?
                 </p>
-              </div>
 
-              <button
-                type="button"
-                className={styles.homeGuideToggle}
-                aria-expanded={guideOpen}
-                onClick={() => setGuideOpen(v => !v)}
-              >
-                <span className={styles.homeGuideToggleText}>사용법 펼치기</span>
-                <span
-                  className={`${styles.homeGuideChevron} ${guideOpen ? styles.homeGuideChevronOpen : ''}`}
-                  aria-hidden="true"
+                <button
+                  type="button"
+                  className={styles.homeGuideToggle}
+                  aria-expanded={guideOpen}
+                  onClick={() => setGuideOpen(v => !v)}
                 >
-                  ⌄
-                </span>
-              </button>
+                  <svg
+                    className={styles.homeGuideIcon}
+                    viewBox="0 0 100 100"
+                    aria-hidden="true"
+                  >
+                    <circle cx="50" cy="50" r="44" fill="none" stroke="currentColor" strokeWidth="6" />
+                    <path
+                      d="M39 27 L75 50 L39 73 Z"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="6"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  <span className={styles.homeGuideToggleText}>사용법</span>
+                </button>
 
-              {/* 펼쳤을 때만 마운트 — 접힌 상태에서 영상을 미리 받지 않게 한다. */}
-              {guideOpen && (
-                <div className={styles.homeGuidePanel}>
-                  <GuideDocent embedded />
-                </div>
-              )}
+                {/* 펼쳤을 때만 마운트 — 접힌 상태에서 영상을 미리 받지 않게 한다.
+                    버튼 바로 아래에 두어 "여기를 눌러 이게 열렸다"가 보이게 한다. */}
+                {guideOpen && (
+                  <div className={styles.homeGuidePanel}>
+                    <GuideDocent embedded />
+                  </div>
+                )}
+              </div>
             </div>
           )}
 

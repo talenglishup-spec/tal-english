@@ -1939,9 +1939,9 @@
   align-items: center;
   text-align: center;
   gap: var(--sp-4);
-  /* 위아래 여백이 완전히 같으면 화면이 아래로 처져 보인다.
-     아래를 조금 더 줘 시각적으로 가운데에 오게 한다. */
-  padding-bottom: var(--sp-5);
+  /* 아래 여백이 클수록 묶음이 위로 올라간다. 수학적 정중앙은 눈에
+     아래로 처져 보이기도 해서, 한 단계 더 올려 잡았다. */
+  padding-bottom: calc(var(--sp-6) + var(--sp-5));
 }
 
 /* 🎤 챌린지 탭 — 기존 /challenge 경험을 임베드하는 스크롤 컨테이너 */
@@ -2008,24 +2008,36 @@
 }
 
 .homeGuideToggle {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  /* 화면 아래에 붙이지 않는다 — 유일한 누를 것이 본문에서 160px 떨어져
-     혼자 떠 보였다. 여백은 아래로 몰아두는 편이 자연스럽다. */
+  justify-content: center;
+  gap: var(--sp-2);
+  /* 카드 테두리를 벗고 마지막 문구 바로 아래에 붙는다 — 문장을 읽은
+     흐름 그대로 누르게 된다. 여백은 문단 사이보다 조금만 넓게. */
   margin-top: var(--sp-2);
-  padding: var(--sp-3) var(--sp-4);
-  background: var(--bg-white);
-  border: 1px solid var(--border-color);
-  border-radius: var(--r-md);
+  padding: var(--sp-2) var(--sp-3);
+  background: none;
+  border: none;
+  border-radius: var(--r-pill);
   cursor: pointer;
-  color: var(--text-dark);
-  transition: border-color 0.15s;
+  color: var(--tal-blue);
+  transition: opacity 0.15s;
 }
 
 .homeGuideToggle:hover {
-  border-color: var(--tal-blue);
+  opacity: 0.7;
+}
+
+.homeGuideToggle:active {
+  opacity: 0.5;
+}
+
+.homeGuideIcon {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  /* 삼각형이 원 안에서 오른쪽으로 치우쳐 보이지 않게 시각 보정 */
+  display: block;
 }
 
 .homeGuideToggleText {
@@ -2033,26 +2045,14 @@
   font-weight: 800;
 }
 
-.homeGuideChevron {
-  font-size: var(--fs-lg);
-  line-height: 1;
-  color: var(--tal-blue);
-  font-weight: 900;
-  /* ⌄ 글리프가 baseline 위로 떠 있어 시각 중심을 맞춰준다 */
-  transform: translateY(-3px);
-  transition: transform 0.2s ease;
-}
-
-.homeGuideChevronOpen {
-  transform: translateY(-1px) rotate(180deg);
-}
-
 .homeGuidePanel {
-  margin-top: -2px;
+  width: 100%;
+  margin-top: var(--sp-3);
+  text-align: left;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .homeGuideChevron { transition: none; }
+  .homeGuideToggle { transition: none; }
 }
 
 /* ── AI 코치 도슨트 가이드 (홈 탭) ────────────────────────────── */
