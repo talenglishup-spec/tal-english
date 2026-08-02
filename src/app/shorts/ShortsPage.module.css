@@ -55,7 +55,7 @@
   min-height: 100vh;
   background: #ffffff;
   color: var(--text-dark);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-primary);
   -webkit-font-smoothing: antialiased;
   padding: 20px;
 }

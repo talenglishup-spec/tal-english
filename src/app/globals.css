@@ -1,11 +1,36 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ── LINE Seed KR (SIL OFL 1.1 · public/fonts/LICENSE-LINESeedKR.txt) ──
+   구글/제3자 CDN이 아니라 직접 호스팅한다. 외부 도메인을 타면 DNS·TLS
+   왕복이 첫 화면 앞에 붙고, 그 도메인이 죽으면 폰트가 통째로 날아간다.
+
+   ⚠️ 이 폰트는 쓸 수 있는 굵기가 Regular(400)·Bold(700) 둘뿐이다.
+   그래서 각 face에 굵기 "범위"를 준다 — 이러면 CSS가 600·800·900을
+   요구해도 브라우저가 가짜 굵게(faux bold)를 만들지 않고 실제 Bold
+   파일을 쓴다. 한글에서 faux bold는 획이 뭉개져 바로 티가 난다.
+   대신 800·900은 700과 같아 보이므로, 위계는 굵기가 아니라 크기
+   단계(--fs-*)가 만든다. */
+@font-face {
+  font-family: 'LINE Seed KR';
+  font-style: normal;
+  font-weight: 100 500;
+  font-display: swap;
+  src: url('/fonts/LINESeedKR-Regular.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'LINE Seed KR';
+  font-style: normal;
+  font-weight: 501 900;
+  font-display: swap;
+  src: url('/fonts/LINESeedKR-Bold.woff2') format('woff2');
+}
+
 :root {
-  --font-primary: 'Inter', sans-serif;
+  /* 한글이 없는 글자(숫자·기호)는 시스템 폰트가 받아 첫 화면이 비지 않는다 */
+  --font-primary: 'LINE Seed KR', -apple-system, BlinkMacSystemFont,
+    'Apple SD Gothic Neo', 'Malgun Gothic', 'Segoe UI', sans-serif;
   
   --color-bg: #ffffff;
   --color-surface: #f8fafc;

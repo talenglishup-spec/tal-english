@@ -1,0 +1,12 @@
+LINE Seed KR
+Copyright (c) LY Corporation
+
+Licensed under the SIL Open Font License, Version 1.1.
+https://scripts.sil.org/OFL
+
+배포처: https://seed.line.me/index_kr.html
+"You can use them for any personal or commercial purposes."
+유일한 제약: LY Corp. 외 제3자가 폰트 파일 자체를 판매할 수 없음
+(본 프로젝트는 웹 표시 용도로만 사용하므로 해당 없음).
+
+이 디렉터리의 woff2 파일은 위 라이선스로 재배포됩니다.

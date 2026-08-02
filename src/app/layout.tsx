@@ -53,6 +53,16 @@ export default function RootLayout({
         <link rel="preconnect" href="https://i.ytimg.com" />
         <link rel="preconnect" href="https://googleads.g.doubleclick.net" />
         <link rel="preconnect" href="https://static.doubleclick.net" />
+        {/* 첫 화면의 큰 글씨(워드마크·문구)가 전부 Bold라, Bold만 미리 받아
+            글자가 시스템 폰트로 한 번 그려졌다 바뀌는 깜빡임을 줄인다.
+            Regular은 본문용이라 swap으로 늦게 와도 티가 덜 난다. */}
+        <link
+          rel="preload"
+          href="/fonts/LINESeedKR-Bold.woff2"
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+        />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <AuthProvider>
