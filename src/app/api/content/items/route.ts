@@ -23,7 +23,20 @@ import {
     type ClipSubtype,
 } from '@/lib/sheets';
 
-export const revalidate = 3600; // ISR 60분
+/**
+ * 이 라우트는 searchParams를 읽으므로 Next 입장에선 동적이다 — 즉 Next의
+ * 캐시(revalidatePath가 지우는 그것)에는 애초에 들어가지 않는다.
+ *
+ * 예전에는 여기에 revalidate=3600과 함께 `Cache-Control: s-maxage=3600`을
+ * 직접 붙였는데, 그 헤더는 Next이 아니라 CDN에게 "1시간 캐시하라"고 지시한다.
+ * 결과적으로 응답이 Next 바깥의 CDN에 갇혀, 관리자가 "쇼츠 콘텐츠 새로고침"을
+ * 눌러도(=revalidatePath) 지워지지 않고 최대 1시간 옛 시트 내용이 나갔다.
+ * (실측: Age 3025초짜리 HIT이 계속 반환)
+ *
+ * 그래서 CDN·브라우저 캐시를 모두 끈다. 구글 시트 호출 비용은 lib/sheets의
+ * 60초 인메모리 캐시가 막아주므로 시트 API를 매 요청 때리지 않는다.
+ */
+export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
     try {
@@ -50,7 +63,9 @@ export async function GET(req: NextRequest) {
             {
                 status: 200,
                 headers: {
-                    'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=600',
+                    // 시트를 고치고 새로고침을 누르면 바로 반영돼야 한다.
+                    // public 캐시가 조금이라도 남으면 그 시간만큼 옛 내용이 나간다.
+                    'Cache-Control': 'no-store, must-revalidate',
                 },
             }
         );
