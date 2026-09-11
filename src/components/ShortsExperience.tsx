@@ -42,6 +42,9 @@ const PRIVILEGED_FEED_EMAILS = [
   'tal.qa.claude@gmail.com',  // QA 테스트 계정
 ];
 
+// 관리자가 "일반 유저 시점"으로 보고 있는지 (브라우저에 유지)
+const PREVIEW_AS_USER_KEY = 'tal_preview_as_user';
+
 // 스픽 훈련 진행 단계 (clipId별)
 //   armed     : pause_at에서 영상이 멈추고 "말하기 시작" 버튼 대기
 //   recording : 마이크 녹음 중
@@ -345,7 +348,17 @@ export default function ShortsPage() {
   // 영상)을 볼 기회가 사라진 것이다. 그래서 보고 있는 레벨을 state로 붙잡아
   // 두고, 클리어해도 자리를 지킨다. 다음 레벨로는 사용자가 직접 버튼을 눌러
   // 넘어간다(안 누르면 계속 지금 레벨을 본다).
-  const isPrivilegedFeed = PRIVILEGED_FEED_EMAILS.includes(userEmail);
+  // 관리자·QA 계정인가 — 계정 자체의 권한.
+  const isPrivilegedAccount = PRIVILEGED_FEED_EMAILS.includes(userEmail);
+  // "일반 유저 시점으로 보기" — 관리자가 체험단이 실제로 보는 화면(레벨 게이트,
+  // 다음 스텝 버튼, 말하기 강제)을 그대로 확인하기 위한 스위치.
+  // 새로고침해도 유지되게 localStorage에 둔다(QA 중 계속 껐다 켜지 않도록).
+  const [previewAsUser, setPreviewAsUser] = useState(false);
+  useEffect(() => {
+    try { setPreviewAsUser(localStorage.getItem(PREVIEW_AS_USER_KEY) === '1'); } catch (e) {}
+  }, []);
+  // 실제 피드 권한 — 토글이 켜져 있으면 관리자여도 일반 유저처럼 본다.
+  const isPrivilegedFeed = isPrivilegedAccount && !previewAsUser;
   const [viewingLevel, setViewingLevel] = useState<string | null>(null);
 
   // 피드에 실제로 쓸 레벨 — 붙잡아 둔 레벨이 아직 해금 목록에 있으면 그것,
@@ -517,7 +530,12 @@ export default function ShortsPage() {
           // 일반 유저는 현재 진행 레벨의 첫 클립(예: S2 진행 중이면 S2#1),
           // 관리자·QA는 전체 목록의 첫 클립.
           let firstId = items[0].clip_id;
-          if (!PRIVILEGED_FEED_EMAILS.includes(email)) {
+          // 관리자라도 "유저 시점" 토글이 켜져 있으면 일반 유저와 같은
+          // 시작 지점(현재 레벨의 첫 클립)으로 들어간다.
+          const previewing = (() => {
+            try { return localStorage.getItem(PREVIEW_AS_USER_KEY) === '1'; } catch (e) { return false; }
+          })();
+          if (!PRIVILEGED_FEED_EMAILS.includes(email) || previewing) {
             const lv = getCurrentLevel(items, pSet);
             const levelFirst = lv ? clipsOfLevel(items, lv)[0] : null;
             if (levelFirst) firstId = levelFirst.clip_id;
@@ -1318,6 +1336,30 @@ export default function ShortsPage() {
       }, 120);
     }
   };
+  // 일반 유저 시점 토글 — 피드가 통째로 바뀌므로 새 피드의 첫 클립으로
+  // 다시 맞춰 준다. 안 그러면 지금 보던 클립이 새 피드에 없어 빈 화면이 된다.
+  const togglePreviewAsUser = () => {
+    const next = !previewAsUser;
+    try { localStorage.setItem(PREVIEW_AS_USER_KEY, next ? '1' : '0'); } catch (e) {}
+    setPreviewAsUser(next);
+    setCelebrateLevel(null);
+
+    // next=true  → 일반 유저 피드(현재 진행 레벨), next=false → 전체 피드
+    const lv = viewingLevel || getCurrentLevel(clips, passedClips);
+    const nextFeed = next
+      ? (lv ? clipsOfLevel(clips, lv) : clips)
+      : sortClipsByLevel(clips);
+    const first = nextFeed[0];
+    if (first) {
+      activePresetIdRef.current = first.clip_id;
+      setActivePresetId(first.clip_id);
+      setTimeout(() => {
+        activateClip(first.clip_id);
+        scrollToPreset(first.clip_id);
+      }, 120);
+    }
+  };
+
   const goToNextLevel = () => goToLevel(nextUnlockedLevel);
   const goToPrevLevel = () => goToLevel(prevUnlockedLevel);
 
@@ -1707,6 +1749,17 @@ export default function ShortsPage() {
                   );
                 })()}
                 <div style={{ flex: 1 }} />
+                {/* 관리자·QA 전용 — 체험단이 실제로 보는 화면으로 전환 */}
+                {isPrivilegedAccount && (
+                  <button
+                    type="button"
+                    className={`${styles.previewToggleBtn} ${previewAsUser ? styles.previewToggleBtnOn : ''}`}
+                    onClick={togglePreviewAsUser}
+                    title={previewAsUser ? '관리자 시점(전체 열람)으로 돌아가기' : '체험단이 보는 화면으로 전환'}
+                  >
+                    {previewAsUser ? '🧪 유저 시점 ON' : '🧪 유저 시점'}
+                  </button>
+                )}
                 <button
                   type="button"
                   className={styles.listToggleBtn}
