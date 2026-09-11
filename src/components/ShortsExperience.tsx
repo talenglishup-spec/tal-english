@@ -45,6 +45,31 @@ const PRIVILEGED_FEED_EMAILS = [
 // 관리자가 "일반 유저 시점"으로 보고 있는지 (브라우저에 유지)
 const PREVIEW_AS_USER_KEY = 'tal_preview_as_user';
 
+/**
+ * 이 브라우저가 실제로 녹음할 수 있는 포맷을 고른다.
+ *
+ * iOS Safari는 audio/webm을 지원하지 않는다 — webm을 그대로 넘기면
+ * MediaRecorder 생성자가 NotSupportedError를 던져 아이폰에서는 말하기를
+ * 한 번도 완주할 수 없었다. Safari는 audio/mp4를 지원하므로 먼저 확인한다.
+ * 확장자는 STT가 포맷을 판별하는 근거라 MIME과 함께 들고 다녀야 한다.
+ */
+function pickRecordingFormat(): { mimeType: string; ext: string } | null {
+  if (typeof MediaRecorder === 'undefined') return null;
+  const candidates: { mimeType: string; ext: string }[] = [
+    { mimeType: 'audio/webm;codecs=opus', ext: 'webm' },
+    { mimeType: 'audio/webm',             ext: 'webm' },
+    { mimeType: 'audio/mp4',              ext: 'mp4'  }, // iOS Safari
+    { mimeType: 'audio/aac',              ext: 'aac'  },
+    { mimeType: 'audio/ogg;codecs=opus',  ext: 'ogg'  },
+  ];
+  for (const c of candidates) {
+    try {
+      if (MediaRecorder.isTypeSupported(c.mimeType)) return c;
+    } catch (e) { /* isTypeSupported 자체가 없는 구형 브라우저 */ }
+  }
+  return null; // 브라우저 기본값에 맡긴다
+}
+
 // 스픽 훈련 진행 단계 (clipId별)
 //   armed     : pause_at에서 영상이 멈추고 "말하기 시작" 버튼 대기
 //   recording : 마이크 녹음 중
@@ -282,6 +307,8 @@ export default function ShortsPage() {
   // 녹음 관련 Refs
   const streamRef = useRef<MediaStream | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  // 이번 녹음에 실제로 쓴 포맷 — Blob·업로드 파일명에 그대로 따라가야 한다
+  const recordFormatRef = useRef<{ mimeType: string; ext: string } | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
   // 배속 (현재 재생 위치 currentTime은 더 이상 부모 state로 두지 않는다 —
@@ -1173,7 +1200,13 @@ export default function ShortsPage() {
 
     try {
       audioChunksRef.current = [];
-      const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      // 브라우저가 지원하는 포맷으로 녹음한다(iOS는 mp4). 고를 수 없으면
+      // 옵션 없이 만들어 브라우저 기본값에 맡긴다 — webm 강제보다 안전하다.
+      const fmt = pickRecordingFormat();
+      recordFormatRef.current = fmt;
+      const recorder = fmt
+        ? new MediaRecorder(stream, { mimeType: fmt.mimeType })
+        : new MediaRecorder(stream);
       mediaRecorderRef.current = recorder;
 
       recorder.ondataavailable = (e) => {
@@ -1184,7 +1217,12 @@ export default function ShortsPage() {
           streamRef.current.getTracks().forEach(t => t.stop());
           streamRef.current = null;
         }
-        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        // 녹음에 쓴 실제 포맷으로 묶는다. webm으로 고정하면 iOS에서
+        // mp4 데이터에 webm 딱지가 붙어 STT가 해독하지 못한다.
+        const blobType = recordFormatRef.current?.mimeType
+          || recorder.mimeType
+          || 'audio/webm';
+        const blob = new Blob(audioChunksRef.current, { type: blobType });
         const url = URL.createObjectURL(blob);
         setMyAudioUrl(prev => { if (prev) URL.revokeObjectURL(prev); return url; });
         // 녹음까지 완주 — Speak를 눌러놓고 그만둔 경우와 구분(포기율)
@@ -1211,7 +1249,15 @@ export default function ShortsPage() {
       }, 1000);
     } catch (err) {
       console.error('Recorder boot error:', err);
-      alert('녹음을 시작할 수 없습니다.');
+      // 체험단이 "안 돼요"라고만 알려오면 원인을 못 찾는다. 녹음 자체를
+      // 지원하지 않는 브라우저인지, 그 외 문제인지는 구분해서 알린다.
+      const noRecorder = typeof MediaRecorder === 'undefined';
+      alert(noRecorder
+        ? '이 브라우저는 녹음을 지원하지 않습니다. Safari 또는 Chrome 최신 버전에서 열어 주세요.'
+        : '녹음을 시작할 수 없습니다. 다른 앱이 마이크를 쓰고 있지 않은지 확인해 주세요.');
+      // 마이크 트랙을 잡아둔 채 끝나지 않도록 정리한다.
+      try { stream.getTracks().forEach(t => t.stop()); } catch (e) {}
+      streamRef.current = null;
     }
   };
 
@@ -1230,7 +1276,10 @@ export default function ShortsPage() {
 
     try {
       const formData = new FormData();
-      formData.append('audio', blob, 'speech.webm');
+      // 확장자가 서버(OpenAI STT)의 포맷 판별 근거라 실제 포맷과 맞춰야 한다.
+      const ext = recordFormatRef.current?.ext
+        || (blob.type.includes('mp4') ? 'mp4' : blob.type.includes('ogg') ? 'ogg' : 'webm');
+      formData.append('audio', blob, `speech.${ext}`);
       formData.append('clip_id', clip.clip_id);
 
       const controller = new AbortController();

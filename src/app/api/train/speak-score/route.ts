@@ -125,7 +125,24 @@ export async function POST(req: NextRequest) {
     const sttPromise = (async () => {
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
       const buffer = Buffer.from(await audio.arrayBuffer());
-      const file = await OpenAI.toFile(buffer, 'speech.webm', { type: 'audio/webm' });
+      // 업로드된 파일의 실제 포맷을 그대로 넘긴다. 예전에는 webm으로 고정해
+      // 두어, iOS가 보낸 mp4 데이터에 webm 딱지가 붙어 STT가 해독하지
+      // 못했다(아이폰에서 말하기가 전혀 통과되지 않던 원인).
+      const uploadedName = typeof (audio as any).name === 'string' ? (audio as any).name : '';
+      const uploadedType = audio.type || '';
+      const EXT_BY_TYPE: Record<string, string> = {
+        'audio/webm': 'webm', 'audio/ogg': 'ogg',
+        'audio/mp4': 'mp4', 'audio/m4a': 'm4a', 'audio/aac': 'aac',
+        'audio/mpeg': 'mp3', 'audio/wav': 'wav',
+      };
+      const baseType = uploadedType.split(';')[0].trim();
+      const ext =
+        (uploadedName.match(/\.([A-Za-z0-9]{2,4})$/)?.[1] || '').toLowerCase()
+        || EXT_BY_TYPE[baseType]
+        || 'webm';
+      const file = await OpenAI.toFile(buffer, `speech.${ext}`, {
+        type: baseType || 'audio/webm',
+      });
       // whisper-1보다 빠르고 저렴한 최신 STT 모델
       const transcription = await openai.audio.transcriptions.create({
         file,
