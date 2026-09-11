@@ -58,7 +58,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, inserted: 0 });
     }
 
-    const VALID = new Set(['session_start', 'tab_dwell', 'session_end']);
+    // 화이트리스트 — 여기 없는 이벤트는 조용히 버려진다. 클라이언트에
+    // 새 이벤트를 추가했다면 반드시 여기도 같이 추가해야 한다.
+    const VALID = new Set([
+      'session_start', 'tab_dwell', 'session_end',
+      // 체험단 관측용 — 퍼널로는 보이지 않는 "왜 못 했는지"와 공유 행동
+      'mic_denied', 'record_error', 'score_error', 'share',
+    ]);
     const rows = events
       .filter((e: any) => VALID.has(e?.event))
       .slice(0, 50) // 폭주 방지

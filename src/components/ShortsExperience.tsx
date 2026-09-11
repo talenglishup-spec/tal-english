@@ -13,7 +13,7 @@ import ChallengeDrill from '@/components/ChallengeDrill';
 import CollectionBoard from '@/components/CollectionBoard';
 import PushSettings from '@/components/PushSettings';
 import { sortClipsByLevel, getCurrentLevel, clipsOfLevel, getLevels, isLevelCleared, levelLabel, expressionsOfLevel, levelProgress, getUnlockedLevels, expressionKeyOf, passedExpressionKeys } from '@/lib/levels';
-import { initSessionTracking, trackTabEnter, trackClipView } from '@/lib/track';
+import { initSessionTracking, trackTabEnter, trackClipView, trackEvent } from '@/lib/track';
 
 // ── 플레이어 아키텍처: 단일 영구 플레이어 ──────────────────────────
 // YouTube 플레이어(iframe)를 딱 1개만 만들어 스크롤 피드 "뒤" 고정 레이어에
@@ -1192,8 +1192,11 @@ export default function ShortsPage() {
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
-    } catch (err) {
+    } catch (err: any) {
       console.warn('Microphone access denied', err);
+      // 권한 거부는 퍼널에 "🎙️는 눌렀는데 녹음은 안 됨"으로만 남아, 원인이
+      // 권한인지 기기 문제인지 구분되지 않는다. 따로 남긴다.
+      trackEvent({ event: 'mic_denied', tab: String(err?.name || 'unknown') });
       alert('마이크 접근이 거부되었습니다. 브라우저 마이크 권한을 허용해 주세요.');
       return;
     }
@@ -1247,11 +1250,16 @@ export default function ShortsPage() {
           if (recorder.state !== 'inactive') recorder.stop();
         }
       }, 1000);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Recorder boot error:', err);
       // 체험단이 "안 돼요"라고만 알려오면 원인을 못 찾는다. 녹음 자체를
       // 지원하지 않는 브라우저인지, 그 외 문제인지는 구분해서 알린다.
       const noRecorder = typeof MediaRecorder === 'undefined';
+      // iOS 포맷 수정이 실제로 먹혔는지는 이 이벤트가 0건인지로 확인한다.
+      trackEvent({
+        event: 'record_error',
+        tab: noRecorder ? 'no_mediarecorder' : String(err?.name || 'unknown'),
+      });
       alert(noRecorder
         ? '이 브라우저는 녹음을 지원하지 않습니다. Safari 또는 Chrome 최신 버전에서 열어 주세요.'
         : '녹음을 시작할 수 없습니다. 다른 앱이 마이크를 쓰고 있지 않은지 확인해 주세요.');
@@ -1340,8 +1348,14 @@ export default function ShortsPage() {
           }, 1500);
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.warn('STT score evaluation failed.', err);
+      // 화면에는 실패로 보이지만 서버에는 시도가 남지 않는다. 이걸 안 남기면
+      // 통과율이 "발음을 틀림"과 "채점이 안 됨"을 섞은 숫자가 된다.
+      trackEvent({
+        event: 'score_error',
+        tab: err?.name === 'AbortError' ? 'timeout' : String(err?.name || 'unknown'),
+      });
       setSeqResult(prev => ({ ...prev, [clipId]: 'fail' }));
     }
   };
@@ -1385,6 +1399,8 @@ export default function ShortsPage() {
     const origin = typeof window !== 'undefined' ? window.location.origin : 'https://tal-english.vercel.app';
     const url = `${origin}/?clip=${encodeURIComponent(clip.clip_id)}`;
     const text = `⚽ TAL에서 이 축구 영어 표현 배워봐: "${clip.target_phrase || ''}"`;
+    // 어떤 표현을 남에게 보여주고 싶어했는지는 "뭐가 더 필요한가"의 힌트도 된다.
+    trackEvent({ event: 'share', tab: 'clip' });
     try {
       if (typeof navigator !== 'undefined' && (navigator as any).share) {
         await (navigator as any).share({ title: 'TAL — Take A Leap', text, url });
@@ -1693,6 +1709,9 @@ export default function ShortsPage() {
   const handleShare = async () => {
     const shareUrl = typeof window !== 'undefined' ? window.location.origin : 'https://tal-english.vercel.app';
     const text = 'TAL — 축구 상황에서 실제 쓰는 영어로 해외 진출까지 ⚽️';
+    // 설문의 "추천하겠는가"는 부탁받은 집단에서 크게 부풀려진다. 실제로
+    // 공유를 눌렀는지가 훨씬 강한 증거라 행동으로 남긴다.
+    trackEvent({ event: 'share', tab: 'app' });
     try {
       if (navigator.share) {
         await navigator.share({ title: 'TAL — Take A Leap', text, url: shareUrl });

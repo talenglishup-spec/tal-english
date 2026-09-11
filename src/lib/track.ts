@@ -13,10 +13,24 @@
  */
 
 type TrackEvent = {
-  event: 'session_start' | 'tab_dwell' | 'session_end';
+  event:
+    | 'session_start' | 'tab_dwell' | 'session_end'
+    // ── 체험단 관측용 ─────────────────────────────────────
+    // 이행율 퍼널 자체는 새 이벤트가 필요 없다 — 가입(profiles)·첫 재생
+    // (clip_view_log)·🎙️(speak_triggered)·녹음 완료(speak_completed)·
+    // 첫 통과(speak_attempts_log)로 이미 복원된다. 아래는 그 퍼널로는
+    // 절대 보이지 않는, "왜 못 했는지"에 해당하는 사건들이다.
+    | 'mic_denied'        // 마이크 권한 거부 — 말하기 자체를 시작 못 함
+    | 'record_error'      // 녹음 시작 실패 (브라우저 미지원 등)
+    | 'score_error'       // 채점 실패·타임아웃 — 발음이 틀린 것과 구분해야 한다
+    | 'share';            // 공유 실행 — "추천하겠는가"의 행동 증거
   tab?: string;
   dwell_ms?: number;
   source?: 'organic' | 'push' | 'share';
+  /**
+   * 이벤트별 부가 정보. 스키마를 바꾸지 않으려고 기존 text 컬럼(tab)에
+   * 실어 보낸다 — 'share'면 공유 위치, 실패 계열이면 원인 코드.
+   */
 };
 
 /** 클립 시청 1건 — 쇼츠에서 클립이 비활성화될 때(스크롤 이동) 1건 쌓인다 */

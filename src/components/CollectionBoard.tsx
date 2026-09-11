@@ -13,6 +13,7 @@
 
 import React, { useState } from 'react';
 import styles from '@/app/shorts/ShortsPage.module.css';
+import { trackEvent } from '@/lib/track';
 import {
   LevelClip, getLevels, expressionsOfLevel, isExpressionPassed, isLevelCleared,
   getUnlockedLevels, getCurrentLevel, levelLabel, levelProgress,
@@ -40,6 +41,8 @@ export default function CollectionBoard({
   const shareLevel = async (lv: string) => {
     const url = typeof window !== 'undefined' ? window.location.origin : 'https://tal-english.vercel.app';
     const text = `⚽ TAL ${levelLabel(lv, clips)} 클리어! 축구로 영어 표현 훈련 중 🔥`;
+    // 성취 직후 자발적 공유 — 가장 신뢰도 높은 추천 신호다.
+    trackEvent({ event: 'share', tab: 'level_clear' });
     try {
       if (navigator.share) {
         await navigator.share({ title: 'TAL — Take A Leap', text, url });
