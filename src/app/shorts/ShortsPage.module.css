@@ -2311,6 +2311,48 @@
   white-space: nowrap;
 }
 
+/* 다음 스텝 이동 칩 — 진행 칩과 같은 자리에 서지만 "누르는 것"이라는 걸
+   알아볼 수 있어야 해서 색을 반전시키고 살짝 띄운다. */
+.levelJumpChip {
+  background: #ffffff;
+  color: var(--tal-blue);
+  border: 1.5px solid var(--tal-blue);
+  font-size: 11px;
+  font-weight: 800;
+  padding: 5px 12px;
+  border-radius: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(10, 34, 143, 0.22);
+  animation: jumpChipPulse 1.8s ease-in-out infinite;
+}
+@keyframes jumpChipPulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.045); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .levelJumpChip { animation: none; }
+}
+
+/* 이전 스텝으로 되돌아가기 — 앞으로 가는 칩보다 조용하게(회색 고스트).
+   주된 길은 앞이고, 이건 "돌아갈 수도 있다"는 안심용이다. */
+.levelBackChip {
+  background: transparent;
+  color: var(--color-text-muted, #64748b);
+  border: 1px solid rgba(100, 116, 139, 0.35);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 9px;
+  border-radius: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+  margin-right: 6px;
+}
+.levelBackChip:hover {
+  color: var(--tal-blue);
+  border-color: var(--tal-blue);
+}
+
 /* 홈 바로가기 카드 */
 
 /* ── 챌린지 드릴 (TAL 라이트 톤 — 화이트 & TAL 블루) ──── */
@@ -2698,6 +2740,12 @@
 }
 
 /* ── Phase 2: 레벨 클리어 셀레브레이션 ─────────────────── */
+/* 축하 화면 버튼 줄 — "더 보기 / 다음 스텝" 두 갈래를 나란히 */
+.celebrateActions {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
 .celebrateWrap {
   margin: auto;
   width: 100%;

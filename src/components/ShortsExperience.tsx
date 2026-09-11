@@ -12,7 +12,7 @@ import styles from '@/app/shorts/ShortsPage.module.css';
 import ChallengeDrill from '@/components/ChallengeDrill';
 import CollectionBoard from '@/components/CollectionBoard';
 import PushSettings from '@/components/PushSettings';
-import { sortClipsByLevel, getCurrentLevel, clipsOfLevel, getLevels, isLevelCleared, levelLabel } from '@/lib/levels';
+import { sortClipsByLevel, getCurrentLevel, clipsOfLevel, getLevels, isLevelCleared, levelLabel, expressionsOfLevel, levelProgress, getUnlockedLevels, expressionKeyOf, passedExpressionKeys } from '@/lib/levels';
 import { initSessionTracking, trackTabEnter, trackClipView } from '@/lib/track';
 
 // ── 플레이어 아키텍처: 단일 영구 플레이어 ──────────────────────────
@@ -291,12 +291,16 @@ export default function ShortsPage() {
   const activeTabRef = useRef(activeTab);
   const speakStageRef = useRef<Record<string, SpeakStage>>({});
   const spokenDoneRef = useRef<Record<string, boolean>>({});
+  // 이미 통과한 "표현"들 — 같은 말의 다른 장면에서 말하기를 또 강요하지 않으려고
+  // 클립이 아니라 표현 단위로 들고 있는다.
+  const passedExprRef = useRef<Set<string>>(new Set());
   const clipsRef = useRef<any[]>([]);
 
   useEffect(() => { phasesRef.current = phases; }, [phases]);
   useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
   useEffect(() => { speakStageRef.current = speakStage; }, [speakStage]);
   useEffect(() => { spokenDoneRef.current = spokenDone; }, [spokenDone]);
+  useEffect(() => { passedExprRef.current = passedExpressionKeys(clips, passedClips); }, [clips, passedClips]);
   useEffect(() => { clipsRef.current = clips; }, [clips]);
 
   // ⑥ 오늘 훈련 활성 시청 누적초 로드 + 1초 틱 (통합 쇼츠 탭 재생 중일 때 증가)
@@ -333,17 +337,58 @@ export default function ShortsPage() {
   const supabase = getSupabase();
 
   // ── 쇼츠 피드 레벨 게이트 ────────────────────────────────
-  // 관리자·QA: 전 클립(레벨 순 정렬 그대로). 일반 유저: 현재 진행 레벨의
-  // 클립만 — 레벨을 클리어하면 getCurrentLevel이 다음 레벨을 가리키므로
-  // 피드가 자동으로 다음 레벨로 전환된다. (챌린지·도장판은 전체 clips 유지)
+  // 관리자·QA: 전 클립(레벨 순 정렬 그대로).
+  //
+  // 일반 유저: "지금 보고 있는 레벨" 하나만. 예전에는 이 레벨을 매번
+  // getCurrentLevel로 다시 구해서, 레벨을 클리어하는 순간 피드가 통째로 다음
+  // 레벨로 갈려버렸다 — 방금 끝낸 레벨의 남은 중복 장면(같은 표현의 다른
+  // 영상)을 볼 기회가 사라진 것이다. 그래서 보고 있는 레벨을 state로 붙잡아
+  // 두고, 클리어해도 자리를 지킨다. 다음 레벨로는 사용자가 직접 버튼을 눌러
+  // 넘어간다(안 누르면 계속 지금 레벨을 본다).
   const isPrivilegedFeed = PRIVILEGED_FEED_EMAILS.includes(userEmail);
+  const [viewingLevel, setViewingLevel] = useState<string | null>(null);
+
+  // 피드에 실제로 쓸 레벨 — 붙잡아 둔 레벨이 아직 해금 목록에 있으면 그것,
+  // 아니면(최초 진입·데이터 교체 등) 현재 진행 레벨로 되돌린다.
+  const activeLevel = useMemo(() => {
+    const unlocked = getUnlockedLevels(clips, passedClips);
+    if (unlocked.length === 0) return null;
+    if (viewingLevel && unlocked.includes(viewingLevel)) return viewingLevel;
+    return getCurrentLevel(clips, passedClips);
+  }, [clips, passedClips, viewingLevel]);
+
+  // 최초 1회 고정 — 클립이 로드되는 즉시 붙잡아 둔다. 이게 없으면 첫 클리어
+  // 순간 activeLevel이 getCurrentLevel을 따라 다음 레벨로 튄다.
+  useEffect(() => {
+    if (viewingLevel) return;
+    const lv = getCurrentLevel(clips, passedClips);
+    if (lv) setViewingLevel(lv);
+  }, [clips, passedClips, viewingLevel]);
+
   const feedClips = useMemo(() => {
     // 저장 피드 진입 중이면 스냅샷을 피드로 쓴다(레벨 게이트 무시).
     if (savedFeedSnapshot) return savedFeedSnapshot;
     if (isPrivilegedFeed) return clips;
-    const lv = getCurrentLevel(clips, passedClips);
-    return lv ? clipsOfLevel(clips, lv) : clips;
-  }, [clips, passedClips, isPrivilegedFeed, savedFeedSnapshot]);
+    return activeLevel ? clipsOfLevel(clips, activeLevel) : clips;
+  }, [clips, activeLevel, isPrivilegedFeed, savedFeedSnapshot]);
+
+  // 지금 레벨 다음으로 열려 있는 레벨 — 없으면(아직 미클리어·마지막) null.
+  const nextUnlockedLevel = useMemo(() => {
+    if (!activeLevel) return null;
+    const unlocked = getUnlockedLevels(clips, passedClips);
+    const i = unlocked.indexOf(activeLevel);
+    return i >= 0 && i + 1 < unlocked.length ? unlocked[i + 1] : null;
+  }, [clips, passedClips, activeLevel]);
+
+  // 지나온 바로 앞 레벨 — 되돌아가기용. 첫 레벨이면 null.
+  // 앞으로만 갈 수 있으면 "다음 스텝 시작"을 누르는 게 되돌릴 수 없는 선택이
+  // 되어버린다. 이미 지난 표현을 다시 보고 싶을 때 돌아올 길을 남긴다.
+  const prevUnlockedLevel = useMemo(() => {
+    if (!activeLevel) return null;
+    const unlocked = getUnlockedLevels(clips, passedClips);
+    const i = unlocked.indexOf(activeLevel);
+    return i > 0 ? unlocked[i - 1] : null;
+  }, [clips, passedClips, activeLevel]);
   const feedClipsRef = useRef<any[]>([]);
   useEffect(() => { feedClipsRef.current = feedClips; }, [feedClips]);
 
@@ -907,11 +952,15 @@ export default function ShortsPage() {
       // 클립별 상태이므로 🎙️ 버튼 토글에 실시간 반응한다.
       advancePhases: () => !speakModeRef.current[clipId],
       shouldAutoPause: () => {
-        // 이 클립이 스픽 모드 & 이번 발화 미완료 & 스픽 오버레이 idle일 때만
+        // 이 클립이 스픽 모드 & 이번 발화 미완료 & 스픽 오버레이 idle일 때만.
+        // 단, 이미 통과한 표현의 다른 장면이면 멈춰 세우지 않는다 — 같은 말을
+        // 장면마다 다시 발음시키면 노출이 아니라 숙제가 된다. 🎙️ 버튼은 그대로
+        // 남아 있어서 원하면 직접 눌러 말할 수 있다.
         return (
           !!speakModeRef.current[clipId] &&
           !spokenDoneRef.current[clipId] &&
-          !speakStageRef.current[clipId]
+          !speakStageRef.current[clipId] &&
+          !passedExprRef.current.has(expressionKeyOf(clip))
         );
       },
       onAutoPause: () => {
@@ -1253,6 +1302,25 @@ export default function ShortsPage() {
     }, 120);
   };
 
+  // 다른 스텝으로 이동 — 사용자가 직접 누를 때만 옮긴다. 누르지 않으면
+  // 보던 레벨에 그대로 머물며 남은 중복 장면(같은 표현의 다른 영상)을 본다.
+  const goToLevel = (lv: string | null) => {
+    if (!lv) return;
+    const first = clipsOfLevel(clips, lv)[0];
+    setCelebrateLevel(null);
+    setViewingLevel(lv);
+    if (first) {
+      activePresetIdRef.current = first.clip_id; // feedClips 교체 effect의 리셋 방지
+      setActivePresetId(first.clip_id);
+      setTimeout(() => {
+        activateClip(first.clip_id);
+        scrollToPreset(first.clip_id);
+      }, 120);
+    }
+  };
+  const goToNextLevel = () => goToLevel(nextUnlockedLevel);
+  const goToPrevLevel = () => goToLevel(prevUnlockedLevel);
+
   // 저장 피드 나가기 — 마이 탭으로 복귀. 일반 피드로 되돌린다.
   const exitSavedFeed = () => {
     setSavedFeedSnapshot(null);
@@ -1515,7 +1583,9 @@ export default function ShortsPage() {
           {/* 레벨 클리어 축하 — 쇼츠 speak로 한 레벨을 완성한 순간 (레벨업의
               유일한 성취 순간). 화면 전체를 덮는 오버레이, '계속'으로 닫는다. */}
           {celebrateLevel && (() => {
-            const members = clipsOfLevel(clips, celebrateLevel);
+            // 축하 문구·체크 그리드도 클리어 판정과 같은 단위(표현)를 쓴다 —
+            // 중복 클립까지 세면 "표현 17개 전부 통과"처럼 부풀려진다.
+            const members = expressionsOfLevel(clips, celebrateLevel);
             return (
               <div className={styles.levelCelebrateOverlay}>
                 <div className={styles.celebrateConfetti}>
@@ -1533,16 +1603,46 @@ export default function ShortsPage() {
                 </div>
                 <div className={styles.celebrateWrap}>
                   <div className={styles.celebrateBadge}>🏆</div>
-                  <h2 className={styles.celebrateTitle}>{levelLabel(celebrateLevel)} 완료! ⚡</h2>
-                  <p className={styles.celebrateSub}>표현 {members.length}개 전부 통과! 다음 스텝 해금!</p>
+                  <h2 className={styles.celebrateTitle}>{levelLabel(celebrateLevel, clips)} 정복! ⚡</h2>
+                  <p className={styles.celebrateSub}>
+                    표현 {members.length}개 전부 통과!
+                    {nextUnlockedLevel ? ` ${levelLabel(nextUnlockedLevel, clips)}이 열렸어요` : ''}
+                  </p>
                   <div className={styles.celebrateGrid}>
                     {members.map((m, i) => (
-                      <span key={m.clip_id} className={styles.celebrateCell} style={{ animationDelay: `${0.5 + i * 0.18}s` }}>✅</span>
+                      <span key={m.key} className={styles.celebrateCell} style={{ animationDelay: `${0.5 + i * 0.18}s` }}>✅</span>
                     ))}
                   </div>
-                  <button type="button" className={styles.drillBtnPrimary} onClick={() => setCelebrateLevel(null)}>
-                    계속 →
-                  </button>
+                  {/* 여기서 갈림길을 준다 — 남은 장면을 더 볼지, 다음 스텝으로
+                      갈지. 닫기만 하면 방금 정복한 레벨을 계속 본다. */}
+                  <div className={styles.celebrateActions}>
+                    {nextUnlockedLevel ? (
+                      <>
+                        <button
+                          type="button"
+                          className={styles.drillBtnGhost}
+                          onClick={() => setCelebrateLevel(null)}
+                        >
+                          이 스텝 더 보기
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.drillBtnPrimary}
+                          onClick={goToNextLevel}
+                        >
+                          {levelLabel(nextUnlockedLevel, clips)} 시작 →
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        className={styles.drillBtnPrimary}
+                        onClick={() => setCelebrateLevel(null)}
+                      >
+                        계속 →
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             );
@@ -1562,6 +1662,18 @@ export default function ShortsPage() {
             /* 상단 카테고리 필터바 복원 */
             <div className={styles.presetBar}>
               <div className={styles.presetHeaderRow}>
+                {/* 이전 스텝으로 되돌아가기 — 지나온 표현을 다시 볼 길 */}
+                {!isPrivilegedFeed && prevUnlockedLevel && (
+                  <button
+                    type="button"
+                    className={styles.levelBackChip}
+                    onClick={goToPrevLevel}
+                    aria-label={`${levelLabel(prevUnlockedLevel, clips)}으로 돌아가기`}
+                  >
+                    ‹ {levelLabel(prevUnlockedLevel, clips)}
+                  </button>
+                )}
+
                 {/* 레벨 진행 표시 — "지금 어디쯤인지"가 보이면 조금만 더 심리 작동 */}
                 {(() => {
                   if (isPrivilegedFeed) {
@@ -1571,13 +1683,26 @@ export default function ShortsPage() {
                       </div>
                     );
                   }
-                  const curLv = getCurrentLevel(clips, passedClips);
+                  const curLv = activeLevel;
                   if (!curLv) return <div style={{ flex: 1 }} />;
-                  const members = clipsOfLevel(clips, curLv);
-                  const done = members.filter(c => passedClips.has(c.clip_id)).length;
+                  // 이 레벨을 다 끝냈으면 진행률 대신 "다음 스텝" 버튼을 낸다.
+                  // 진행률은 이미 100%라 알려줄 게 없고, 이 자리가 유일한
+                  // 앞으로 가는 길이다(누르지 않으면 계속 이 레벨을 본다).
+                  if (nextUnlockedLevel) {
+                    return (
+                      <button
+                        type="button"
+                        className={styles.levelJumpChip}
+                        onClick={goToNextLevel}
+                      >
+                        {levelLabel(nextUnlockedLevel, clips)} 시작 →
+                      </button>
+                    );
+                  }
+                  const { done, total } = levelProgress(clips, curLv, passedClips);
                   return (
                     <div className={styles.levelProgressChip}>
-                      {levelLabel(curLv)} · {done}/{members.length} 완료
+                      {levelLabel(curLv, clips)} · {done}/{total} 완료
                     </div>
                   );
                 })()}
@@ -2090,10 +2215,11 @@ export default function ShortsPage() {
             // 표현 수가 5가 아닌 레벨이 생기면 마이탭과 Collection이 서로 다른
             // 레벨을 표시했다.
             const curLevelName = getCurrentLevel(clips, passedClips);
-            const curGroup = curLevelName ? clipsOfLevel(clips, curLevelName) : [];
-            const doneInLevel = curGroup.filter((c: any) => passedClips.has(c.clip_id)).length;
-            const levelPct = curGroup.length > 0 ? Math.round((doneInLevel / curGroup.length) * 100) : 100;
-            const remainInLevel = Math.max(0, curGroup.length - doneInLevel);
+            const { done: doneInLevel, total: levelTotal } = curLevelName
+              ? levelProgress(clips, curLevelName, passedClips)
+              : { done: 0, total: 0 };
+            const levelPct = levelTotal > 0 ? Math.round((doneInLevel / levelTotal) * 100) : 100;
+            const remainInLevel = Math.max(0, levelTotal - doneInLevel);
             const week: boolean[] = Array.isArray(s.streak_week) ? s.streak_week : [false, false, false, false, false, false, false];
             const dayLabels = ['월', '화', '수', '목', '금', '토', '일'];
             const displayName = s.display_name || '풋볼러';
@@ -2120,17 +2246,17 @@ export default function ShortsPage() {
                 <div className={styles.myCard}>
                   <div className={styles.myCardRow}>
                     <span className={styles.myLevelBadge}>
-                      {curLevelName ? levelLabel(curLevelName) : '스텝 준비 중'}
+                      {curLevelName ? levelLabel(curLevelName, clips) : '스텝 준비 중'}
                     </span>
                     <span className={styles.myXpText}>
-                      {curGroup.length > 0 ? `${doneInLevel} / ${curGroup.length} 완료` : ''}
+                      {levelTotal > 0 ? `${doneInLevel} / ${levelTotal} 완료` : ''}
                     </span>
                   </div>
                   <div className={styles.myXpBar}>
                     <div className={styles.myXpFill} style={{ width: `${levelPct}%` }} />
                   </div>
                   <div className={styles.myHint}>
-                    {curGroup.length === 0
+                    {levelTotal === 0
                       ? '모든 표현을 완료했어요!'
                       : remainInLevel > 0
                         ? `다음 스텝까지 ${remainInLevel}개 표현 남았어요`

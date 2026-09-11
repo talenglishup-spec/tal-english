@@ -3,7 +3,8 @@
 /**
  * CollectionBoard — 레벨 도장판 (MVP 중고등)
  *
- * 레벨(S1~)마다 카드 하나. 카드 안에 도장 점(레벨 진행 한눈에) + 표현 목록.
+ * 레벨(1-1, WARM-1, ENC, REF …)마다 카드 하나. 카드 안에 도장 점 + 표현 목록.
+ * 한 칸 = 한 표현 — 같은 표현의 중복 클립(다른 화자·상황)은 묶어서 한 줄.
  * 표현 행 상태 3단계: ○ 미학습 → ! 진행 중(시도했으나 미통과) → ✓ 완료.
  * 레벨 내 전 표현 완료 = 레벨 클리어(완료 배지 + 공유) + 다음 레벨 해금.
  * 표현 행 탭 → 그 표현만 바로 연습(부모가 ChallengeDrill 단일 모드 오픈).
@@ -13,8 +14,8 @@
 import React, { useState } from 'react';
 import styles from '@/app/shorts/ShortsPage.module.css';
 import {
-  LevelClip, getLevels, clipsOfLevel, isLevelCleared, getUnlockedLevels, getCurrentLevel,
-  levelLabel,
+  LevelClip, getLevels, expressionsOfLevel, isExpressionPassed, isLevelCleared,
+  getUnlockedLevels, getCurrentLevel, levelLabel, levelProgress,
 } from '@/lib/levels';
 
 type Props = {
@@ -38,7 +39,7 @@ export default function CollectionBoard({
   // 클리어한 레벨 SNS 공유 — Web Share API, 미지원 시 클립보드 복사
   const shareLevel = async (lv: string) => {
     const url = typeof window !== 'undefined' ? window.location.origin : 'https://tal-english.vercel.app';
-    const text = `⚽ TAL ${levelLabel(lv)} 클리어! 축구로 영어 표현 훈련 중 🔥`;
+    const text = `⚽ TAL ${levelLabel(lv, clips)} 클리어! 축구로 영어 표현 훈련 중 🔥`;
     try {
       if (navigator.share) {
         await navigator.share({ title: 'TAL — Take A Leap', text, url });
@@ -53,10 +54,18 @@ export default function CollectionBoard({
   const levels = getLevels(clips);
   const unlocked = new Set(getUnlockedLevels(clips, passedIds));
   const currentLevel = getCurrentLevel(clips, passedIds);
-  const totalDone = clips.filter(c => passedIds.has(c.clip_id)).length;
+  // 상단 합계도 카드와 같은 단위(표현)로 센다 — 여기만 클립 수로 세면
+  // 모든 레벨이 "완료"인데 헤더는 5/51 로 남는다.
+  const totals = levels.reduce(
+    (acc, lv) => {
+      const { done, total } = levelProgress(clips, lv, passedIds);
+      return { done: acc.done + done, total: acc.total + total };
+    },
+    { done: 0, total: 0 },
+  );
 
   const showLockMsg = (prevLevel: string) => {
-    setLockMsg(`${levelLabel(prevLevel)} 완료하면 열려요 🔓`);
+    setLockMsg(`${levelLabel(prevLevel, clips)} 완료하면 열려요 🔓`);
     setTimeout(() => setLockMsg(''), 1800);
   };
 
@@ -76,7 +85,7 @@ export default function CollectionBoard({
           <span className={styles.boardHeaderTitle}>학습한 표현</span>
           {/* 제목이 이미 "표현"이라 여기서 또 붙이면 두 번 읽힌다 */}
           <span className={styles.boardHeaderSub}>
-            {totalDone} / {clips.length} 완료
+            {totals.done} / {totals.total} 완료
           </span>
         </div>
       </div>
@@ -85,10 +94,12 @@ export default function CollectionBoard({
       {shareMsg && <div className={styles.boardLockToast}>{shareMsg}</div>}
 
       {levels.map((lv, li) => {
-        const members = clipsOfLevel(clips, lv);
+        // 한 칸 = 한 "표현". 같은 표현의 중복 클립(다른 화자·상황)은 묶어서
+        // 한 줄로 보여준다 — 도장판에 "Man on!"이 7줄 늘어서지 않도록.
+        const members = expressionsOfLevel(clips, lv);
         const isUnlocked = unlocked.has(lv);
         const cleared = isLevelCleared(clips, lv, passedIds);
-        const doneCount = members.filter(c => passedIds.has(c.clip_id)).length;
+        const doneCount = members.filter(g => isExpressionPassed(g, passedIds)).length;
         const prevLevel = li > 0 ? levels[li - 1] : '';
 
         // 잠긴 레벨 — 한 줄로 접어 목록을 짧게 유지
@@ -100,8 +111,8 @@ export default function CollectionBoard({
               className={styles.boardLockedRow}
               onClick={() => showLockMsg(prevLevel)}
             >
-              <span className={styles.boardLockedName}>🔒 {levelLabel(lv)}</span>
-              <span className={styles.boardLockedHint}>{levelLabel(prevLevel)} 완료하면 열려요</span>
+              <span className={styles.boardLockedName}>🔒 {levelLabel(lv, clips)}</span>
+              <span className={styles.boardLockedHint}>{levelLabel(prevLevel, clips)} 완료하면 열려요</span>
             </button>
           );
         }
@@ -113,7 +124,7 @@ export default function CollectionBoard({
           >
             <div className={styles.boardLevelHead}>
               <div className={styles.boardLevelHeadLeft}>
-                <span className={styles.boardLevelName}>{levelLabel(lv)}</span>
+                <span className={styles.boardLevelName}>{levelLabel(lv, clips)}</span>
                 <span className={cleared ? styles.boardStatusDone : styles.boardStatusGoing}>
                   {cleared ? '완료' : '진행 중'}
                 </span>
@@ -130,12 +141,12 @@ export default function CollectionBoard({
 
             {/* 도장 점 — 레벨 진행을 한눈에 */}
             <div className={styles.boardStamps}>
-              {members.map(c => {
-                const passed = passedIds.has(c.clip_id);
-                const tried = !passed && attemptedIds.has(c.clip_id);
+              {members.map(g => {
+                const passed = isExpressionPassed(g, passedIds);
+                const tried = !passed && g.clips.some(c => attemptedIds.has(c.clip_id));
                 return (
                   <span
-                    key={c.clip_id}
+                    key={g.key}
                     className={`${styles.boardStamp} ${
                       passed ? styles.boardStampDone : tried ? styles.boardStampTried : ''
                     }`}
@@ -146,16 +157,18 @@ export default function CollectionBoard({
 
             {/* 표현 목록 — 영어 + 한글 한 행씩 */}
             <ul className={styles.boardExprList}>
-              {members.map(clip => {
-                const passed = passedIds.has(clip.clip_id);
-                const tried = !passed && attemptedIds.has(clip.clip_id);
-                const isToday = todayPassedIds?.has(clip.clip_id);
+              {members.map(g => {
+                // 대표 클립으로 표시·연습하고, 상태는 묶음 전체로 판단한다.
+                const clip = g.clip;
+                const passed = isExpressionPassed(g, passedIds);
+                const tried = !passed && g.clips.some(c => attemptedIds.has(c.clip_id));
+                const isToday = g.clips.some(c => todayPassedIds?.has(c.clip_id));
 
                 const rowClass = `${styles.boardExprRow} ${isToday ? styles.boardExprRowToday : ''}`;
                 const RowTag = onPractice ? 'button' : 'div';
 
                 return (
-                  <li key={clip.clip_id}>
+                  <li key={g.key}>
                     <RowTag
                       {...(onPractice
                         ? { type: 'button' as const, onClick: () => onPractice(clip) }
