@@ -886,6 +886,50 @@ export default function ShortsPage() {
     };
   }, [loading, feedClips]);
 
+  // ── 피드 끝에서 처음으로 순환 ────────────────────────────
+  // 마지막 영상에서 한 번 더 넘기면 이 스텝의 첫 영상으로 돌아간다.
+  // 스텝을 다 본 뒤 막다른 끝에서 멈추는 것보다, 계속 돌며 같은 표현을
+  // 다시 만나는 편이 낫다(다음 스텝으로는 상단 버튼으로 넘어간다).
+  useEffect(() => {
+    const c = containerRef.current;
+    // 카드가 1장뿐이면 이미 끝이자 처음이라 순환할 게 없다.
+    if (loading || !c || feedClips.length < 2) return;
+
+    const atBottom = () => c.scrollHeight - (c.scrollTop + c.clientHeight) < 8;
+
+    // 스냅 스크롤 도중 연속 발화하지 않도록 잠깐 잠근다.
+    let lockedUntil = 0;
+    const wrapToFirst = () => {
+      const first = feedClips[0];
+      if (!first || Date.now() < lockedUntil) return;
+      if (first.clip_id === activePresetIdRef.current) return;
+      lockedUntil = Date.now() + 600;
+      // 부드럽게 되감으면 중간 카드들을 스쳐 지나가며 전환이 연쇄한다 → 즉시 이동
+      c.scrollTo({ top: 0, behavior: 'auto' });
+      handlePresetTransition(first.clip_id);
+    };
+
+    // 손가락을 위로 쓸어올림 = "다음 영상". 그 제스처가 끝에서 나오면 순환.
+    let startY = 0;
+    const onTouchStart = (e: TouchEvent) => { startY = e.touches[0]?.clientY ?? 0; };
+    const onTouchEnd = (e: TouchEvent) => {
+      const endY = e.changedTouches[0]?.clientY ?? startY;
+      if (startY - endY > 40 && atBottom()) wrapToFirst();
+    };
+    const onWheel = (e: WheelEvent) => {
+      if (e.deltaY > 0 && atBottom()) wrapToFirst();
+    };
+
+    c.addEventListener('touchstart', onTouchStart, { passive: true });
+    c.addEventListener('touchend', onTouchEnd, { passive: true });
+    c.addEventListener('wheel', onWheel, { passive: true });
+    return () => {
+      c.removeEventListener('touchstart', onTouchStart);
+      c.removeEventListener('touchend', onTouchEnd);
+      c.removeEventListener('wheel', onWheel);
+    };
+  }, [loading, feedClips]);
+
   // 탭 변경 시 정지 및 제어
   useEffect(() => {
     if (activeTab !== 'shorts') {
@@ -1374,8 +1418,19 @@ export default function ShortsPage() {
   const goNextClip = (fromClipId: string) => {
     const list = feedClipsRef.current; // 유저에게 보이는 피드 기준
     const idx = list.findIndex((c: any) => c.clip_id === fromClipId);
-    const next = idx >= 0 ? list[idx + 1] : null;
-    if (next) scrollToPreset(next.clip_id);
+    if (idx < 0) return;
+
+    const nextInLine = list[idx + 1];
+    if (nextInLine) { scrollToPreset(nextInLine.clip_id); return; }
+
+    // 마지막이면 처음으로 — 스와이프 순환과 같은 규칙을 핸즈프리에도 적용.
+    // 단 scrollIntoView(smooth)로 되감으면 중간 카드를 전부 스쳐 지나가며
+    // 전환이 연쇄하므로, 순환할 때만은 즉시 이동한다.
+    if (list.length < 2) return;
+    const first = list[0];
+    if (!first || first.clip_id === activePresetIdRef.current) return;
+    containerRef.current?.scrollTo({ top: 0, behavior: 'auto' });
+    handlePresetTransition(first.clip_id);
   };
 
   // 중앙 탭 — 쇼츠 표준 UX: 음소거 중이면 첫 탭에 소리 켜기, 이후 탭은
