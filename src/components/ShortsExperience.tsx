@@ -1883,33 +1883,13 @@ export default function ShortsPage() {
                     {previewAsUser ? '🧪 유저 시점 ON' : '🧪 유저 시점'}
                   </button>
                 )}
-                <button
-                  type="button"
-                  className={styles.listToggleBtn}
-                  onClick={() => setIsListOpen(!isListOpen)}
-                >
-                  {isListOpen ? '필터 닫기 ▲' : '카테고리 필터 ☰'}
-                </button>
+                {/* 카테고리 필터는 1차 체험단 동안 감춘다.
+                    다섯 항목 모두 onClick이 목록만 닫을 뿐 실제로 거르지
+                    않는 껍데기였고, 헤더에서 가장 먼저 눌러볼 자리라
+                    문의가 몰린다. 필터를 진짜로 연결하고 카테고리를 4종
+                    이상 채우는 건 2차 진입 조건이므로, 그때 이 블록을
+                    되살리면 된다(isListOpen state는 그대로 둔다). */}
               </div>
-              
-              {isListOpen && (
-                <div className={styles.verticalPresetList}>
-                  {['ALL', 'tactical', 'post_match', 'press_conference', 'training'].map((tab) => (
-                    <button
-                      key={tab}
-                      type="button"
-                      onClick={() => {
-                        setIsListOpen(false);
-                      }}
-                      className={styles.verticalPresetItem}
-                    >
-                      <span className={styles.situationNameText}>
-                        {tab === 'ALL' ? '전체 훈련' : tab.toUpperCase().replace('_', ' ')}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
             )}
 

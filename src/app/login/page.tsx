@@ -41,10 +41,11 @@ export default function LoginPage() {
   // 이번 로그인 시도의 원본(해싱 전) nonce — GSI 콜백에서 signInWithIdToken에
   // 그대로 넘겨야 하므로 state가 아니라 ref로 들고 있는다(리렌더 불필요).
   const googleNonceRef = useRef('');
-  // 이번 GSI 시도가 "끝났는지"(성공이든 실패든 credential 콜백까지 왔거나,
-  // notification 콜백이 명시적으로 안 뜬다고 알려준 경우) — 타임아웃 폴백이
-  // 중복 발동하지 않게 막는 데 쓴다.
-  const googleAttemptSettledRef = useRef(false);
+  // GSI 공식 버튼이 그려질 자리와, 실제로 그려졌는지 여부.
+  // 안 그려졌으면(스크립트 차단·클라이언트 ID 미설정 등) 우리 버튼을 대신
+  // 보여주고 예전 리다이렉트 방식으로 로그인시킨다.
+  const googleBtnRef = useRef<HTMLDivElement>(null);
+  const [gsiReady, setGsiReady] = useState(false);
 
   // OAuth 콜백에서 넘어온 에러 파라미터 표시
   useEffect(() => {
@@ -118,10 +119,9 @@ export default function LoginPage() {
 
   // GSI가 ID 토큰을 돌려주면 여기서 Supabase 세션으로 교환한다.
   const handleGoogleCredential = async (response: { credential: string }) => {
-    // 토큰을 실제로 받았다는 뜻이니 폴백 타이머는 멈춘다 — 이 다음 실패는
-    // "예전 방식으로 넘어가면 될 문제"가 아니라 토큰 교환 자체의 문제라,
-    // 리다이렉트로 덮지 않고 실제 에러를 보여준다.
-    googleAttemptSettledRef.current = true;
+    // 여기까지 왔다는 건 구글에서 토큰을 실제로 받았다는 뜻이다. 이 다음
+    // 실패는 "예전 방식으로 넘기면 될 문제"가 아니라 토큰 교환 자체의
+    // 문제라, 리다이렉트로 덮지 않고 실제 에러를 보여준다.
     setError(null);
     try {
       const supabase = getSupabase();
@@ -139,69 +139,59 @@ export default function LoginPage() {
     }
   };
 
-  const handleGoogleLogin = async () => {
-    setError(null);
+  // GSI 공식 버튼을 렌더한다 — 팝업(ux_mode: 'popup') 방식이라 FedCM에
+  // 의존하지 않는다.
+  //
+  // 왜 prompt()(원탭/FedCM)를 버렸나: 프로덕션에서 재현해보니 FedCM이
+  // "403 → FedCM get() rejects with NetworkError"로 매번 실패하는데, 그
+  // 실패가 notification 콜백을 안 태우고 조용히 멈춰서 버튼이 먹통이 됐다.
+  // 타임아웃으로 우회했더니 이번엔 모든 구글 로그인이 3.5초를 버리고 예전
+  // 방식으로 떨어졌다. 팝업 방식은 브라우저 저수준 API가 아니라 평범한
+  // 팝업 창을 쓰므로 그 계열 실패가 아예 없고, 동의 화면에도 우리 도메인이
+  // 뜬다(목적 그대로).
+  useEffect(() => {
+    if (!GOOGLE_CLIENT_ID || mode !== 'login') return;
+    let cancelled = false;
 
-    const g = (window as any).google;
-    if (!GOOGLE_CLIENT_ID || !g?.accounts?.id) {
-      // 클라이언트 ID 미설정, 또는 GSI 스크립트가 아직 안 로드됨 → 예전 방식.
-      await legacyGoogleRedirect();
-      return;
-    }
+    const tryRender = async () => {
+      const g = (window as any).google;
+      const host = googleBtnRef.current;
+      if (!g?.accounts?.id || !host || host.childElementCount > 0) return !!host?.childElementCount;
 
-    try {
       // nonce: 원본은 signInWithIdToken에, 해시는 구글 initialize에 —
       // Supabase가 원본을 다시 해싱해 ID 토큰의 nonce 클레임과 대조한다.
       const nonce = randomNonce();
       googleNonceRef.current = nonce;
       const hashedNonce = await sha256Hex(nonce);
-      googleAttemptSettledRef.current = false;
+      if (cancelled) return false;
 
       g.accounts.id.initialize({
         client_id: GOOGLE_CLIENT_ID,
         callback: handleGoogleCredential,
         nonce: hashedNonce,
-        use_fedcm_for_prompt: true,
+        ux_mode: 'popup',
       });
-
-      const fallbackToLegacy = () => {
-        if (googleAttemptSettledRef.current) return; // 이미 처리됨(성공/실패 불문)
-        googleAttemptSettledRef.current = true;
-        legacyGoogleRedirect();
-      };
-
-      g.accounts.id.prompt((notification: any) => {
-        // 실제로 뭔가 떴다 — 아래 타이머가 나중에 끼어들어 사용자가 고르는
-        // 중에 페이지를 옮겨버리는 일이 없도록 여기서 확정해 둔다.
-        // (다만 구글이 FedCM에서 이 구형 상태 메서드들을 언제까지 채워줄지는
-        // 계속 바뀌는 중이라 — 콘솔에 자체 경고가 뜬다 — 이 경로가 100%
-        // 믿을 수 있다고는 못 한다. 그래서 완전히 이것에만 의존하지 않는다.)
-        if (notification?.isDisplayed?.()) {
-          googleAttemptSettledRef.current = true;
-          return;
-        }
-        // 팝업 차단·서드파티 쿠키 차단 등으로 아무것도 못 띄운 경우 —
-        // 조용히 실패하지 않고 예전 방식으로 넘어간다.
-        if (notification?.isNotDisplayed?.() || notification?.isSkippedMoment?.()) {
-          fallbackToLegacy();
-        }
+      g.accounts.id.renderButton(host, {
+        type: 'standard',
+        theme: 'outline',
+        size: 'large',
+        text: 'continue_with',
+        shape: 'pill',
+        locale: 'ko',
+        width: 300,
       });
+      if (!cancelled) setGsiReady(true);
+      return true;
+    };
 
-      // FedCM이 네트워크 오류(예: 방금 등록한 JS 출처가 구글 쪽에 아직 전파
-      // 안 됐을 때의 403)로 실패하면, 위 notification 콜백은 아예 안 불리고
-      // 콘솔에 "FedCM get() rejects" 에러만 찍힌 채 조용히 멈춘다 — 클릭해도
-      // 아무 반응 없는 버튼이 된다. 그 실패는 내 코드로 못 잡으므로(구글
-      // 라이브러리 내부에서 처리되는 프라미스), 일정 시간 안에 뭔가 뜨지도
-      // 폴백이 발동하지도 않으면 타이머가 대신 예전 방식으로 넘긴다.
-      // 3.5초는 "조용한 실패"(보통 1~2초 내 나타남)는 넉넉히 잡고 "정상적으로
-      // 뜬 선택창"은 안 건드리도록 고른 값이다 — 실제 기기에서 재확인이
-      // 필요한 값이다(FedCM 동작이 브라우저별로 계속 바뀌는 중이라서).
-      setTimeout(fallbackToLegacy, 3500);
-    } catch (err: any) {
-      console.error('[Google GSI init] error:', err);
-      await legacyGoogleRedirect();
-    }
-  };
+    // 스크립트가 언제 로드될지 모르니 잠깐 폴링하다 포기한다(3초).
+    let tries = 0;
+    const iv = setInterval(async () => {
+      if (cancelled || (await tryRender()) || ++tries > 20) clearInterval(iv);
+    }, 150);
+    return () => { cancelled = true; clearInterval(iv); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -303,9 +293,16 @@ export default function LoginPage() {
               <button type="button" onClick={handleKakaoLogin} className={styles.kakaoBtn}>
                 <span>💬</span> 카카오로 시작하기
               </button>
-              <button type="button" onClick={handleGoogleLogin} className={styles.googleBtn}>
-                <GoogleIcon /> Google로 시작하기
-              </button>
+              {/* 구글 공식 버튼(팝업 방식). 못 그려졌을 때만 우리 버튼 노출 */}
+              <div
+                ref={googleBtnRef}
+                style={{ display: gsiReady ? 'flex' : 'none', justifyContent: 'center' }}
+              />
+              {!gsiReady && (
+                <button type="button" onClick={legacyGoogleRedirect} className={styles.googleBtn}>
+                  <GoogleIcon /> Google로 시작하기
+                </button>
+              )}
             </div>
 
             <div className={styles.divider}>또는 이메일로 로그인</div>
