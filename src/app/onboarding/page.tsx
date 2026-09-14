@@ -165,9 +165,14 @@ export default function OnboardingPage() {
           <Dots at={0} />
           <div className={styles.hero}>⚽</div>
           <h1 className={styles.title}>환영해요!</h1>
+          {/* "피치에서 배우고, 세계에서 말하다" — 앱의 실제 동작 두 가지
+              (영상으로 배우기 → 🎙️로 말하기)를 그대로 압축한 문장이라
+              브랜드 훅으로 앞세운다. 로그인 페이지("피치 위 언어 그대로")·
+              공유 문구("해외 진출까지")와 따로 놀던 세 번째 톤을 없애고
+              같은 어휘(피치·해외·실전)로 되돌렸다. */}
           <p className={styles.sub}>
-            축구로 배우는 실전 영어 훈련소 TAL.<br />
-            하루 5분, 표현 하나씩 말하면서 시작해요.
+            피치에서 배우고, 세계에서 말하다.<br />
+            실전 축구 영어로 해외 진출을 준비하는 TAL — 하루 5분, 표현 하나씩부터 시작해요.
           </p>
           <div className={styles.btns}>
             <button type="button" className={styles.primary} onClick={() => setStep('profile')}>
