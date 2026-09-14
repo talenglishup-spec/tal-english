@@ -1,10 +1,33 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import Script from 'next/script';
 import { getSupabase } from '@/utils/supabase';
 import styles from '../LoginPage.module.css';
 
 type Mode = 'login' | 'signup';
+
+// 설정돼 있으면 구글 Identity Services(GSI)로 직접 로그인 처리 — 구글 동의
+// 화면에 우리 도메인이 뜬다(Supabase 프로젝트 서브도메인 대신, 무료).
+// Google Cloud Console에서 이 앱 도메인을 "승인된 JavaScript 출처"로 등록한
+// 뒤 이 값을 채워야 한다. 비어 있으면 예전 방식(Supabase 호스팅 리다이렉트,
+// 구글 동의 화면에 supabase.co가 뜸)으로 조용히 대체된다 — 등록 전에도
+// 로그인 자체는 깨지지 않는다.
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+
+function randomNonce(): string {
+  // crypto.randomUUID는 Safari 구버전엔 없을 수 있어 getRandomValues로 대체.
+  if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function sha256Hex(input: string): Promise<string> {
+  const bytes = new TextEncoder().encode(input);
+  const hash = await crypto.subtle.digest('SHA-256', bytes);
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
 
 export default function LoginPage() {
   const [mode, setMode] = useState<Mode>('login');
@@ -15,6 +38,9 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  // 이번 로그인 시도의 원본(해싱 전) nonce — GSI 콜백에서 signInWithIdToken에
+  // 그대로 넘겨야 하므로 state가 아니라 ref로 들고 있는다(리렌더 불필요).
+  const googleNonceRef = useRef('');
 
   // OAuth 콜백에서 넘어온 에러 파라미터 표시
   useEffect(() => {
@@ -65,8 +91,9 @@ export default function LoginPage() {
     }
   };
 
-  const handleGoogleLogin = async () => {
-    setError(null);
+  // 예전 방식 — Supabase 호스팅 리다이렉트. GSI가 아직 준비 안 됐거나(스크립트
+  // 로딩 전 클릭 등) 화면에 아무것도 못 띄운 경우의 대체 경로로만 쓴다.
+  const legacyGoogleRedirect = async () => {
     try {
       const supabase = getSupabase();
       const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
@@ -82,6 +109,62 @@ export default function LoginPage() {
     } catch (err: any) {
       console.error('[Google Login] error:', err);
       setError(err.message || 'Google 로그인에 실패했습니다.');
+    }
+  };
+
+  // GSI가 ID 토큰을 돌려주면 여기서 Supabase 세션으로 교환한다.
+  const handleGoogleCredential = async (response: { credential: string }) => {
+    setError(null);
+    try {
+      const supabase = getSupabase();
+      const { data, error: idErr } = await supabase.auth.signInWithIdToken({
+        provider: 'google',
+        token: response.credential,
+        nonce: googleNonceRef.current,
+      });
+      if (idErr) throw idErr;
+      if (!data.session) throw new Error('세션을 생성하지 못했습니다.');
+      window.location.href = '/home';
+    } catch (err: any) {
+      console.error('[Google GSI Login] error:', err);
+      setError(err.message || 'Google 로그인에 실패했습니다.');
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setError(null);
+
+    const g = (window as any).google;
+    if (!GOOGLE_CLIENT_ID || !g?.accounts?.id) {
+      // 클라이언트 ID 미설정, 또는 GSI 스크립트가 아직 안 로드됨 → 예전 방식.
+      await legacyGoogleRedirect();
+      return;
+    }
+
+    try {
+      // nonce: 원본은 signInWithIdToken에, 해시는 구글 initialize에 —
+      // Supabase가 원본을 다시 해싱해 ID 토큰의 nonce 클레임과 대조한다.
+      const nonce = randomNonce();
+      googleNonceRef.current = nonce;
+      const hashedNonce = await sha256Hex(nonce);
+
+      g.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: handleGoogleCredential,
+        nonce: hashedNonce,
+        use_fedcm_for_prompt: true,
+      });
+
+      g.accounts.id.prompt((notification: any) => {
+        // 팝업 차단·서드파티 쿠키 차단 등으로 아무것도 못 띄운 경우 —
+        // 조용히 실패하지 않고 예전 방식으로 넘어간다.
+        if (notification?.isNotDisplayed?.() || notification?.isSkippedMoment?.()) {
+          legacyGoogleRedirect();
+        }
+      });
+    } catch (err: any) {
+      console.error('[Google GSI init] error:', err);
+      await legacyGoogleRedirect();
     }
   };
 
@@ -166,6 +249,9 @@ export default function LoginPage() {
 
   return (
     <div className={styles.container}>
+      {/* GOOGLE_CLIENT_ID가 없으면 로드해도 아무 효과 없다(그냥 대기) —
+          미리 부담 없이 넣어둔다. 등록 후엔 재배포 없이 즉시 작동. */}
+      <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" />
       <div className={styles.card}>
         <div className={styles.brandSection}>
           <p className={styles.appLabel}>Take A Leap</p>
