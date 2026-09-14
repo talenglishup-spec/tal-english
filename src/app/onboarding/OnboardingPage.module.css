@@ -115,6 +115,26 @@
 }
 .qText::placeholder { color: #94a3b8; font-weight: 400; }
 
+/* 포지션 선택 — qText와 같은 톤의 네이티브 드롭다운 */
+.qSelect {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #0A228F;
+  font-size: 16px;   /* 16px 미만이면 iOS가 포커스 시 화면을 확대한다 */
+  font-weight: 700;
+  box-sizing: border-box;
+  appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%230A228F'><path fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.06l3.71-3.83a.75.75 0 111.08 1.04l-4.25 4.4a.75.75 0 01-1.08 0l-4.25-4.4a.75.75 0 01.02-1.06z' clip-rule='evenodd'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 36px;
+}
+.qSelect:invalid,
+.qSelect option[value=""] { color: #94a3b8; }
+
 /* "(선택)" 표시 — 필수 문항의 qLabel과 같은 줄에 얹되 존재감은 낮춘다 */
 .qOptional {
   font-size: 11px;

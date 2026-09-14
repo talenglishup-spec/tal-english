@@ -52,10 +52,10 @@ const SELF_LEVELS = [
 // 선택 항목 — filterByPosition이 기대하는 값과 정확히 맞춰야 한다(예전 /register는
 // 'CB'를 썼는데 실제 PositionTag는 'DF'라 필터가 조용히 안 먹혔다).
 const POSITIONS = [
-  { v: 'FW', label: '⚡ 공격수' },
-  { v: 'MF', label: '🔄 미드필더' },
-  { v: 'DF', label: '🛡️ 수비수' },
-  { v: 'GK', label: '🧤 골키퍼' },
+  { v: 'FW', label: '공격수' },
+  { v: 'MF', label: '미드필더' },
+  { v: 'DF', label: '수비수' },
+  { v: 'GK', label: '골키퍼' },
 ] as const;
 
 export default function OnboardingPage() {
@@ -241,19 +241,20 @@ export default function OnboardingPage() {
           <div className={styles.optDivider} />
 
           <div className={styles.qBlock}>
-            <span className={styles.qLabel}>포지션 <span className={styles.qOptional}>(선택)</span></span>
-            <div className={styles.qOptions}>
+            <label className={styles.qLabel} htmlFor="ob-position">
+              포지션 <span className={styles.qOptional}>(선택)</span>
+            </label>
+            <select
+              id="ob-position"
+              className={styles.qSelect}
+              value={position}
+              onChange={(e) => setPosition(e.target.value)}
+            >
+              <option value="">선택 안 함</option>
               {POSITIONS.map(o => (
-                <button
-                  key={o.v}
-                  type="button"
-                  className={`${styles.qOption} ${position === o.v ? styles.qOptionOn : ''}`}
-                  onClick={() => setPosition(position === o.v ? '' : o.v)}
-                >
-                  {o.label}
-                </button>
+                <option key={o.v} value={o.v}>{o.label}</option>
               ))}
-            </div>
+            </select>
           </div>
 
           <div className={styles.qBlock}>
