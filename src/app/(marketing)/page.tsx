@@ -47,7 +47,7 @@ function Nav() {
         {/* Right actions */}
         <div className={styles.navActions}>
           <Link href="/login" className={styles.navSignIn}>로그인</Link>
-          <Link href="/register" className={styles.btnPrimarySm}>
+          <Link href="/login" className={styles.btnPrimarySm}>
             시작하기 <ArrowRight size={14} />
           </Link>
           <button
@@ -103,7 +103,7 @@ function Hero() {
             </p>
 
             <div className={styles.ctaRow}>
-              <Link href="/register" className={styles.btnPrimaryLg}>
+              <Link href="/login" className={styles.btnPrimaryLg}>
                 무료로 시작하기 <ArrowRight size={18} />
               </Link>
               <Link href="#clubs" className={styles.btnSecondaryLg}>

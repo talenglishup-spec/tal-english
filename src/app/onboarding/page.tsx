@@ -10,7 +10,12 @@
  * 전부 버튼/선택으로만 받는다(자유입력은 집계 불가).
  *   - 생년월일        → 나이는 분석 시점에 파생
  *   - 영어 공부 기간  → 학습 이력 세그먼트
- *   - 말하기 자신감   → 앱의 객관 레벨(S1~S3)과 대조해 "자신감 vs 실제" 분석
+ *   - 말하기 자신감   → 앱의 객관 레벨과 대조해 "자신감 vs 실제" 분석
+ *
+ * 포지션·소속은 선택 항목으로 같은 화면에 추가돼 있다(필수 3문항과 달리 비워도
+ * 다음으로 넘어간다). 포지션은 콘텐츠 필터(filterByPosition)가 이미 존재하는데
+ * 정작 유저 쪽엔 값이 없어 한 번도 못 쓰였던 것을 메운다. 소속(팀·학교)은 체험단을
+ * 나중에 이메일로 일일이 대조하지 않고 가입 시점에 바로 코호트를 태깅하기 위함.
  *
  * 알림은 강제 A/B 없이 "전원에게 선택권"을 주고, 유저의 선택이 자연 코호트를 만든다:
  *   - 거부('나중에')            → notify_opt_in=false + onboarded_at set = 대조군
@@ -44,6 +49,15 @@ const SELF_LEVELS = [
   { v: 'good',   label: '잘해요' },
 ] as const;
 
+// 선택 항목 — filterByPosition이 기대하는 값과 정확히 맞춰야 한다(예전 /register는
+// 'CB'를 썼는데 실제 PositionTag는 'DF'라 필터가 조용히 안 먹혔다).
+const POSITIONS = [
+  { v: 'FW', label: '⚡ 공격수' },
+  { v: 'MF', label: '🔄 미드필더' },
+  { v: 'DF', label: '🛡️ 수비수' },
+  { v: 'GK', label: '🧤 골키퍼' },
+] as const;
+
 export default function OnboardingPage() {
   const router = useRouter();
   const supabase = getSupabase();
@@ -55,10 +69,13 @@ export default function OnboardingPage() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
 
-  // ② 프로필 3문항 (체험단 집단 구분)
+  // ② 프로필 3문항 (체험단 집단 구분) — 필수
   const [birthDate, setBirthDate] = useState('');
   const [studyYears, setStudyYears] = useState('');
   const [selfLevel, setSelfLevel] = useState('');
+  // ② 선택 항목 — 비워도 다음으로 넘어간다(profileReady에 포함 안 됨)
+  const [position, setPosition] = useState('');
+  const [affiliation, setAffiliation] = useState('');
   const [profileMsg, setProfileMsg] = useState('');
   const profileReady = !!birthDate && !!studyYears && !!selfLevel;
 
@@ -97,6 +114,10 @@ export default function OnboardingPage() {
           birth_date: birthDate,
           study_years: studyYears,
           self_level: selfLevel,
+          // 선택 항목 — 비워두면 빈 문자열이 아니라 null로 저장한다(분석 시
+          // "선택 안 함"과 "빈 문자열"을 구분할 필요가 없게).
+          position: position || null,
+          affiliation: affiliation.trim() || null,
           profile_filled_at: new Date().toISOString(),
         }).eq('id', playerId);
         if (error) throw error;
@@ -213,6 +234,41 @@ export default function OnboardingPage() {
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* 선택 항목 — 필수 3문항과 시각적으로 분리(구분선 + "선택" 표시).
+              비워도 다음 버튼이 그대로 활성화된다(profileReady는 위 3개만 본다). */}
+          <div className={styles.optDivider} />
+
+          <div className={styles.qBlock}>
+            <span className={styles.qLabel}>포지션 <span className={styles.qOptional}>(선택)</span></span>
+            <div className={styles.qOptions}>
+              {POSITIONS.map(o => (
+                <button
+                  key={o.v}
+                  type="button"
+                  className={`${styles.qOption} ${position === o.v ? styles.qOptionOn : ''}`}
+                  onClick={() => setPosition(position === o.v ? '' : o.v)}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className={styles.qBlock}>
+            <label className={styles.qLabel} htmlFor="ob-affiliation">
+              소속 팀·학교 <span className={styles.qOptional}>(선택)</span>
+            </label>
+            <input
+              id="ob-affiliation"
+              type="text"
+              className={styles.qText}
+              value={affiliation}
+              onChange={(e) => setAffiliation(e.target.value)}
+              placeholder="예: OO고등학교 축구부"
+              maxLength={40}
+            />
           </div>
 
           <p className={styles.msg}>{profileMsg}</p>

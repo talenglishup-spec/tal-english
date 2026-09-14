@@ -43,7 +43,7 @@ export async function middleware(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
     const pathname = req.nextUrl.pathname;
 
-    const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register');
+    const isAuthPage = pathname.startsWith('/login');
     const isApiRoute = pathname.startsWith('/api/');
     const isStatic = pathname.match(/\.(png|jpg|jpeg|gif|svg|ico|css|js)$/);
     const isDemo = pathname.startsWith('/shorts-demo') || pathname.startsWith('/learn-modes-demo') || pathname.startsWith('/youtube-test');
@@ -54,6 +54,20 @@ export async function middleware(req: NextRequest) {
     if (pathname === '/') {
       const destination = user ? '/home' : '/login';
       const redirectRes = NextResponse.redirect(new URL(destination, req.url));
+      res.cookies.getAll().forEach(c => {
+        redirectRes.cookies.set(c.name, c.value, c);
+      });
+      return redirectRes;
+    }
+
+    // /register — 구글시트에 player_id/password를 발급하던 구식 가입 경로.
+    // 발급된 자격증명으로 로그인할 수단이 /login에 없어(카카오·구글·이메일뿐)
+    // 가입은 되는데 로그인은 못 하는 막다른 골목이었다. 마케팅 페이지가
+    // 로그인 안 한 유저에겐 어차피 위에서 먼저 튕겨나가 실제로는 안 보였지만,
+    // 이 경로만 직접 북마크·검색으로 들어오면 여전히 그 골목에 빠졌다.
+    // isAuthPage에서 뺐으니(위) 여기서 무조건 앱 진입점으로 되돌린다.
+    if (pathname.startsWith('/register')) {
+      const redirectRes = NextResponse.redirect(new URL('/', req.url));
       res.cookies.getAll().forEach(c => {
         redirectRes.cookies.set(c.name, c.value, c);
       });

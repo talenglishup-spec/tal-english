@@ -597,7 +597,7 @@ export default function EbookPage() {
         STT가 발음을 바로 채점한다.
       </p>
       <a
-        href="/register"
+        href="/login"
         className="flex items-center justify-center w-full h-12 rounded-xl bg-[#00E676] text-[#0A0E1A] font-bold text-sm hover:bg-[#00C853] transition-colors shadow-[0_0_15px_rgba(0,230,118,0.3)]"
       >
         무료로 훈련 시작하기 →
@@ -664,7 +664,7 @@ export default function EbookPage() {
             </p>
           </div>
           <a
-            href="/register"
+            href="/login"
             style={{
               background: '#00E676',
               color: '#0A0E1A',
@@ -738,7 +738,7 @@ export default function EbookPage() {
           <p className="text-xl font-bold text-white mb-2">22개 상황을 모두 봤다.</p>
           <p className="text-xl font-bold text-white mb-8">이제 경기장에 가져가라.</p>
 
-          <a href="/register" className="flex items-center justify-center w-full h-14 rounded-xl bg-[#00E676] text-[#0A0E1A] font-bold text-base mb-4 hover:bg-[#00C853] transition-colors shadow-[0_0_15px_rgba(0,230,118,0.3)]">
+          <a href="/login" className="flex items-center justify-center w-full h-14 rounded-xl bg-[#00E676] text-[#0A0E1A] font-bold text-base mb-4 hover:bg-[#00C853] transition-colors shadow-[0_0_15px_rgba(0,230,118,0.3)]">
             무료로 훈련 시작하기 →
           </a>
           <p className="text-center text-xs text-[#546E7A]">
