@@ -41,6 +41,10 @@ export default function LoginPage() {
   // 이번 로그인 시도의 원본(해싱 전) nonce — GSI 콜백에서 signInWithIdToken에
   // 그대로 넘겨야 하므로 state가 아니라 ref로 들고 있는다(리렌더 불필요).
   const googleNonceRef = useRef('');
+  // 이번 GSI 시도가 "끝났는지"(성공이든 실패든 credential 콜백까지 왔거나,
+  // notification 콜백이 명시적으로 안 뜬다고 알려준 경우) — 타임아웃 폴백이
+  // 중복 발동하지 않게 막는 데 쓴다.
+  const googleAttemptSettledRef = useRef(false);
 
   // OAuth 콜백에서 넘어온 에러 파라미터 표시
   useEffect(() => {
@@ -114,6 +118,10 @@ export default function LoginPage() {
 
   // GSI가 ID 토큰을 돌려주면 여기서 Supabase 세션으로 교환한다.
   const handleGoogleCredential = async (response: { credential: string }) => {
+    // 토큰을 실제로 받았다는 뜻이니 폴백 타이머는 멈춘다 — 이 다음 실패는
+    // "예전 방식으로 넘어가면 될 문제"가 아니라 토큰 교환 자체의 문제라,
+    // 리다이렉트로 덮지 않고 실제 에러를 보여준다.
+    googleAttemptSettledRef.current = true;
     setError(null);
     try {
       const supabase = getSupabase();
@@ -147,6 +155,7 @@ export default function LoginPage() {
       const nonce = randomNonce();
       googleNonceRef.current = nonce;
       const hashedNonce = await sha256Hex(nonce);
+      googleAttemptSettledRef.current = false;
 
       g.accounts.id.initialize({
         client_id: GOOGLE_CLIENT_ID,
@@ -155,13 +164,39 @@ export default function LoginPage() {
         use_fedcm_for_prompt: true,
       });
 
+      const fallbackToLegacy = () => {
+        if (googleAttemptSettledRef.current) return; // 이미 처리됨(성공/실패 불문)
+        googleAttemptSettledRef.current = true;
+        legacyGoogleRedirect();
+      };
+
       g.accounts.id.prompt((notification: any) => {
+        // 실제로 뭔가 떴다 — 아래 타이머가 나중에 끼어들어 사용자가 고르는
+        // 중에 페이지를 옮겨버리는 일이 없도록 여기서 확정해 둔다.
+        // (다만 구글이 FedCM에서 이 구형 상태 메서드들을 언제까지 채워줄지는
+        // 계속 바뀌는 중이라 — 콘솔에 자체 경고가 뜬다 — 이 경로가 100%
+        // 믿을 수 있다고는 못 한다. 그래서 완전히 이것에만 의존하지 않는다.)
+        if (notification?.isDisplayed?.()) {
+          googleAttemptSettledRef.current = true;
+          return;
+        }
         // 팝업 차단·서드파티 쿠키 차단 등으로 아무것도 못 띄운 경우 —
         // 조용히 실패하지 않고 예전 방식으로 넘어간다.
         if (notification?.isNotDisplayed?.() || notification?.isSkippedMoment?.()) {
-          legacyGoogleRedirect();
+          fallbackToLegacy();
         }
       });
+
+      // FedCM이 네트워크 오류(예: 방금 등록한 JS 출처가 구글 쪽에 아직 전파
+      // 안 됐을 때의 403)로 실패하면, 위 notification 콜백은 아예 안 불리고
+      // 콘솔에 "FedCM get() rejects" 에러만 찍힌 채 조용히 멈춘다 — 클릭해도
+      // 아무 반응 없는 버튼이 된다. 그 실패는 내 코드로 못 잡으므로(구글
+      // 라이브러리 내부에서 처리되는 프라미스), 일정 시간 안에 뭔가 뜨지도
+      // 폴백이 발동하지도 않으면 타이머가 대신 예전 방식으로 넘긴다.
+      // 3.5초는 "조용한 실패"(보통 1~2초 내 나타남)는 넉넉히 잡고 "정상적으로
+      // 뜬 선택창"은 안 건드리도록 고른 값이다 — 실제 기기에서 재확인이
+      // 필요한 값이다(FedCM 동작이 브라우저별로 계속 바뀌는 중이라서).
+      setTimeout(fallbackToLegacy, 3500);
     } catch (err: any) {
       console.error('[Google GSI init] error:', err);
       await legacyGoogleRedirect();
