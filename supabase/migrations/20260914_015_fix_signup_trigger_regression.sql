@@ -110,7 +110,15 @@ $$;
 
 -- player_dashboard: INNER JOIN → LEFT JOIN. player_status가 없어도 최소한
 -- 이름·이메일·아바타·구독 정보는 뜬다(전부 profiles 쪽 컬럼).
-CREATE OR REPLACE VIEW public.player_dashboard AS
+--
+-- CREATE OR REPLACE VIEW는 기존 컬럼의 순서·이름을 못 바꾼다(Postgres 제약).
+-- 실행해보니 라이브 뷰가 004(구독 컬럼 추가)를 안 거친 001 원본 그대로였다 —
+-- avatar_url 바로 뒤가 xp라, 내가 넣은 subscription_status와 위치가 안
+-- 맞아 "cannot change name of view column" 에러가 났다. DROP 후 새로
+-- 만들면 순서 제약 자체가 없어진다.
+DROP VIEW IF EXISTS public.player_dashboard;
+
+CREATE VIEW public.player_dashboard AS
 SELECT
     pr.id AS player_id,
     pr.email,
