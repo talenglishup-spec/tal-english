@@ -2,26 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabaseServer';
 import { getClipItems } from '@/lib/sheets';
 import { OpenAI } from 'openai';
-
-function levenshtein(a: string, b: string): number {
-  const tmp: number[][] = [];
-  const alen = a.length;
-  const blen = b.length;
-  if (alen === 0) return blen;
-  if (blen === 0) return alen;
-  for (let i = 0; i <= alen; i++) tmp[i] = [i];
-  for (let j = 0; j <= blen; j++) tmp[0][j] = j;
-  for (let i = 1; i <= alen; i++) {
-    for (let j = 1; j <= blen; j++) {
-      tmp[i][j] = Math.min(
-        tmp[i - 1][j] + 1,
-        tmp[i][j - 1] + 1,
-        tmp[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)
-      );
-    }
-  }
-  return tmp[alen][blen];
-}
+import { levenshtein, pickBestTranscript, STT_PROMPT, WHISPER_PROMPT } from '@/lib/speakJudge';
 
 function getSimilarityScore(s1: string, s2: string): number {
   const clean = (s: string) => s.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim();
@@ -34,70 +15,7 @@ function getSimilarityScore(s1: string, s2: string): number {
   return Math.round(((maxLen - dist) / maxLen) * 100);
 }
 
-const normWord = (w: string) => w.toLowerCase().replace(/[^a-z0-9]/g, '');
-
-/**
- * 판정 완화 규칙 (중고등 왕기초 대상 — "넘어가는 기분"이 학습 지속의 핵심)
- *
- *  ① 철자 유사 허용: STT가 drop→drops, organized→organised 처럼 살짝 다르게
- *     받아쓰는 경우가 잦다. 단어 길이에 비례해 편집거리를 허용한다.
- *  ② 기능어 제외: a/the/to 같은 관사·전치사는 발음이 뭉개져도 의미 전달에
- *     지장이 없으므로 합격 판정에서 뺀다(화면에는 그대로 표시).
- *  ③ 전 단어 → 비율: 내용어의 PASS_RATIO 이상 맞으면 합격.
- */
-const STOPWORDS = new Set([
-  'a', 'an', 'the', 'to', 'of', 'in', 'on', 'at', 'for', 'and', 'or',
-  'it', 'is', 'am', 'are', 'be', 'do', 'does', 'did', 'that', 'this',
-]);
-const PASS_RATIO = 0.6;
-
-/** 길이에 비례한 편집거리 허용 — 짧은 단어는 정확히, 길수록 관대하게 */
-function fuzzyEq(a: string, b: string): boolean {
-  if (!a || !b) return false;
-  if (a === b) return true;
-  const len = Math.max(a.length, b.length);
-  // 4글자 이하는 오차를 허용하지 않는다 — hold↔cold 처럼 뜻이 완전히 다른
-  // 단어가 통과해버린다. 한 단어짜리 표현은 이 검사가 유일한 관문이라 특히 중요.
-  if (len <= 4) return false;
-  return levenshtein(a, b) <= (len >= 7 ? 2 : 1);
-}
-
-/**
- * target 문장의 각 단어가 사용자가 말한 문장(spoken)에 (순서를 지키며)
- * 포함됐는지 LCS(최장 공통 부분수열)로 정렬해 표시한다.
- * SPEAK식 단어별 초록/회색 피드백을 위한 데이터.
- * 반환: target 단어 순서대로 [{ w: 원본단어, ok: boolean }]
- */
-function wordDiff(target: string, spoken: string): { w: string; ok: boolean }[] {
-  const targetWords = target.split(/\s+/).filter(Boolean);
-  const t = targetWords.map(normWord);
-  const s = spoken.split(/\s+/).map(normWord).filter(Boolean);
-
-  const n = t.length;
-  const m = s.length;
-  // LCS DP — 완전 일치가 아니라 fuzzyEq(철자 유사 허용)로 맞춘다
-  const dp: number[][] = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
-  for (let i = n - 1; i >= 0; i--) {
-    for (let j = m - 1; j >= 0; j--) {
-      dp[i][j] = fuzzyEq(t[i], s[j])
-        ? dp[i + 1][j + 1] + 1
-        : Math.max(dp[i + 1][j], dp[i][j + 1]);
-    }
-  }
-  // backtrack: LCS에 포함된 target 인덱스 = 정답(초록)
-  const ok = new Array(n).fill(false);
-  let i = 0, j = 0;
-  while (i < n && j < m) {
-    if (fuzzyEq(t[i], s[j])) {
-      ok[i] = true; i++; j++;
-    } else if (dp[i + 1][j] >= dp[i][j + 1]) {
-      i++;
-    } else {
-      j++;
-    }
-  }
-  return targetWords.map((w, idx) => ({ w, ok: ok[idx] }));
-}
+// 판정 로직(normWord·fuzzyEq·wordDiff·기능어·합격 비율)은 lib/speakJudge.ts로 옮겼다 — 테스트하려고.
 
 export async function POST(req: NextRequest) {
   try {
@@ -140,16 +58,27 @@ export async function POST(req: NextRequest) {
         (uploadedName.match(/\.([A-Za-z0-9]{2,4})$/)?.[1] || '').toLowerCase()
         || EXT_BY_TYPE[baseType]
         || 'webm';
-      const file = await OpenAI.toFile(buffer, `speech.${ext}`, {
-        type: baseType || 'audio/webm',
-      });
-      // whisper-1보다 빠르고 저렴한 최신 STT 모델
-      const transcription = await openai.audio.transcriptions.create({
-        file,
-        model: 'gpt-4o-mini-transcribe',
-        language: 'en'
-      });
-      return transcription.text || '';
+      const mkFile = () => OpenAI.toFile(buffer, `speech.${ext}`, { type: baseType || 'audio/webm' });
+      // 두 모델을 병렬로 돌려 목표와 더 잘 맞는 쪽을 쓴다(pickBestTranscript).
+      //  - gpt-4o-mini-transcribe: 발음이 괜찮으면 가장 정확. 다만 한국식 발음은
+      //    language:'en'이어도 한글로 받아적는다(실측: "Man on" → "맨언").
+      //  - whisper-1 + language:'en': 한글로 절대 안 쓴다. 대신 짧은 단어를
+      //    가끔 잘못 듣는다 — 그래서 둘 중 나은 쪽.
+      // 프롬프트에 정답 문구를 넣지 않는다 — 넣으면 무음에서 정답을 지어내
+      // 통과해버린다(실측: 무음 파일 → "Man on!").
+      // 클라이언트가 12초에 끊으므로 각 호출은 재시도 없이 8초로 제한한다.
+      const opts = { timeout: 8000, maxRetries: 0 };
+      const settled = await Promise.allSettled([
+        openai.audio.transcriptions.create(
+          { file: await mkFile(), model: 'gpt-4o-mini-transcribe', language: 'en', prompt: STT_PROMPT }, opts),
+        openai.audio.transcriptions.create(
+          { file: await mkFile(), model: 'whisper-1', language: 'en', prompt: WHISPER_PROMPT }, opts),
+      ]);
+      const texts = settled
+        .filter((r): r is PromiseFulfilledResult<{ text: string }> => r.status === 'fulfilled')
+        .map(r => r.value.text || '');
+      if (texts.length === 0) throw (settled[0] as PromiseRejectedResult).reason;
+      return texts;
     })();
     const clipsPromise = getClipItems();
     const authPromise = (async () => {
@@ -168,9 +97,9 @@ export async function POST(req: NextRequest) {
     }
     const target_phrase = clip.target_phrase;
 
-    let transcript = '';
+    let candidates: string[] = [];
     try {
-      transcript = await sttPromise;
+      candidates = await sttPromise;
     } catch (sttErr: any) {
       // STT 호출 실패를 자동 합격으로 처리하면 오디오를 일부러 깨뜨려
       // 채점을 우회할 수 있으므로, 실패는 실패로 응답한다(채점 실패를
@@ -179,17 +108,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'stt_failed' }, { status: 502 });
     }
 
-    console.log(`[STT] Result: "${transcript}" | Target: "${target_phrase}"`);
+    // 판정: 점수 숫자가 아니라 "표현을 맞게 말했는가" — 내용어의 PASS_RATIO
+    // 이상이 순서대로 인식되면 합격(쇼츠·챌린지·재도전 공통 단일 기준).
+    const best = pickBestTranscript(target_phrase, candidates);
+    const { words, passed } = best;
+    // 기록엔 채택된 받아쓰기를, 없으면(무음 판정) 주 모델 원문을 남긴다 — 분석용
+    const transcript = best.transcript || candidates[0] || '';
+    console.log(`[STT] ${candidates.map(c => `"${c}"`).join(' | ')} → ${passed ? 'PASS' : 'FAIL'} | Target: "${target_phrase}"`);
 
     const score = getSimilarityScore(transcript, target_phrase); // 로그/분석용으로만 유지
-    const words = wordDiff(target_phrase, transcript);
-    // 판정: 점수 숫자가 아니라 "표현을 맞게 말했는가" — 내용어(기능어 제외)의
-    // PASS_RATIO 이상이 (순서 유지하며) 인식되면 합격. 앞뒤 군더더기 말은 허용.
-    // (왕기초 타깃 MVP 정책 — 쇼츠·챌린지·재도전 공통 단일 기준)
-    const contentWords = words.filter(w => !STOPWORDS.has(normWord(w.w)));
-    const gate = contentWords.length > 0 ? contentWords : words; // 전부 기능어면 전체로 판정
-    const matchedRatio = gate.length > 0 ? gate.filter(w => w.ok).length / gate.length : 0;
-    const passed = transcript.trim().length > 0 && matchedRatio >= PASS_RATIO;
 
     // RLS Rerouting using @supabase/ssr Server Client (STT와 병렬로 이미 조회됨)
     const { supabase, user } = await authPromise;

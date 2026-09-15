@@ -186,6 +186,8 @@ export default function ShortsPage() {
   const [speakStage, setSpeakStage] = useState<Record<string, SpeakStage>>({});
   const [recElapsed, setRecElapsed] = useState<number>(0);
   const [myAudioUrl, setMyAudioUrl] = useState<string | null>(null);
+  // "내 발음" 재생이 실패했을 때 리뷰 화면에 띄우는 안내 (예전엔 에러를 삼켜 버튼이 먹통처럼 보였다)
+  const [playMsg, setPlayMsg] = useState('');
   const [seqResult, setSeqResult] = useState<{ [presetId: string]: 'pass' | 'fail' | null }>({});
   // 채점 단어별 피드백 (clipId별): target 단어 순서대로 [{w, ok}]
   const [wordFeedback, setWordFeedback] = useState<Record<string, { w: string; ok: boolean }[]>>({});
@@ -275,6 +277,18 @@ export default function ShortsPage() {
   const activeRecordIntervalRef = useRef<any>(null);
   const modelWatchRef = useRef<any>(null);      // 모범 답안(영상 구간) 재생 감시 인터벌
   const myAudioElRef = useRef<HTMLAudioElement | null>(null); // 내 발음 재생 엘리먼트
+  const myAudioUrlRef = useRef<string | null>(null);
+  // 녹음 URL 교체 — 이전 blob URL 해제는 여기서만 한다. 예전엔
+  // setMyAudioUrl(prev => { revokeObjectURL(prev); ... }) 처럼 상태 업데이터
+  // 안에서 해제했는데, 업데이터는 순수해야 한다(React가 다시 실행할 수 있어
+  // 방금 만든 URL을 해제해 버릴 여지가 생긴다).
+  const replaceMyAudioUrl = (next: string | null) => {
+    const prev = myAudioUrlRef.current;
+    if (prev && prev !== next) { try { URL.revokeObjectURL(prev); } catch (e) {} }
+    myAudioUrlRef.current = next;
+    setMyAudioUrl(next);
+    setPlayMsg('');
+  };
 
   // onError 자동 복구용 — 재생 불가 클립을 자동으로 넘길 때, 연속 실패가
   // 무한 스킵으로 번지지 않게 막는다. 정상 재생(PLAYING) 진입 시 0으로 리셋.
@@ -1158,7 +1172,7 @@ export default function ShortsPage() {
       streamRef.current = null;
     }
     if (myAudioElRef.current) { try { myAudioElRef.current.pause(); } catch (e) {} myAudioElRef.current = null; }
-    setMyAudioUrl(prev => { if (prev) URL.revokeObjectURL(prev); return null; });
+    replaceMyAudioUrl(null);
     if (clipId) clearStage(clipId);
   };
 
@@ -1166,7 +1180,7 @@ export default function ShortsPage() {
   const armSpeak = (clipId: string) => {
     setSeqResult(prev => ({ ...prev, [clipId]: null }));
     setWordFeedback(prev => { const n = { ...prev }; delete n[clipId]; return n; });
-    setMyAudioUrl(prev => { if (prev) URL.revokeObjectURL(prev); return null; });
+    replaceMyAudioUrl(null);
     setStage(clipId, 'armed');
   };
 
@@ -1227,7 +1241,7 @@ export default function ShortsPage() {
           || 'audio/webm';
         const blob = new Blob(audioChunksRef.current, { type: blobType });
         const url = URL.createObjectURL(blob);
-        setMyAudioUrl(prev => { if (prev) URL.revokeObjectURL(prev); return url; });
+        replaceMyAudioUrl(url);
         // 녹음까지 완주 — Speak를 눌러놓고 그만둔 경우와 구분(포기율)
         if (clipViewRef.current?.clipId === clipId) {
           clipViewRef.current.completed = true;
@@ -1291,7 +1305,8 @@ export default function ShortsPage() {
       formData.append('clip_id', clip.clip_id);
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000);
+      // 서버가 STT 두 모델을 병렬로 돌린다(각 8초 상한) — 콜드스타트까지 12초 여유
+      const timeoutId = setTimeout(() => controller.abort(), 12000);
       const res = await fetch('/api/train/speak-score', { method: 'POST', body: formData, signal: controller.signal });
       clearTimeout(timeoutId);
 
@@ -1521,13 +1536,26 @@ export default function ShortsPage() {
 
   // 리뷰: 내 발음 듣기
   const playMyRecording = () => {
-    if (!myAudioUrl) return;
+    const url = myAudioUrlRef.current || myAudioUrl;
+    if (!url) return;
+    setPlayMsg('');
+    const fail = (reason: string, notAllowed = false) => {
+      // 크롬에선 재현이 안 됐다 — 현장에서 실패하면 원인(에러 이름)을 받는다.
+      trackEvent({ event: 'playback_error', tab: reason.slice(0, 20) });
+      setPlayMsg(notAllowed
+        ? '소리가 막혀 있어요. 무음 모드를 끄고 다시 눌러 주세요.'
+        : '녹음을 재생하지 못했어요. 다시하기로 한 번 더 녹음해 주세요.');
+    };
     try {
       if (myAudioElRef.current) myAudioElRef.current.pause();
-      const audio = new Audio(myAudioUrl);
+      const audio = new Audio(url);
+      audio.setAttribute('playsinline', ''); // iOS: 전체화면 플레이어로 튀지 않게
       myAudioElRef.current = audio;
-      audio.play().catch(() => {});
-    } catch (e) {}
+      audio.onerror = () => fail(`media_err_${audio.error?.code ?? 'x'}`);
+      audio.play().catch((err: any) => fail(String(err?.name || 'unknown'), err?.name === 'NotAllowedError'));
+    } catch (e: any) {
+      fail(String(e?.name || 'exception'));
+    }
   };
 
   // 리뷰: 모범 답안 듣기 — AI TTS 우선, URL이 없으면 영상 원음 폴백.
@@ -2238,6 +2266,7 @@ export default function ShortsPage() {
                               <span className={styles.rvListenIcon}>▶</span>내 발음
                             </button>
                           </div>
+                          {playMsg && <p className={styles.rvTranslation}>{playMsg}</p>}
 
                           {/* ④ 다시하기 — 알약 하나. 넘어가기는 맨 아래 옅은 글씨. */}
                           <button type="button" className={styles.rvRetryPill} onClick={() => retrySpeak(sc.clip_id)}>

@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
     const VALID = new Set([
       'session_start', 'tab_dwell', 'session_end',
       // 체험단 관측용 — 퍼널로는 보이지 않는 "왜 못 했는지"와 공유 행동
-      'mic_denied', 'record_error', 'score_error', 'share',
+      'mic_denied', 'record_error', 'score_error', 'share', 'playback_error',
     ]);
     const rows = events
       .filter((e: any) => VALID.has(e?.event))

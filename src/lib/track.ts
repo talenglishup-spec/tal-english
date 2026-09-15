@@ -23,7 +23,8 @@ type TrackEvent = {
     | 'mic_denied'        // 마이크 권한 거부 — 말하기 자체를 시작 못 함
     | 'record_error'      // 녹음 시작 실패 (브라우저 미지원 등)
     | 'score_error'       // 채점 실패·타임아웃 — 발음이 틀린 것과 구분해야 한다
-    | 'share';            // 공유 실행 — "추천하겠는가"의 행동 증거
+    | 'share'             // 공유 실행 — "추천하겠는가"의 행동 증거
+    | 'playback_error';   // "내 발음" 재생 실패 — 재현이 안 돼 원인(에러 이름)을 현장에서 받는다
   tab?: string;
   dwell_ms?: number;
   source?: 'organic' | 'push' | 'share';
