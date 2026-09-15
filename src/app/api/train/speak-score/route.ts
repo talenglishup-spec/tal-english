@@ -112,8 +112,10 @@ export async function POST(req: NextRequest) {
     // 이상이 순서대로 인식되면 합격(쇼츠·챌린지·재도전 공통 단일 기준).
     const best = pickBestTranscript(target_phrase, candidates);
     const { words, passed } = best;
-    // 기록엔 채택된 받아쓰기를, 없으면(무음 판정) 주 모델 원문을 남긴다 — 분석용
-    const transcript = best.transcript || candidates[0] || '';
+    // 기록엔 채택된 받아쓰기를 남긴다. 무음으로 판정돼 비었으면 빈 값 그대로 —
+    // 원문으로 되돌리면 프롬프트 되뇌기("The audio is a short…")가 분석용
+    // stt_text에 섞인다(실측).
+    const transcript = best.transcript;
     console.log(`[STT] ${candidates.map(c => `"${c}"`).join(' | ')} → ${passed ? 'PASS' : 'FAIL'} | Target: "${target_phrase}"`);
 
     const score = getSimilarityScore(transcript, target_phrase); // 로그/분석용으로만 유지
