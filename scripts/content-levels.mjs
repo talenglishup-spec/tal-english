@@ -101,6 +101,7 @@ warn.forEach(m => console.log('   ' + m));
 if (!RENUMBER) {
   // ── 화면 미리보기 ───────────────────────────────────────────
   console.log(`\n━━ 앱 화면에 이렇게 보입니다 ━━`);
+  const nextOf = n => (n % STEP === 0 ? n + STEP : n + 1); // 10단위면 +10, 아직 1,2,3…이면 +1
   for (const lv of levels) {
     const groups = expressionsOfLevel(clips, lv);
     const feed = clipsOfLevel(clips, lv);
@@ -122,7 +123,15 @@ if (!RENUMBER) {
   const stages = [...new Set(levels.map(l => stageKeyOf(l)).filter(Boolean))];
   for (const st of stages.filter(s => /^\d+$/.test(s))) {
     const inStage = levels.filter(l => stageKeyOf(l) === st).map(l => parseInt(l.split('-')[1], 10)).sort((a, b) => a - b);
-    console.log(`   ${st}군 새 스텝 → ${st}-${nextOf(inStage[inStage.length - 1])}`);
+    // 스텝 사이에 새 스텝을 끼울 수 있는 번호 — 두 번호 차이가 2 이상이어야 가능
+    const between = [];
+    for (let i = 0; i < inStage.length - 1; i++) {
+      const [lo, hi] = [inStage[i], inStage[i + 1]];
+      if (hi - lo >= 2) between.push(`${st}-${lo}과 ${st}-${hi} 사이 → ${st}-${Math.floor((lo + hi) / 2)}`);
+    }
+    console.log(`   ${st}군 맨 뒤 새 스텝 → ${st}-${nextOf(inStage[inStage.length - 1])}`);
+    if (between.length) between.forEach(b => console.log(`           중간 삽입: ${b}`));
+    else console.log(`           중간 삽입 불가(번호가 연속) → --renumber 후 가능`);
   }
   console.log(`\n중복 클립(같은 표현 다른 영상)은 기존 표현과 "같은 슬롯 번호"를 주세요 — 그래야 피드에서 흩어집니다.\n`);
   process.exit(fatal.length ? 1 : 0);

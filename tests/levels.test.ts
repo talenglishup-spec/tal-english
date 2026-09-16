@@ -353,3 +353,64 @@ test('앞뒤로 오가도 해금 상태는 변하지 않는다', () => {
   activeLevelOf(LIVE, passed, '1-1');
   assert.deepEqual(getUnlockedLevels(LIVE, passed), before);
 });
+
+// ── 9. 콘텐츠를 중간에 끼워 넣기 ───────────────────────────────
+// 운영하면서 계속 생기는 일: "이 클립은 3번째 스텝에 들어가는 게 맞다".
+// 10단위 번호(1-10, 1-20, …) 사이에 1-15 를 넣으면 기존 행은 하나도 안 고친다.
+// 단, 진행 중이던 사용자가 뒤로 밀리면 안 된다.
+
+const mk = (id: string, phrase: string, level: string, order: number): LevelClip =>
+  ({ clip_id: id, target_phrase: phrase, level, level_order: order });
+
+const SPACED: LevelClip[] = [
+  mk('a1', 'Man on!', '1-10', 10), mk('a2', 'Time!', '1-10', 20),
+  mk('b1', 'Hold!', '1-20', 10), mk('b2', 'Turn!', '1-20', 20),
+  mk('c1', 'Press!', '1-30', 10), mk('c2', 'Drop!', '1-30', 20),
+];
+const SPACED_DONE = new Set(['a1', 'a2', 'b1', 'b2']); // 1-10, 1-20 클리어 → 1-30 진행 중
+
+test('10단위 번호는 화면에서 스텝 1-1, 1-2, 1-3 으로 보인다', () => {
+  assert.deepEqual(
+    getLevels(SPACED).map(l => levelLabel(l, SPACED)),
+    ['스텝 1-1', '스텝 1-2', '스텝 1-3'],
+  );
+});
+
+test('1-10 과 1-20 사이에 1-15 를 끼우면 화면 번호가 자동으로 밀린다', () => {
+  const inserted = [...SPACED, mk('x1', 'Switch it!', '1-15', 10)];
+  assert.deepEqual(
+    getLevels(inserted).map(l => levelLabel(l, inserted)),
+    ['스텝 1-1', '스텝 1-2', '스텝 1-3', '스텝 1-4'],
+  );
+  assert.equal(levelLabel('1-15', inserted), '스텝 1-2');
+  assert.equal(levelLabel('1-20', inserted), '스텝 1-3', '원래 1-2 였던 스텝이 1-3 으로 밀린다');
+});
+
+test('중간에 새 스텝이 끼어도 이미 열린 스텝이 다시 잠기지 않는다', () => {
+  const before = getUnlockedLevels(SPACED, SPACED_DONE);
+  assert.deepEqual(before, ['1-10', '1-20', '1-30']);
+
+  const inserted = [...SPACED, mk('x1', 'Switch it!', '1-15', 10)];
+  const after = getUnlockedLevels(inserted, SPACED_DONE);
+  assert.ok(after.includes('1-30'), '진행 중이던 스텝이 잠기면 안 된다');
+  assert.ok(after.includes('1-15'), '끼워 넣은 스텝도 열려 있어야 도장판에서 갈 수 있다');
+  assert.equal(getCurrentLevel(inserted, SPACED_DONE), '1-30', '진행 자리를 지킨다');
+});
+
+test('이미 클리어한 스텝에 표현을 추가해도 진행 자리를 지킨다', () => {
+  const passed = new Set(
+    ['1-1', '1-2', '1-3', '1-4', '1-5'].flatMap(lv => expressionsOfLevel(LIVE, lv).map(g => g.clips[0].clip_id)),
+  );
+  assert.equal(getCurrentLevel(LIVE, passed), '2-1');
+
+  // 1-3 에 새 표현을 하나 추가 — 그 스텝은 다시 미클리어가 된다
+  const added = [...LIVE, mk('x2', 'Switch it!', '1-3', 25)];
+  assert.equal(isLevelCleared(added, '1-3', passed), false);
+  assert.equal(getCurrentLevel(added, passed), '2-1', '2-1 을 하던 사람이 1-3 으로 튕기면 안 된다');
+  assert.ok(getUnlockedLevels(added, passed).includes('2-1'));
+});
+
+test('신규 유저 동작은 그대로 — 클리어가 없으면 첫 레벨만 열린다', () => {
+  assert.deepEqual(getUnlockedLevels(SPACED, new Set()), ['1-10']);
+  assert.equal(getCurrentLevel(SPACED, new Set()), '1-10');
+});

@@ -234,25 +234,37 @@ export function isLevelCleared(clips: LevelClip[], level: string, passedIds: Set
   return total > 0 && done === total;
 }
 
-/** 해금된 레벨 목록 — 첫 레벨은 항상 해금, 이후는 직전 레벨 클리어 시 */
+/**
+ * 해금된 레벨 목록 — "가장 멀리 깬 레벨"까지 + 그 다음 하나.
+ *
+ * 예전에는 앞에서부터 훑다가 미클리어 레벨을 만나면 멈췄다. 그러면 콘텐츠를
+ * 중간에 끼워 넣는 순간(스텝 사이에 새 스텝을 넣거나, 이미 깬 스텝에 표현을
+ * 하나 더 넣거나) 그 레벨이 미클리어로 돌아가면서 **그 뒤 레벨이 전부 다시
+ * 잠긴다** — 2-1을 하던 사람이 1-3으로 튕겨 돌아간다. 콘텐츠는 계속 채워
+ * 넣을 거라 이 일은 반복해서 생긴다.
+ *
+ * 그래서 해금선을 "클리어한 레벨 중 가장 뒤"로 잡는다. 한 번 열린 레벨은
+ * 콘텐츠가 늘어도 다시 잠기지 않고, 중간에 끼어든 새 스텝은 (미클리어지만)
+ * 이미 해금선 안쪽이라 도장판·되돌아가기로 언제든 갈 수 있다.
+ * 클리어가 하나도 없으면 첫 레벨만 — 신규 사용자 동작은 그대로다.
+ */
 export function getUnlockedLevels(clips: LevelClip[], passedIds: Set<string>): string[] {
   const levels = getLevels(clips);
-  const unlocked: string[] = [];
-  for (const lv of levels) {
-    unlocked.push(lv);
-    if (!isLevelCleared(clips, lv, passedIds)) break; // 여기서 멈춤 — 다음은 잠김
+  let frontier = -1; // 클리어한 레벨 중 가장 뒤의 인덱스
+  for (let i = 0; i < levels.length; i++) {
+    if (isLevelCleared(clips, levels[i], passedIds)) frontier = i;
   }
-  return unlocked;
+  return levels.slice(0, Math.min(frontier + 2, levels.length));
 }
 
-/** 현재 진행 중 레벨 (해금됐지만 아직 미클리어인 첫 레벨; 전부 클리어면 마지막 레벨) */
+/**
+ * 현재 진행 중 레벨 — 해금된 것 중 가장 뒤.
+ * 중간에 새 스텝이 끼어도 진행하던 자리를 지킨다(위 getUnlockedLevels 참고).
+ * 끼어든 스텝이 없는 평소에는 "미클리어인 첫 레벨"과 같은 값이다.
+ */
 export function getCurrentLevel(clips: LevelClip[], passedIds: Set<string>): string | null {
-  const levels = getLevels(clips);
-  if (levels.length === 0) return null;
-  for (const lv of levels) {
-    if (!isLevelCleared(clips, lv, passedIds)) return lv;
-  }
-  return levels[levels.length - 1];
+  const unlocked = getUnlockedLevels(clips, passedIds);
+  return unlocked.length > 0 ? unlocked[unlocked.length - 1] : null;
 }
 
 /** 챌린지 5문항 선정: 해금 레벨 내 미완료 우선 → 완료 표현으로 채움 (각 그룹 셔플) */
