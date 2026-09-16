@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --test \"tests/**/*.test.ts\""
+    "test": "node --test \"tests/**/*.test.ts\"",
+    "content": "node scripts/content-levels.mjs",
+    "content:renumber": "node scripts/content-levels.mjs --renumber"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",
