@@ -2,6 +2,7 @@
  * 콘텐츠 레벨 관리 도구 — level / level_order 점검·미리보기·재번호
  *
  *   node scripts/content-levels.mjs              점검 + 화면 미리보기 + 다음에 쓸 번호
+ *   node scripts/content-levels.mjs --sortkey    정렬용 sort_key 컬럼 갱신(--apply 로 반영)
  *   node scripts/content-levels.mjs --renumber   10단위 재번호 계획만 출력(시트 안 건드림)
  *   node scripts/content-levels.mjs --renumber --apply   실제로 시트에 반영
  *
@@ -14,7 +15,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {
   levelRank, levelLabel, getLevels, clipsOfLevel, expressionsOfLevel,
-  expressionKeyOf, stageKeyOf,
+  expressionKeyOf, stageKeyOf, sortClipsByLevel,
 } from '../src/lib/levels.ts';
 
 for (const f of ['.env.local', '.env']) {
@@ -28,6 +29,7 @@ for (const f of ['.env.local', '.env']) {
 }
 
 const RENUMBER = process.argv.includes('--renumber');
+const SORTKEY = process.argv.includes('--sortkey');
 const APPLY = process.argv.includes('--apply');
 const STEP = 10; // 새 번호 간격 — 사이에 9개를 더 끼울 수 있다
 
@@ -97,6 +99,39 @@ console.log(`\n${fatal.length ? '✗' : '✓'} 치명 ${fatal.length}건`);
 fatal.forEach(m => console.log('   ' + m));
 console.log(`${warn.length ? '!' : '✓'} 주의 ${warn.length}건`);
 warn.forEach(m => console.log('   ' + m));
+
+// ── sort_key: 시트를 앱 순서대로 정렬하기 위한 파생 컬럼 ──────────
+// level 은 텍스트라 시트 기본 정렬이 1-10 을 1-2 앞에 놓는다. 손으로 컬럼을
+// 쪼개 숫자로 만드는 대신, 앱이 실제로 쓰는 순서(sortClipsByLevel — 라운드로빈
+// 포함)의 몇 번째인지를 그대로 써 준다. 이 컬럼으로 정렬하면 시트가 위에서
+// 아래로 "사용자가 보는 순서"가 된다. 앱은 이 컬럼을 읽지 않는다.
+if (SORTKEY) {
+  const order = sortClipsByLevel(clips);
+  const keyOf = new Map(order.map((c, i) => [c.clip_id, i + 1]));
+  let col = sheet.headerValues.indexOf('sort_key');
+  console.log(`
+━━ sort_key 갱신 ━━`);
+  console.log(`${clips.length}개 행에 1~${order.length} 순번을 씁니다 — 이 컬럼으로 정렬하면 시트가 앱 피드 순서가 됩니다.`);
+  if (col < 0) console.log(`(sort_key 컬럼이 없어 맨 뒤에 새로 만듭니다 — 앱은 이 컬럼을 읽지 않습니다)`);
+  order.slice(0, 8).forEach(c => console.log(`   ${String(keyOf.get(c.clip_id)).padStart(3)}  ${c.level.padEnd(6)} ${c.target_phrase}`));
+  console.log(`   …`);
+  if (!APPLY) { console.log(`
+(미리보기입니다. 실제로 반영하려면 --apply 를 붙이세요)
+`); process.exit(0); }
+
+  if (col < 0) {
+    await sheet.setHeaderRow([...sheet.headerValues, 'sort_key']);
+    col = sheet.headerValues.indexOf('sort_key');
+  }
+  const lastRow = Math.max(...clips.map(c => c.row));
+  await sheet.loadCells({ startRowIndex: 0, endRowIndex: lastRow, startColumnIndex: col, endColumnIndex: col + 1 });
+  for (const c of clips) sheet.getCell(c.row - 1, col).value = keyOf.get(c.clip_id) ?? '';
+  await sheet.saveUpdatedCells();
+  console.log(`
+✓ sort_key 를 갱신했습니다. 시트에서 그 컬럼 기준 오름차순 정렬하면 앱 순서와 같습니다.
+`);
+  process.exit(0);
+}
 
 if (!RENUMBER) {
   // ── 화면 미리보기 ───────────────────────────────────────────
