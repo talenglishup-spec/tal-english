@@ -121,32 +121,41 @@ export function levelLabel(level?: string, clips?: LevelClip[]): string {
 }
 
 /**
- * 레벨 내부 정렬 — level_order 라운드로빈.
- * 슬롯 1이 7개, 슬롯 2가 4개라면 1,2,3,4,5 / 1,2,3,4,5 / 1,2 … 순으로 낸다.
- * 단순 level_order 오름차순으로 정렬하면 같은 표현 7개가 연속으로 나온다.
+ * 레벨 내부 정렬 — 표현 단위 라운드로빈.
+ *
+ * 같은 표현의 장면이 여러 개면(예: "Man on!" 7개) 한 바퀴에 표현마다 하나씩
+ * 낸다: Man on → Time → Drop → … → Man on → Time … 단순 오름차순이면 같은
+ * 표현이 연달아 나온다.
+ *
+ * 묶음 기준은 표현 이름(expressionKeyOf)이고, level_order는 순서만 정한다.
+ *  - 표현끼리: 그 표현의 가장 작은 번호 순
+ *  - 한 표현의 장면끼리: 번호 작은 장면부터 (Man on 10, 11, 12 …)
+ * 예전에는 level_order 값으로 묶어서, 중복 장면에 반드시 같은 번호를 줘야
+ * 했고 그래서 장면 간 순서를 정할 방법이 없었다(시트 행 순서로만 정해짐).
+ * 번호가 같으면 지금도 시트 행 순서를 따른다 — 기존 데이터의 피드는 그대로다.
  */
-function roundRobinByOrder<T extends LevelClip>(group: T[]): T[] {
-  const slots = new Map<number, T[]>();
+function roundRobinByExpression<T extends LevelClip>(group: T[]): T[] {
+  const byExpr = new Map<string, T[]>();
   for (const c of group) {
-    const k = c.level_order || 0;
-    const arr = slots.get(k);
+    const k = expressionKeyOf(c);
+    const arr = byExpr.get(k);
     if (arr) arr.push(c);
-    else slots.set(k, [c]);
+    else byExpr.set(k, [c]);
   }
-  const keys = [...slots.keys()].sort((a, b) => a - b);
-  const depth = keys.reduce((mx, k) => Math.max(mx, slots.get(k)!.length), 0);
+  const ord = (c: LevelClip) => c.level_order || 0;
+  // Array.sort는 안정 정렬 — 번호가 같으면 시트 행 순서 유지
+  const lists = [...byExpr.values()].map(l => [...l].sort((a, b) => ord(a) - ord(b)));
+  lists.sort((a, b) => ord(a[0]) - ord(b[0]));
+  const depth = lists.reduce((mx, l) => Math.max(mx, l.length), 0);
 
   const out: T[] = [];
   for (let round = 0; round < depth; round++) {
-    for (const k of keys) {
-      const item = slots.get(k)![round];
-      if (item) out.push(item);
+    for (const l of lists) {
+      if (l[round]) out.push(l[round]);
     }
   }
   return out;
 }
-
-/** 레벨 순 → 레벨 내 level_order 라운드로빈. 미배정은 맨 뒤(원래 순서 유지). */
 export function sortClipsByLevel<T extends LevelClip>(clips: T[]): T[] {
   const byLevel = new Map<string, T[]>();
   for (const c of clips) {
@@ -159,7 +168,7 @@ export function sortClipsByLevel<T extends LevelClip>(clips: T[]): T[] {
   const keys = [...byLevel.keys()].sort((a, b) => levelRank(a) - levelRank(b));
 
   const out: T[] = [];
-  for (const k of keys) out.push(...roundRobinByOrder(byLevel.get(k)!));
+  for (const k of keys) out.push(...roundRobinByExpression(byLevel.get(k)!));
   return out;
 }
 

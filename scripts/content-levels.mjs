@@ -58,6 +58,7 @@ const clips = rows
 const LEVEL_RE = /^(\d+-\d+|WARM-\d+|ENC|REF|S\d+|-)$/i;
 const fatal = [];
 const warn = [];
+const info = []; // 고칠 필요는 없지만 알아두면 좋은 것
 
 // ── 1. 형식·누락 ───────────────────────────────────────────────
 for (const c of clips) {
@@ -67,25 +68,18 @@ for (const c of clips) {
   if (!c.target_phrase.trim()) fatal.push(`${c.clip_id} (${c.row}행) target_phrase 비어 있음`);
 }
 
-// ── 2. 같은 표현인데 슬롯이 다르면 중복 분산이 깨진다 ──────────
+// ── 2. 순서가 애매한 곳 ─────────────────────────────────────────
+// 번호가 같으면 시트 행 순서로 정해진다 — 시트를 정렬하면 바뀌므로 알려준다.
 for (const lv of getLevels(clips)) {
-  const byExpr = new Map();
-  for (const c of clipsOfLevel(clips, lv)) {
-    const k = expressionKeyOf(c);
-    if (!byExpr.has(k)) byExpr.set(k, []);
-    byExpr.get(k).push(c);
-  }
-  for (const [, group] of byExpr) {
-    const orders = [...new Set(group.map(c => c.level_order))];
-    if (group.length > 1 && orders.length > 1) {
-      warn.push(`${lv} "${group[0].target_phrase}" 같은 표현인데 슬롯이 다름(${orders.join(', ')}) — 같은 번호를 줘야 피드에서 분산됩니다`);
+  for (const g of expressionsOfLevel(clips, lv)) {
+    const nums = g.clips.map(c => c.level_order);
+    if (new Set(nums).size < nums.length) {
+      info.push(`${lv} "${g.clip.target_phrase}" 장면 ${nums.length}개 중 번호가 같은 것이 있음(${nums.join(', ')}) — ${nums[0] % STEP === 0 ? `순서를 정하려면 ${nums[0]}, ${nums[0] + 1}, ${nums[0] + 2}…처럼` : '10단위 전환(--renumber) 때 지금 순서대로 10, 11, 12…로 정리됩니다'}`);
     }
   }
-  const slotOwners = new Map();
-  for (const [, group] of byExpr) slotOwners.set(group[0].level_order, (slotOwners.get(group[0].level_order) || 0) + 1);
-  for (const [slot, n] of slotOwners) {
-    if (n > 1) warn.push(`${lv} 슬롯 ${slot}을 서로 다른 표현 ${n}개가 함께 씀 — 그 표현들이 붙어서 나옵니다`);
-  }
+  const firstNums = expressionsOfLevel(clips, lv).map(g => Math.min(...g.clips.map(c => c.level_order)));
+  const dup = firstNums.filter((n, i) => firstNums.indexOf(n) !== i);
+  if (dup.length) warn.push(`${lv} 서로 다른 표현이 같은 시작 번호(${[...new Set(dup)].join(', ')}) — 어느 표현이 먼저인지 시트 행 순서에 달림`);
   const exprCount = expressionsOfLevel(clips, lv).length;
   if (exprCount > 0 && exprCount < 3) warn.push(`${lv} 표현 ${exprCount}개뿐 — 한 스텝이 너무 얇습니다(3개 이상 권장)`);
 }
@@ -99,6 +93,7 @@ console.log(`\n${fatal.length ? '✗' : '✓'} 치명 ${fatal.length}건`);
 fatal.forEach(m => console.log('   ' + m));
 console.log(`${warn.length ? '!' : '✓'} 주의 ${warn.length}건`);
 warn.forEach(m => console.log('   ' + m));
+if (info.length) { console.log(`· 참고 ${info.length}건`); info.forEach(m => console.log('   ' + m)); }
 
 // ── sort_key: 시트를 앱 순서대로 정렬하기 위한 파생 컬럼 ──────────
 // level 은 텍스트라 시트 기본 정렬이 1-10 을 1-2 앞에 놓는다. 손으로 컬럼을
@@ -141,14 +136,15 @@ if (!RENUMBER) {
     const groups = expressionsOfLevel(clips, lv);
     const feed = clipsOfLevel(clips, lv);
     console.log(`\n${levelLabel(lv, clips)}   (시트 "${lv}")   표현 ${groups.length} · 클립 ${feed.length}`);
-    groups.forEach(g => console.log(`   슬롯 ${String(g.clip.level_order).padStart(3)}  ${String(g.clip.target_phrase).slice(0, 34).padEnd(34)} ×${g.clips.length}`));
+    groups.forEach(g => console.log(`   ${String(g.clip.target_phrase).slice(0, 34).padEnd(34)} 번호 ${g.clips.map(c => c.level_order).sort((a, b) => a - b).join(', ')}`));
     console.log(`   피드 순서: ${feed.slice(0, 8).map(c => c.target_phrase).join(' → ')}${feed.length > 8 ? ' → …' : ''}`);
   }
 
   // ── 다음에 쓸 번호 ──────────────────────────────────────────
   console.log(`\n━━ 다음에 추가할 때 쓸 번호 ━━`);
   for (const lv of levels) {
-    const used = [...new Set(clipsOfLevel(clips, lv).map(c => c.level_order))].sort((a, b) => a - b);
+    // 표현마다 시작 번호(가장 작은 번호)만 본다 — 장면 번호(11, 12…)는 그 표현 몫
+    const used = [...new Set(expressionsOfLevel(clips, lv).map(g => Math.min(...g.clips.map(c => c.level_order))))].sort((a, b) => a - b);
     const gaps = [];
     for (let i = 0; i < used.length - 1; i++) {
       if (used[i + 1] - used[i] >= 2) gaps.push(`${used[i]}~${used[i + 1]} 사이`);
@@ -181,15 +177,15 @@ for (const st of [...new Set(levels.map(l => stageKeyOf(l)).filter(Boolean))]) {
     const levelTo = /^\d+$/.test(st) ? `${st}-${(li + 1) * STEP}`
       : /^WARM/i.test(lv) ? `WARM-${(li + 1) * STEP}` : lv;
 
-    // 표현을 현재 피드 순서(라운드로빈)대로 세우고 10단위 슬롯을 준다.
-    // 같은 표현의 중복 클립은 전부 같은 슬롯 — 기존에 어긋났어도 여기서 맞춰진다.
+    // 표현을 현재 피드 순서대로 세워 10단위 번호를 주고, 같은 표현의 장면은
+    // 지금 나오는 순서대로 10, 11, 12… — 이후 장면 순서를 번호로 바꿀 수 있다.
     const groups = expressionsOfLevel(clips, lv);
     groups.forEach((g, gi) => {
-      const orderTo = (gi + 1) * STEP;
-      for (const c of g.clips) {
-        if (c.level === levelTo && c.level_order === orderTo) continue;
+      g.clips.forEach((c, si) => {
+        const orderTo = (gi + 1) * STEP + si;
+        if (c.level === levelTo && c.level_order === orderTo) return;
         plan.push({ row: c.row, clip_id: c.clip_id, phrase: c.target_phrase, levelFrom: c.level, levelTo, orderFrom: c.level_order, orderTo, _row: c._row });
-      }
+      });
     });
   });
 }
@@ -200,7 +196,7 @@ console.log(`화면 표시(스텝 1-1, 1-2 …)는 그대로입니다 — 앱이
 console.log(`진행 기록도 영향 없습니다 — clip_id 기준이라 레벨 코드와 무관합니다.\n`);
 for (const p of plan.slice(0, 60)) {
   const lv = p.levelFrom === p.levelTo ? p.levelTo.padEnd(9) : `${p.levelFrom} → ${p.levelTo}`.padEnd(14);
-  console.log(`   ${String(p.row).padStart(4)}행 ${p.clip_id.padEnd(14)} ${lv} 슬롯 ${String(p.orderFrom).padStart(3)} → ${String(p.orderTo).padStart(3)}  ${String(p.phrase).slice(0, 28)}`);
+  console.log(`   ${String(p.row).padStart(4)}행 ${p.clip_id.padEnd(14)} ${lv} 번호 ${String(p.orderFrom).padStart(3)} → ${String(p.orderTo).padStart(3)}  ${String(p.phrase).slice(0, 28)}`);
 }
 if (plan.length > 60) console.log(`   … 외 ${plan.length - 60}개`);
 

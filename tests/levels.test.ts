@@ -414,3 +414,25 @@ test('신규 유저 동작은 그대로 — 클리어가 없으면 첫 레벨만
   assert.deepEqual(getUnlockedLevels(SPACED, new Set()), ['1-10']);
   assert.equal(getCurrentLevel(SPACED, new Set()), '1-10');
 });
+
+// ── 10. 같은 표현의 장면 순서 ─────────────────────────────────
+// 같은 표현의 영상이 여러 개일 때 어느 장면을 먼저 보여줄지 번호로 정한다.
+// Man on 10, 11, 12 / Time 20, 21 — "작은 번호가 먼저" 하나로 통한다.
+
+test('같은 표현의 장면은 번호 작은 것부터, 표현끼리는 번갈아 나온다', () => {
+  const clips = [
+    mk('m3', 'Man on!', '1-10', 12), mk('m1', 'Man on!', '1-10', 10), mk('m2', 'Man on!', '1-10', 11),
+    mk('t2', 'Time!', '1-10', 21), mk('t1', 'Time!', '1-10', 20),
+  ];
+  assert.deepEqual(sortClipsByLevel(clips).map(c => c.clip_id), ['m1', 't1', 'm2', 't2', 'm3']);
+});
+
+test('장면 번호가 달라도 한 표현으로 묶인다 — 도장판 칸은 하나', () => {
+  const clips = [mk('m1', 'Man on!', '1-10', 10), mk('m2', 'Man on!', '1-10', 11), mk('t1', 'Time!', '1-10', 20)];
+  assert.equal(expressionsOfLevel(clips, '1-10').length, 2);
+});
+
+test('번호가 같으면 예전처럼 시트 행 순서를 따른다', () => {
+  const clips = [mk('m1', 'Man on!', '1-10', 10), mk('m2', 'Man on!', '1-10', 10), mk('t1', 'Time!', '1-10', 20)];
+  assert.deepEqual(sortClipsByLevel(clips).map(c => c.clip_id), ['m1', 't1', 'm2']);
+});
