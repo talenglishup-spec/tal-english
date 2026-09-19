@@ -12,6 +12,7 @@ import styles from '@/app/shorts/ShortsPage.module.css';
 import ChallengeDrill from '@/components/ChallengeDrill';
 import CollectionBoard from '@/components/CollectionBoard';
 import PushSettings from '@/components/PushSettings';
+import { STAFF_EMAILS } from '@/lib/staff';
 import { sortClipsByLevel, getCurrentLevel, clipsOfLevel, getLevels, isLevelCleared, levelLabel, expressionsOfLevel, levelProgress, getUnlockedLevels, expressionKeyOf, passedExpressionKeys } from '@/lib/levels';
 import { initSessionTracking, trackTabEnter, trackClipView, trackEvent } from '@/lib/track';
 
@@ -37,10 +38,8 @@ import { initSessionTracking, trackTabEnter, trackClipView, trackEvent } from '@
 // 쇼츠 피드 전체 열람 계정(관리자·QA) — 레벨 게이트 없이 전 클립을 순서대로 본다.
 // 일반 유저는 현재 진행 레벨의 클립만 보이고, 레벨 클리어 시 다음 레벨로 전환된다.
 // (UX 필터일 뿐 보안 경계가 아님 — 서버 권한은 requireStaffAuth가 별도로 담당)
-const PRIVILEGED_FEED_EMAILS = [
-  'tal.english.up@gmail.com', // 관리자
-  'tal.qa.claude@gmail.com',  // QA 테스트 계정
-];
+// 관리자·QA — 목록은 lib/staff 한 곳에서 관리(체험단 분석 제외 목록과 같다)
+const PRIVILEGED_FEED_EMAILS = STAFF_EMAILS;
 
 // 관리자가 "일반 유저 시점"으로 보고 있는지 (브라우저에 유지)
 const PREVIEW_AS_USER_KEY = 'tal_preview_as_user';

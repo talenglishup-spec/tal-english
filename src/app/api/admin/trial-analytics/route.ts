@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireStaffAuth } from '@/utils/supabaseServer';
 import { getSupabaseAdmin } from '@/utils/supabase';
+import { isStaffEmail } from '@/lib/staff';
 import { getClipItems } from '@/lib/sheets';
 
 export const dynamic = 'force-dynamic';
@@ -16,6 +17,13 @@ export const dynamic = 'force-dynamic';
  *   - 세그먼트 축(생년월일/학습기간/자기평가/알림/유입)을 바꿀 때마다 재요청이
  *     필요 없다 → 대시보드에서 축을 즉시 전환할 수 있다.
  *   - 체험단 20~50명 규모에선 전송량이 무의미하게 작다.
+ *
+ * 분석 대상: 운영진(lib/staff) 제외. ?since=YYYY-MM-DD(KST)를 주면 그날 이전
+ * 가입자도 제외한다 — 체험단 시작일을 넣으면 사전 테스트 계정이 빠진다.
+ * ?staff=1 이면 운영진도 포함.
+ *
+ * 모든 표는 1,000행씩 끝까지 넘겨 읽는다(PostgREST 기본 상한이 1,000행이라
+ * 한 번에 읽으면 체험단 규모에서 조용히 잘린다).
  *
  * activity_log는 수천 행까지 커지므로 원본을 보내지 않고 서버에서 학습자별·
  * 시간대별로 접어서 보낸다. speak_attempts_log는 (player, clip) 단위로 접어
@@ -68,7 +76,20 @@ type PlayerAgg = {
   savedCount: number;
 };
 
-export async function GET() {
+/** 1,000행 상한을 넘어 끝까지 읽는다. 쿼리 객체는 재사용할 수 없어 매번 새로 만든다. */
+async function fetchAll<T = any>(make: () => any): Promise<{ data: T[] | null; error: any }> {
+  const PAGE = 1000;
+  const out: T[] = [];
+  for (let from = 0; ; from += PAGE) {
+    // 페이지 사이에 행이 빠지거나 겹치지 않게 기본키로 순서를 고정한다(모든 표에 id가 있다)
+    const { data, error } = await make().order('id', { ascending: true }).range(from, from + PAGE - 1);
+    if (error) return { data: out.length ? out : null, error };
+    out.push(...(data || []));
+    if (!data || data.length < PAGE) return { data: out, error: null };
+  }
+}
+
+export async function GET(req: Request) {
   const auth = await requireStaffAuth();
   if (!auth.ok) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
@@ -80,28 +101,40 @@ export async function GET() {
     // 병렬 조회 — 서로 의존이 없다
     const [profilesRes, statusRes, activityRes, attemptsRes, savedRes, notifRes, clipsRes, clipViewRes] =
       await Promise.all([
-        supabase.from('profiles').select(
+        fetchAll(() => supabase.from('profiles').select(
           'id, email, display_name, created_at, onboarded_at, notify_opt_in, notify_hour, birth_date, study_years, self_level, profile_filled_at'
-        ),
-        supabase.from('player_status').select('player_id, level, xp, streak_days, last_active_date'),
-        supabase.from('activity_log').select('player_id, event, tab, dwell_ms, source, created_at'),
-        supabase.from('speak_attempts_log').select('player_id, clip_id, passed, source, created_at'),
-        supabase.from('saved_clips').select('player_id, clip_id'),
-        supabase.from('notification_log').select('player_id, sent_at, template_code, cohort, delivered, opened_at, sent_hour_kst'),
+        )),
+        fetchAll(() => supabase.from('player_status').select('player_id, level, xp, streak_days, last_active_date')),
+        fetchAll(() => supabase.from('activity_log').select('player_id, event, tab, dwell_ms, source, created_at')),
+        fetchAll(() => supabase.from('speak_attempts_log').select('player_id, clip_id, passed, source, created_at')),
+        fetchAll(() => supabase.from('saved_clips').select('player_id, clip_id')),
+        fetchAll(() => supabase.from('notification_log').select('player_id, sent_at, template_code, cohort, delivered, opened_at, sent_hour_kst')),
         getClipItems().catch(() => []),
         // 마이그레이션 013 미적용 환경에서도 나머지 지표는 나와야 하므로 개별 처리
-        supabase.from('clip_view_log').select('player_id, clip_id, dwell_ms, speak_triggered, speak_completed'),
+        fetchAll(() => supabase.from('clip_view_log').select('player_id, clip_id, dwell_ms, speak_triggered, speak_completed')),
       ]);
 
-    const profiles = profilesRes.data || [];
-    const statuses = statusRes.data || [];
-    const activity = activityRes.data || [];
-    const attempts = attemptsRes.data || [];
-    const saved = savedRes.data || [];
-    const notifs = notifRes.data || [];
+    // ── 분석 대상 걸러내기 — 운영진·체험단 시작 전 가입자 ────────
+    const url = new URL(req.url);
+    const since = url.searchParams.get('since');           // YYYY-MM-DD (KST)
+    const includeStaff = url.searchParams.get('staff') === '1';
+    const allProfiles: any[] = profilesRes.data || [];
+    const excluded = new Set<string>(
+      allProfiles
+        .filter(p => (!includeStaff && isStaffEmail(p.email)) || (since && p.created_at && kstDate(p.created_at) < since))
+        .map(p => p.id)
+    );
+    const keep = (rows: any[] | null) => (rows || []).filter(r => !excluded.has(r.player_id));
+
+    const profiles = allProfiles.filter(p => !excluded.has(p.id));
+    const statuses = keep(statusRes.data);
+    const activity = keep(activityRes.data);
+    const attempts = keep(attemptsRes.data);
+    const saved = keep(savedRes.data);
+    const notifs = keep(notifRes.data);
     const clipItems: any[] = (clipsRes as any) || [];
     // 013 미적용이면 error가 오고 data는 null — 빈 배열로 낮춰 계속 진행한다
-    const clipViews = clipViewRes.data || [];
+    const clipViews = keep(clipViewRes.data);
 
     // ── 학습자별 집계 ────────────────────────────────────────
     const statusById = new Map(statuses.map(s => [s.player_id, s]));
@@ -252,6 +285,7 @@ export async function GET() {
 
     return NextResponse.json({
       generatedAt: new Date().toISOString(),
+      filter: { since, includeStaff, excludedCount: excluded.size },
       todayKst: kstDate(new Date().toISOString()),
       players: [...byPlayer.values()],
       playerClip: [...playerClip.values()],

@@ -84,7 +84,12 @@ export default function AdminPage() {
         setTrialLoading(true);
         setTrialError('');
         try {
-            const res = await fetch('/api/admin/trial-analytics');
+            // /admin?since=2026-09-25 처럼 열면 그날 이전 가입자(사전 테스트 계정)를 분석에서 뺀다
+            const qs = new URLSearchParams(window.location.search);
+            const pass = new URLSearchParams();
+            if (qs.get('since')) pass.set('since', qs.get('since')!);
+            if (qs.get('staff')) pass.set('staff', qs.get('staff')!);
+            const res = await fetch('/api/admin/trial-analytics' + (pass.toString() ? `?${pass}` : ''));
             const data = await res.json();
             if (!res.ok) {
                 setTrialError(res.status === 401 || res.status === 403
