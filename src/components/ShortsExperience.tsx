@@ -524,7 +524,7 @@ export default function ShortsPage() {
         const email = session.user.email || '';
         setUserEmail(email);
 
-        const res = await fetch('/api/content/items?speak=1');
+        const res = await fetch('/api/content/items?speak=1&all=1');
         const data = await res.json();
         // S1부터 순서대로 노출 (왕기초 원칙 — 신규 유저 진입점 고정)
         const items = sortClipsByLevel(data.items || []);

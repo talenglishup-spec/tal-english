@@ -177,6 +177,14 @@
     box-shadow: 0 10px 15px -3px rgba(254, 229, 0, 0.2);
 }
 
+.inAppNote {
+    margin: 0;
+    text-align: center;
+    color: #64748b;
+    font-size: 0.85rem;
+    line-height: 1.6;
+}
+
 .googleBtn {
     background: #ffffff;
     color: #0f172a;

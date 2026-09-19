@@ -29,6 +29,37 @@ async function sha256Hex(input: string): Promise<string> {
   return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
+/**
+ * 앱 안 브라우저(카카오톡·인스타 등)인가.
+ * 체험단 링크는 카톡 단톡방으로 나간다 — 누르면 카톡 안 브라우저로 열리는데,
+ * 구글은 이런 브라우저에서 로그인을 막는다(disallowed_useragent). 그래서 여기서는
+ * 구글 버튼 대신 "다른 브라우저로 열기"를 보여주고 카카오 로그인을 앞세운다.
+ */
+function detectInApp(): 'kakao' | 'other' | null {
+  const ua = navigator.userAgent || '';
+  if (/KAKAOTALK/i.test(ua)) return 'kakao';
+  if (/Instagram|FBAN|FBAV|NAVER\(inapp|Line\/|DaumApps|everytimeApp/i.test(ua)) return 'other';
+  return null;
+}
+
+/** OAuth·Supabase 영문 오류를 학생이 이해할 수 있는 문장으로 */
+function friendlyAuthError(raw: string): string {
+  const m = raw.toLowerCase();
+  if (m.includes('email') && (m.includes('external provider') || m.includes('provider'))) {
+    return "카카오에서 이메일 제공에 동의해야 가입할 수 있어요. 다시 시도할 때 '카카오계정(이메일)'에 체크해 주세요.";
+  }
+  if (m.includes('access_denied') || m.includes('denied') || m.includes('cancel')) {
+    return '로그인을 취소했어요. 다시 시도해 주세요.';
+  }
+  if (m.includes('disallowed_useragent')) {
+    return '이 화면에서는 구글 로그인이 막혀 있어요. 카카오로 시작하거나 다른 브라우저로 열어 주세요.';
+  }
+  if (m.includes('invalid login credentials')) return '이메일 또는 비밀번호가 맞지 않아요.';
+  if (m.includes('email not confirmed')) return '메일함에서 인증 링크를 먼저 눌러 주세요.';
+  if (m.includes('already registered')) return '이미 가입된 이메일이에요. 로그인해 주세요.';
+  return `로그인에 실패했어요. 다시 시도해 주세요. (${raw})`;
+}
+
 export default function LoginPage() {
   const [mode, setMode] = useState<Mode>('login');
   const [email, setEmail] = useState('');
@@ -46,12 +77,25 @@ export default function LoginPage() {
   // 보여주고 예전 리다이렉트 방식으로 로그인시킨다.
   const googleBtnRef = useRef<HTMLDivElement>(null);
   const [gsiReady, setGsiReady] = useState(false);
+  const [inApp, setInApp] = useState<'kakao' | 'other' | null>(null);
+  useEffect(() => { setInApp(detectInApp()); }, []);
+
+  const openExternal = () => {
+    const url = window.location.href;
+    if (inApp === 'kakao') {
+      // 카카오톡이 지원하는 "외부 브라우저로 열기" 스킴
+      window.location.href = `kakaotalk://web/openExternal?url=${encodeURIComponent(url)}`;
+    } else {
+      navigator.clipboard?.writeText(url).catch(() => {});
+      setSuccess('주소를 복사했어요. 크롬이나 사파리에 붙여넣어 열어 주세요.');
+    }
+  };
 
   // OAuth 콜백에서 넘어온 에러 파라미터 표시
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const urlError = params.get('error');
-    if (urlError) setError(decodeURIComponent(urlError));
+    if (urlError) setError(friendlyAuthError(decodeURIComponent(urlError)));
   }, []);
 
   const resetForm = () => {
@@ -92,7 +136,7 @@ export default function LoginPage() {
       window.location.href = data.url;
     } catch (err: any) {
       console.error('[Kakao Login] error:', err);
-      setError(err.message || '카카오 로그인에 실패했습니다.');
+      setError(err.message ? friendlyAuthError(err.message) : '카카오 로그인에 실패했습니다.');
     }
   };
 
@@ -113,7 +157,7 @@ export default function LoginPage() {
       window.location.href = data.url;
     } catch (err: any) {
       console.error('[Google Login] error:', err);
-      setError(err.message || 'Google 로그인에 실패했습니다.');
+      setError(err.message ? friendlyAuthError(err.message) : 'Google 로그인에 실패했습니다.');
     }
   };
 
@@ -135,7 +179,7 @@ export default function LoginPage() {
       window.location.href = '/home';
     } catch (err: any) {
       console.error('[Google GSI Login] error:', err);
-      setError(err.message || 'Google 로그인에 실패했습니다.');
+      setError(err.message ? friendlyAuthError(err.message) : 'Google 로그인에 실패했습니다.');
     }
   };
 
@@ -150,7 +194,7 @@ export default function LoginPage() {
   // 팝업 창을 쓰므로 그 계열 실패가 아예 없고, 동의 화면에도 우리 도메인이
   // 뜬다(목적 그대로).
   useEffect(() => {
-    if (!GOOGLE_CLIENT_ID || mode !== 'login') return;
+    if (!GOOGLE_CLIENT_ID || mode !== 'login' || inApp) return;
     let cancelled = false;
 
     const tryRender = async () => {
@@ -226,7 +270,7 @@ export default function LoginPage() {
       }, 150);
 
     } catch (err: any) {
-      setError(err.message || '로그인에 실패했습니다.');
+      setError(err.message ? friendlyAuthError(err.message) : '로그인에 실패했습니다.');
     } finally {
       setLoading(false);
     }
@@ -266,7 +310,7 @@ export default function LoginPage() {
         window.location.href = '/home';
       }
     } catch (err: any) {
-      setError(err.message || '회원가입에 실패했습니다.');
+      setError(err.message ? friendlyAuthError(err.message) : '회원가입에 실패했습니다.');
     } finally {
       setLoading(false);
     }
@@ -293,15 +337,27 @@ export default function LoginPage() {
               <button type="button" onClick={handleKakaoLogin} className={styles.kakaoBtn}>
                 <span>💬</span> 카카오로 시작하기
               </button>
-              {/* 구글 공식 버튼(팝업 방식). 못 그려졌을 때만 우리 버튼 노출 */}
-              <div
-                ref={googleBtnRef}
-                style={{ display: gsiReady ? 'flex' : 'none', justifyContent: 'center' }}
-              />
-              {!gsiReady && (
-                <button type="button" onClick={legacyGoogleRedirect} className={styles.googleBtn}>
-                  <GoogleIcon /> Google로 시작하기
-                </button>
+              {inApp ? (
+                /* 앱 안 브라우저 — 구글은 막히므로 버튼 대신 안내 */
+                <p className={styles.inAppNote}>
+                  구글 계정은 이 화면에서 로그인할 수 없어요.{' '}
+                  <button type="button" onClick={openExternal} className={styles.linkBtn}>
+                    다른 브라우저로 열기
+                  </button>
+                </p>
+              ) : (
+                <>
+                  {/* 구글 공식 버튼(팝업 방식). 못 그려졌을 때만 우리 버튼 노출 */}
+                  <div
+                    ref={googleBtnRef}
+                    style={{ display: gsiReady ? 'flex' : 'none', justifyContent: 'center' }}
+                  />
+                  {!gsiReady && (
+                    <button type="button" onClick={legacyGoogleRedirect} className={styles.googleBtn}>
+                      <GoogleIcon /> Google로 시작하기
+                    </button>
+                  )}
+                </>
               )}
             </div>
 

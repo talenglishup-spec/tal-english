@@ -6,7 +6,8 @@
  *   type      — interview | training | match | off_pitch
  *   subtype   — post_match | press_conference | tactical | first_day | signing | locker_room
  *   speak     — "1" : speak_mode=true 클립만
- *   limit     — 최대 반환 수 (default: 50, max: 200)
+ *   limit     — 최대 반환 수 (default: 50, max: 2000). 쇼츠 피드는 all 로 전부 받는다.
+ *   all       — "1" : limit 무시하고 전부(레벨·해금 계산은 전체 클립이 있어야 맞다)
  *
  * Response: { items: ClipItem[], total: number, cached_at: string }
  */
@@ -46,7 +47,10 @@ export async function GET(req: NextRequest) {
         const type      = searchParams.get('type')                       as ClipType | null;
         const subtype   = searchParams.get('subtype')                    as ClipSubtype | null;
         const speakOnly = searchParams.get('speak') === '1';
-        const limit     = Math.min(parseInt(searchParams.get('limit') || '50', 10), 200);
+        // 쇼츠 피드는 전부 받아야 한다 — 예전엔 limit 없이 불러 앞 50개만 받았고,
+        // 시트 51번째 이후 클립(= 가장 최근에 넣은 콘텐츠)이 앱에서 조용히 사라졌다.
+        const all       = searchParams.get('all') === '1';
+        const limit     = all ? Infinity : Math.min(parseInt(searchParams.get('limit') || '50', 10), 2000);
 
         let items = await getClipItems();
 

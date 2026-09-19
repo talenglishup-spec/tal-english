@@ -42,7 +42,7 @@ export default function WorkoutPage() {
           setPlayerId(session.user.id);
         }
 
-        const res = await fetch('/api/content/items?speak=1&limit=80');
+        const res = await fetch('/api/content/items?speak=1&all=1');
         const data = await res.json();
         setClips(data.items || []);
       } catch (err) {
