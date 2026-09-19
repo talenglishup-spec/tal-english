@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireStaffAuth } from '@/utils/supabaseServer';
 import { getSupabaseAdmin } from '@/utils/supabase';
-import { isStaffEmail } from '@/lib/staff';
+import { isStaffEmail, TRIAL_START_KST } from '@/lib/staff';
 import { getClipItems } from '@/lib/sheets';
 
 export const dynamic = 'force-dynamic';
@@ -18,8 +18,8 @@ export const dynamic = 'force-dynamic';
  *     필요 없다 → 대시보드에서 축을 즉시 전환할 수 있다.
  *   - 체험단 20~50명 규모에선 전송량이 무의미하게 작다.
  *
- * 분석 대상: 운영진(lib/staff) 제외. ?since=YYYY-MM-DD(KST)를 주면 그날 이전
- * 가입자도 제외한다 — 체험단 시작일을 넣으면 사전 테스트 계정이 빠진다.
+ * 분석 대상: 운영진(lib/staff) 제외 + 체험단 시작일(TRIAL_START_KST) 이전 가입자 제외.
+ * ?since=YYYY-MM-DD 로 시작일을 바꾸고, ?since=all 이면 날짜로 거르지 않는다.
  * ?staff=1 이면 운영진도 포함.
  *
  * 모든 표는 1,000행씩 끝까지 넘겨 읽는다(PostgREST 기본 상한이 1,000행이라
@@ -116,7 +116,9 @@ export async function GET(req: Request) {
 
     // ── 분석 대상 걸러내기 — 운영진·체험단 시작 전 가입자 ────────
     const url = new URL(req.url);
-    const since = url.searchParams.get('since');           // YYYY-MM-DD (KST)
+    // 기본은 체험단 시작일 — ?since=YYYY-MM-DD 로 바꾸고, ?since=all 이면 날짜로 거르지 않는다
+    const sinceParam = url.searchParams.get('since');
+    const since = sinceParam === 'all' ? null : (sinceParam || TRIAL_START_KST);
     const includeStaff = url.searchParams.get('staff') === '1';
     const allProfiles: any[] = profilesRes.data || [];
     const excluded = new Set<string>(

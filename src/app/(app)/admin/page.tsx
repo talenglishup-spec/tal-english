@@ -57,6 +57,7 @@ type PlayerRow = {
 
 type TrialData = {
     generatedAt: string;
+    filter?: { since: string | null; includeStaff: boolean; excludedCount: number };
     todayKst: string;
     players: TrialPlayer[];
     playerClip: PlayerClip[];
@@ -477,6 +478,14 @@ export default function AdminPage() {
 
                     {trial && overall && (
                         <>
+                            {/* 분석 대상 — 누가 빠졌는지 늘 보이게 한다 */}
+                            {trial.filter && (
+                                <p className={styles.sectionHint} style={{ marginBottom: '0.75rem' }}>
+                                    분석 대상: {trial.filter.since ? `${trial.filter.since} 이후 가입자` : '전체 가입자'}
+                                    {trial.filter.includeStaff ? '' : ' · 운영진 제외'}
+                                    {' '}(제외 {trial.filter.excludedCount}명)
+                                </p>
+                            )}
                             {/* A. 요약 KPI */}
                             <div className={styles.kpiRow}>
                                 {[
