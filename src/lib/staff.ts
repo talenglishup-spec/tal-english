@@ -8,11 +8,11 @@ export const STAFF_EMAILS = [
 ];
 
 /**
- * 1차 체험단 시작일(KST). 체험단 분석은 이날 이후 가입자만 본다 — 그 전 가입자는
+ * 1차 체험단 시작일(KST) — 고등부 팀 테스트 주의 월요일. 분석은 이날 이후 가입자만 본다 — 그 전 가입자는
  * 사전 테스트 계정(지인 확인용·대표 확인용)이다. /admin?since=YYYY-MM-DD 로 바꿔
  * 볼 수 있고, ?since=all 이면 날짜로 거르지 않는다.
  */
-export const TRIAL_START_KST = '2026-09-22';
+export const TRIAL_START_KST = '2026-10-19';
 
 export const isStaffEmail = (email?: string | null) =>
   !!email && STAFF_EMAILS.includes(email.trim().toLowerCase());
