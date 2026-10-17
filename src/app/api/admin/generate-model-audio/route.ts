@@ -66,8 +66,16 @@ export async function POST(req: NextRequest) {
         if (clipIds && Array.isArray(clipIds) && clipIds.length > 0) {
             clips = clips.filter(c => clipIds.includes(c.clip_id));
         }
+        // 이미 두 억양이 다 있는 클립은 상한을 세기 전에 뺀다.
+        // 예전에는 상한을 먼저 잘라서, 앞 20행이 다 채워진 뒤에는 버튼을 몇 번
+        // 눌러도 같은 20개를 다시 보고 "스킵"만 했다 — 21번째 행부터는 영영
+        // 생성되지 않았다.
+        const pending = force
+            ? clips
+            : clips.filter(c => !(c.model_audio_us && c.model_audio_uk));
+        const remaining = pending.length;
         // 한 요청당 최대 20클립 (Vercel 타임아웃 및 API 요금 보호)
-        clips = clips.slice(0, 20);
+        clips = pending.slice(0, 20);
 
         const results: any[] = [];
 
@@ -76,11 +84,6 @@ export async function POST(req: NextRequest) {
                 us: clip.model_audio_us,
                 uk: clip.model_audio_uk,
             };
-            if (!force && existing.us && existing.uk) {
-                results.push({ clip_id: clip.clip_id, status: 'skipped', reason: 'already_has_both' });
-                continue;
-            }
-
             const text = clip.target_phrase.trim();
             const hash = createHash('md5').update(text).digest('hex');
             const urls: Partial<Record<'model_audio_us' | 'model_audio_uk', string>> = {};
@@ -127,7 +130,14 @@ export async function POST(req: NextRequest) {
         }
 
         clearSheetCache();
-        return NextResponse.json({ success: true, count: results.length, results });
+        const generated = results.filter(r => r.status === 'generated').length;
+        // 이번에 처리하고 남은 수 — 화면이 "버튼을 더 눌러야 하는지"를 알 수 있게 한다
+        return NextResponse.json({
+            success: true,
+            count: results.length,
+            remaining: Math.max(0, remaining - generated),
+            results,
+        });
     } catch (e: any) {
         console.error('[model-audio] General error:', e);
         return NextResponse.json({ success: false, error: e.message }, { status: 500 });

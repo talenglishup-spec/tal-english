@@ -147,9 +147,11 @@ export default function AdminPage() {
             const gen = data.results.filter((r: any) => r.status === 'generated').length;
             const skip = data.results.filter((r: any) => r.status === 'skipped').length;
             const err = data.results.filter((r: any) => r.status === 'error');
+            const left = data.remaining ?? 0;
             setTtsResult(
-                `✅ 생성 ${gen} · 스킵 ${skip} · 실패 ${err.length}` +
-                (err.length ? ` — ${err.map((e: any) => `${e.clip_id}: ${e.error}`).join(' / ')}` : '')
+                `✅ 생성 ${gen}${skip ? ` · 스킵 ${skip}` : ''} · 실패 ${err.length}` +
+                (left > 0 ? ` — 아직 ${left}개 남았습니다. 버튼을 한 번 더 누르세요.` : ' — 남은 클립 없음') +
+                (err.length ? ` / ${err.map((e: any) => `${e.clip_id}: ${e.error}`).join(' / ')}` : '')
             );
         } catch (e: any) {
             setTtsResult(`❌ ${e.message}`);
