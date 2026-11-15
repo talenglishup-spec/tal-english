@@ -69,6 +69,12 @@ export type ClipItem = {
     position_tag: PositionTag;
     type:         ClipType;     // 대분류 (탭 필터)
     subtype:      ClipSubtype;  // 소분류 (세부 필터)
+    /**
+     * 상황 분류 — 쇼츠 상단 필터가 쓰는 유일한 축.
+     * 수비 / 공격 / 전환·리셋 / 워밍업 / 심판 / 격려 중 하나(빈 값 = 미분류).
+     * 값 검증은 `npm run content`가 한다.
+     */
+    category:     string;
 
     // 재생 구간
     start_sec: number;  // 클립 시작 시점 (영상 전체 중 관련 구간 시작)
@@ -182,6 +188,7 @@ export async function getClipItems(): Promise<ClipItem[]> {
 
                     situation_image: row.get('situation_image') || '',
                     situation_desc:  row.get('situation_desc')  || '',
+                    category:        String(row.get('category') || '').trim(),
 
                     notes: row.get('notes') || '',
                 } satisfies ClipItem;
@@ -243,8 +250,10 @@ export function extractYouTubeId(url: string): string | null {
 export type NewClipInput = Omit<
     ClipItem,
     'speak_mode' | 'model_audio_us' | 'model_audio_uk' | 'level' | 'level_order'
-    | 'situation_image' | 'situation_desc'
+    | 'situation_image' | 'situation_desc' | 'category'
 > & {
+    /** 상황 분류 — 자동 생성 클립은 비워 두고 나중에 시트에서 채운다 */
+    category?: string;
     speak_mode: boolean;
     model_audio_us?: string;
     model_audio_uk?: string;

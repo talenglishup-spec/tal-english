@@ -755,6 +755,33 @@
   text-underline-offset: 3px;
 }
 
+/* 상황 필터 칩 — 쇼츠 상단. 가로 스크롤로 넘기되 줄바꿈은 하지 않는다 */
+.catFilterBar {
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.catFilterBar::-webkit-scrollbar { display: none; }
+.catChip {
+  flex: 0 0 auto;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, .22);
+  background: rgba(255, 255, 255, .10);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.catChipOn {
+  background: #ffffff;
+  color: #101728;
+  border-color: #ffffff;
+}
+
 .speakStrip {
   /* 상단 간격 축소 — 영상 영역을 위로 끌어올림 */
   padding: 6px 14px 7px;

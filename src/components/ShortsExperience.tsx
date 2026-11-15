@@ -419,12 +419,36 @@ export default function ShortsPage() {
     if (lv) setViewingLevel(lv);
   }, [clips, passedClips, viewingLevel]);
 
-  const feedClips = useMemo(() => {
-    // 저장 피드 진입 중이면 스냅샷을 피드로 쓴다(레벨 게이트 무시).
+  // 상황 필터 — 지금 스텝 안에서만 거른다. 레벨 진행·완료 판정은 건드리지
+  // 않는다(필터는 보기 방식일 뿐, 과제 범위를 바꾸면 진도가 꼬인다).
+  const [categoryFilter, setCategoryFilter] = useState<string>('');
+
+  // 필터를 걸기 전의 이번 스텝 피드 — 칩 목록과 개수의 기준
+  const levelClips = useMemo(() => {
     if (savedFeedSnapshot) return savedFeedSnapshot;
     if (isPrivilegedFeed) return clips;
     return activeLevel ? clipsOfLevel(clips, activeLevel) : clips;
   }, [clips, activeLevel, isPrivilegedFeed, savedFeedSnapshot]);
+
+  // 이번 스텝에 실제로 있는 카테고리만 칩으로 낸다 — 눌러도 빈 화면이 나오는
+  // 필터는 "고장난 앱"으로 보인다.
+  const categoryChips = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const c of levelClips) {
+      const k = String((c as any).category || '').trim();
+      if (k) m.set(k, (m.get(k) || 0) + 1);
+    }
+    return [...m.entries()].sort((a, b) => b[1] - a[1]);
+  }, [levelClips]);
+
+  const feedClips = useMemo(() => {
+    if (!categoryFilter) return levelClips;
+    const filtered = levelClips.filter(c => String((c as any).category || '').trim() === categoryFilter);
+    return filtered.length > 0 ? filtered : levelClips;   // 빈 결과는 내보내지 않는다
+  }, [levelClips, categoryFilter]);
+
+  // 스텝이 바뀌면 필터는 푼다 — 다음 스텝에 그 카테고리가 없을 수 있다.
+  useEffect(() => { setCategoryFilter(''); }, [activeLevel]);
 
   // 지금 레벨 다음으로 열려 있는 레벨 — 없으면(아직 미클리어·마지막) null.
   const nextUnlockedLevel = useMemo(() => {
@@ -1929,6 +1953,30 @@ export default function ShortsPage() {
                     되살리면 된다(isListOpen state는 그대로 둔다). */}
               </div>
             </div>
+            )}
+
+            {/* 상황 필터 — 이번 스텝에 둘 이상의 카테고리가 있을 때만 낸다.
+                누르면 그 상황의 장면만 본다(진도·완료 판정은 그대로). */}
+            {activeTab === 'shorts' && !savedFeedSnapshot && categoryChips.length > 1 && (
+              <div className={styles.catFilterBar}>
+                <button
+                  type="button"
+                  className={`${styles.catChip} ${!categoryFilter ? styles.catChipOn : ''}`}
+                  onClick={() => setCategoryFilter('')}
+                >
+                  전체 {levelClips.length}
+                </button>
+                {categoryChips.map(([name, n]) => (
+                  <button
+                    key={name}
+                    type="button"
+                    className={`${styles.catChip} ${categoryFilter === name ? styles.catChipOn : ''}`}
+                    onClick={() => setCategoryFilter(categoryFilter === name ? '' : name)}
+                  >
+                    {name} {n}
+                  </button>
+                ))}
+              </div>
             )}
 
             {/* 통합 쇼츠 상단 스트립: 세션 진행(⑧) · 연속 학습 게이지(⑥) · 핸즈프리(⑦).

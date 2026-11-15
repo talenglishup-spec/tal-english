@@ -52,10 +52,22 @@ const clips = rows
     target_phrase: r.get('target_phrase') || '',
     level: String(r.get('level') || '').trim(),
     level_order: parseInt(r.get('level_order') || '0', 10) || 0,
+    category: String(r.get('category') || '').trim(),
+    // scene 은 예전 이름이 context_tag 였다 — 둘 중 있는 쪽을 읽는다
+    scene: String(r.get('scene') ?? r.get('context_tag') ?? '').trim(),
+    speak: isTrue(r.get('speak_mode')),
     _row: r,
   }));
 
 const LEVEL_RE = /^(\d+-\d+|WARM-\d+|ENC|REF|S\d+|-)$/i;
+// 분류 값은 여섯 개뿐이다. 새 카테고리는 표현이 8개 이상 모였을 때 올린다
+// (빈 카테고리는 학생에게 "콘텐츠 없는 앱"으로 보인다).
+const CATEGORIES = ['수비', '공격', '전환·리셋', '워밍업', '심판', '격려'];
+const SCENES = ['훈련', '경기', '인터뷰', '생활'];
+// 선수가 한 호흡에 외칠 수 있는 길이. 넘으면 코치 설명일 가능성이 높다.
+const PHRASE_WARN = 6;
+const PHRASE_FATAL = 12;
+const wordsOf = p => String(p).trim().split(/\s+/).filter(Boolean).length;
 const fatal = [];
 const warn = [];
 const info = []; // 고칠 필요는 없지만 알아두면 좋은 것
@@ -66,6 +78,23 @@ for (const c of clips) {
   if (!LEVEL_RE.test(c.level)) fatal.push(`${c.clip_id} (${c.row}행) level 형식 오류: "${c.level}" — 1-2 / WARM-1 / ENC / REF 만 인식됩니다`);
   if (c.level !== '-' && !c.level_order) fatal.push(`${c.clip_id} (${c.row}행) level_order 비어 있음 — 순서가 0으로 밀립니다`);
   if (!c.target_phrase.trim()) fatal.push(`${c.clip_id} (${c.row}행) target_phrase 비어 있음`);
+
+  // 분류 — 오타는 필터를 조용히 망가뜨리므로 치명으로 잡는다
+  if (c.category && !CATEGORIES.includes(c.category)) {
+    fatal.push(`${c.clip_id} (${c.row}행) category 허용 외 값: "${c.category}" — ${CATEGORIES.join(' / ')} 중 하나`);
+  }
+  if (c.scene && !SCENES.includes(c.scene)) {
+    fatal.push(`${c.clip_id} (${c.row}행) scene 허용 외 값: "${c.scene}" — ${SCENES.join(' / ')} 중 하나`);
+  }
+  if (!c.category) warn.push(`${c.clip_id} (${c.row}행) category 비어 있음 — 필터에서 빠집니다`);
+
+  // 말하기 과제 길이 — 긴 코치 설명을 그대로 올리면 그 스텝에서 막힌다
+  const n = wordsOf(c.target_phrase);
+  if (c.speak && n > PHRASE_FATAL) {
+    fatal.push(`${c.clip_id} (${c.row}행) target_phrase ${n}단어 — 선수가 통째로 말하기 어렵습니다. 핵심만 남기거나 active를 끄세요`);
+  } else if (c.speak && n > PHRASE_WARN) {
+    warn.push(`${c.clip_id} (${c.row}행) target_phrase ${n}단어 — 코치 설명이면 핵심만 자르는 편이 낫습니다`);
+  }
 }
 
 // ── 2. 순서가 애매한 곳 ─────────────────────────────────────────
@@ -89,6 +118,9 @@ const levels = getLevels(clips);
 const totalExpr = levels.reduce((n, lv) => n + expressionsOfLevel(clips, lv).length, 0);
 console.log(`\n━━ 콘텐츠 점검 ━━`);
 console.log(`활성 ${clips.length}클립 · 레벨 ${levels.length}개 · 표현 ${totalExpr}개`);
+const catCount = CATEGORIES.map(k => `${k} ${clips.filter(c => c.category === k).length}`).join(' · ');
+const noCat = clips.filter(c => !c.category).length;
+console.log(`분류: ${catCount}${noCat ? ` · 미분류 ${noCat}` : ''}`);
 console.log(`\n${fatal.length ? '✗' : '✓'} 치명 ${fatal.length}건`);
 fatal.forEach(m => console.log('   ' + m));
 console.log(`${warn.length ? '!' : '✓'} 주의 ${warn.length}건`);
