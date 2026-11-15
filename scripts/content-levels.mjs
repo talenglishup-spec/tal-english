@@ -145,6 +145,28 @@ for (const c of clips) {
   }
 }
 
+// ── 1-c. 임베드 금지 영상 ───────────────────────────────────────
+// 영상이 살아 있어도 "외부 사이트 재생 금지"가 걸려 있으면 앱에서는 빈
+// 화면이 된다. 유튜브에서 직접 보면 멀쩡해 보여 눈으로는 못 잡는다.
+{
+  const urls = [...new Set(clips.map(c => c.youtube_url).filter(Boolean))];
+  const checked = await Promise.all(urls.map(async u => {
+    try {
+      const r = await fetch('https://www.youtube.com/oembed?format=json&url=' + encodeURIComponent(u));
+      if (r.ok) return null;
+      // 401 = 임베드 금지, 404 = 삭제·비공개
+      return { u, code: r.status };
+    } catch (e) { return { u, code: 'network' }; }
+  }));
+  for (const bad of checked.filter(Boolean)) {
+    const using = clips.filter(c => c.youtube_url === bad.u);
+    const why = bad.code === 401 ? '외부 재생 금지 — 앱에서 빈 화면이 됩니다'
+      : bad.code === 404 ? '삭제되었거나 비공개입니다'
+      : `확인 실패(${bad.code})`;
+    fatal.push(`${why}: ${bad.u} — ${using.map(c => `${c.clip_id}(${c.row}행)`).join(', ')}`);
+  }
+}
+
 // ── 2. 순서가 애매한 곳 ─────────────────────────────────────────
 // 번호가 같으면 시트 행 순서로 정해진다 — 시트를 정렬하면 바뀌므로 알려준다.
 for (const lv of getLevels(clips)) {
