@@ -6,6 +6,7 @@ import {
     AXIS_LABELS, MIN_CELL, ageOf, computeMetrics, groupMetrics, clipStats,
     type SegmentAxis, type TrialPlayer, type PlayerClip,
 } from '@/lib/trialSegments';
+import { buildOverview, type Overview, type OverviewClip } from '@/lib/contentOverview';
 
 type Attempt = {
     attempt_id: string;
@@ -40,7 +41,7 @@ type PlayerExprSummary = {
     completion_rate: number;
 };
 
-type AdminTab = 'trial' | 'players' | 'attempts' | 'expressions';
+type AdminTab = 'trial' | 'content' | 'players' | 'attempts' | 'expressions';
 
 type PlayerRow = {
     player_id: string;
@@ -191,6 +192,40 @@ export default function AdminPage() {
     // ── Expression Progress state ─────────────────────────────────────────
     const [exprSummary,    setExprSummary]    = useState<PlayerExprSummary[]>([]);
     const [exprLoading,    setExprLoading]    = useState(false);
+
+    // ── 콘텐츠 현황 (레벨 → 표현 → 장면) ────────────────────────────────
+    const [content, setContent] = useState<Overview | null>(null);
+    const [contentLoading, setContentLoading] = useState(false);
+    const [contentError, setContentError] = useState('');
+    const [openLevels, setOpenLevels] = useState<Set<string>>(new Set());
+
+    const fetchContent = async () => {
+        setContentLoading(true);
+        setContentError('');
+        try {
+            // all=1 — 상한 없이 활성 클립 전부. 말하기가 아닌 클립도 현황에는 보여준다.
+            const res = await fetch('/api/content/items?all=1');
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || '콘텐츠를 불러오지 못했습니다.');
+            const overview = buildOverview((data.items || []) as OverviewClip[]);
+            setContent(overview);
+            // 처음엔 첫 스텝만 펼쳐 둔다 — 전체가 열려 있으면 한눈에 안 들어온다
+            setOpenLevels(new Set(overview.levels.slice(0, 1).map(l => l.level)));
+        } catch (e: any) {
+            setContentError(e.message || '콘텐츠를 불러오지 못했습니다.');
+            setContent(null);
+        } finally {
+            setContentLoading(false);
+        }
+    };
+
+    const toggleLevel = (level: string) => {
+        setOpenLevels(prev => {
+            const next = new Set(prev);
+            if (next.has(level)) next.delete(level); else next.add(level);
+            return next;
+        });
+    };
     const [lessonFilter,   setLessonFilter]   = useState('');
     const [lessonOptions,  setLessonOptions]  = useState<string[]>([]);
 
@@ -341,6 +376,9 @@ export default function AdminPage() {
         if (tab === 'trial' && !trial) {
             fetchTrial();
         }
+        if (tab === 'content' && !content) {
+            fetchContent();
+        }
         if (tab === 'expressions' && exprSummary.length === 0) {
             fetchExpressionProgress();
         }
@@ -448,7 +486,7 @@ export default function AdminPage() {
 
             {/* Tab bar */}
             <div style={{ display: 'flex', gap: '0.75rem', padding: '0 1.5rem', marginBottom: '1rem' }}>
-                {(['trial', 'players', 'attempts', 'expressions'] as AdminTab[]).map(tab => (
+                {(['trial', 'content', 'players', 'attempts', 'expressions'] as AdminTab[]).map(tab => (
                     <button
                         key={tab}
                         onClick={() => handleTabChange(tab)}
@@ -465,12 +503,134 @@ export default function AdminPage() {
                         }}
                     >
                         {tab === 'trial' ? '📊 체험단 분석'
+                            : tab === 'content' ? '🗂 콘텐츠 현황'
                             : tab === 'players' ? '👥 학습자 대시보드'
                             : tab === 'attempts' ? '🎙️ Attempts (레거시)'
                             : '📌 Expression Progress (레거시)'}
                     </button>
                 ))}
             </div>
+
+            {/* ── 콘텐츠 현황 Tab ──────────────────────────────────────── */}
+            {activeTab === 'content' && (
+                <div style={{ padding: '0 1.5rem 2rem' }}>
+                    <div className={styles.sectionHead}>
+                        <div>
+                            <h3 className={styles.sectionTitle}>레벨 · 표현 · 영상 현황</h3>
+                            <p className={styles.sectionHint}>
+                                학생이 보는 것과 같은 기준으로 셉니다. 같은 표현의 다른 영상은 <b>한 줄로 묶이고</b>, 번호가 작은 장면부터 피드에 나옵니다.
+                            </p>
+                        </div>
+                        <button onClick={fetchContent} disabled={contentLoading} className={styles.refreshButton} style={{ fontSize: '0.8rem', padding: '0.4rem 0.9rem' }}>
+                            {contentLoading ? '불러오는 중…' : '새로고침'}
+                        </button>
+                    </div>
+
+                    {contentError && <p style={{ color: '#dc2626', textAlign: 'center', fontWeight: 600, padding: '1rem' }}>{contentError}</p>}
+                    {contentLoading && !content && <p style={{ color: '#888', textAlign: 'center' }}>불러오는 중…</p>}
+
+                    {content && (
+                        <>
+                            <div className={styles.kpiRow}>
+                                {[
+                                    { label: '스텝', value: content.totalLevels + '개', sub: '학생이 거치는 단계' },
+                                    { label: '표현', value: content.totalExpressions + '개', sub: '도장판 칸 기준' },
+                                    { label: '영상', value: content.totalClips + '개', sub: '표현당 평균 ' + (content.totalExpressions ? (content.totalClips / content.totalExpressions).toFixed(1) : '0') + '개' },
+                                    { label: '장면 1개뿐', value: content.singleScene + '개', sub: '같은 영상만 반복해서 보게 됨' },
+                                    { label: '음성 미완료', value: content.missingAudio + '개', sub: '원어민 발음이 빠진 장면 있음' },
+                                    { label: '번역 없음', value: content.missingTranslation + '개', sub: '뜻이 비어 있는 표현' },
+                                ].map(k => (
+                                    <div key={k.label} className={styles.kpiCard}>
+                                        <div className={styles.kpiLabel}>{k.label}</div>
+                                        <div className={styles.kpiValue}>{k.value}</div>
+                                        <div className={styles.kpiSub}>{k.sub}</div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {content.levels.map(lv => {
+                                const open = openLevels.has(lv.level);
+                                const width = content.maxClipCount ? Math.round((lv.clipCount / content.maxClipCount) * 100) : 0;
+                                return (
+                                    <div key={lv.level} style={{ border: '1px solid #e6e8ef', borderRadius: 12, marginBottom: '0.6rem', background: '#fff', overflow: 'hidden' }}>
+                                        <button
+                                            onClick={() => toggleLevel(lv.level)}
+                                            aria-expanded={open}
+                                            style={{
+                                                width: '100%', display: 'flex', alignItems: 'center', gap: '0.75rem',
+                                                padding: '0.75rem 1rem', background: open ? '#f7f9ff' : '#fff',
+                                                border: 0, borderBottom: open ? '1px solid #e6e8ef' : 0,
+                                                cursor: 'pointer', textAlign: 'left', fontSize: '0.9rem',
+                                            }}
+                                        >
+                                            <span style={{ color: '#8b93a7', fontSize: '0.75rem', width: 12 }}>{open ? '▾' : '▸'}</span>
+                                            <b style={{ minWidth: 92 }}>{lv.label}</b>
+                                            <code style={{ fontSize: '0.72rem', color: '#8b93a7', background: '#f1f3f8', padding: '1px 6px', borderRadius: 4 }}>{lv.level}</code>
+                                            <span style={{ color: '#4a5268', fontSize: '0.82rem', whiteSpace: 'nowrap' }}>
+                                                표현 <b>{lv.expressionCount}</b> · 영상 <b>{lv.clipCount}</b>
+                                            </span>
+                                            <span style={{ flex: 1, minWidth: 40 }}>
+                                                <span style={{ display: 'block', height: 7, borderRadius: 4, background: '#2962ff', width: width + '%' }} />
+                                            </span>
+                                        </button>
+
+                                        {open && (
+                                            <div style={{ overflowX: 'auto' }}>
+                                                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84rem', minWidth: 520 }}>
+                                                    <thead>
+                                                        <tr style={{ color: '#8b93a7', background: '#fafbfe' }}>
+                                                            <th style={{ textAlign: 'left', padding: '0.45rem 1rem', fontWeight: 600 }}>표현</th>
+                                                            <th style={{ textAlign: 'left', padding: '0.45rem 0.5rem', fontWeight: 600 }}>뜻</th>
+                                                            <th style={{ textAlign: 'left', padding: '0.45rem 0.5rem', fontWeight: 600, whiteSpace: 'nowrap' }}>영상</th>
+                                                            <th style={{ textAlign: 'left', padding: '0.45rem 0.5rem', fontWeight: 600, whiteSpace: 'nowrap' }}>순서 번호</th>
+                                                            <th style={{ textAlign: 'left', padding: '0.45rem 1rem', fontWeight: 600, whiteSpace: 'nowrap' }}>확인할 것</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {lv.expressions.map(e => (
+                                                            <tr key={e.key} style={{ borderTop: '1px solid #f1f3f8' }}>
+                                                                <td style={{ padding: '0.5rem 1rem', fontWeight: 600 }}>{e.phrase}</td>
+                                                                <td style={{ padding: '0.5rem 0.5rem', color: '#6b7280' }}>{e.translation || '—'}</td>
+                                                                <td style={{ padding: '0.5rem 0.5rem', whiteSpace: 'nowrap', fontWeight: 700, color: e.singleScene ? '#9a6708' : '#101728' }}>
+                                                                    {e.clipCount}개
+                                                                </td>
+                                                                <td style={{ padding: '0.5rem 0.5rem', whiteSpace: 'nowrap', color: '#8b93a7', fontFamily: 'ui-monospace, monospace', fontSize: '0.78rem' }}>
+                                                                    {e.orders.join(', ')}
+                                                                </td>
+                                                                <td style={{ padding: '0.5rem 1rem', whiteSpace: 'nowrap' }}>
+                                                                    {e.missingAudio && (
+                                                                        <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#9a6708', background: '#fbefd8', borderRadius: 99, padding: '2px 8px', marginRight: 6 }}>
+                                                                            음성 {e.audioReady}/{e.clipCount}
+                                                                        </span>
+                                                                    )}
+                                                                    {e.missingTranslation && (
+                                                                        <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#a82f26', background: '#fae6e3', borderRadius: 99, padding: '2px 8px', marginRight: 6 }}>번역 없음</span>
+                                                                    )}
+                                                                    {e.singleScene && (
+                                                                        <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#4a5268', background: '#eef1f8', borderRadius: 99, padding: '2px 8px' }}>장면 1개</span>
+                                                                    )}
+                                                                    {!e.missingAudio && !e.missingTranslation && !e.singleScene && (
+                                                                        <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#1b7f4b', background: '#e2f2e8', borderRadius: 99, padding: '2px 8px' }}>완비</span>
+                                                                    )}
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+
+                            <p className={styles.sectionHint} style={{ marginTop: '1rem' }}>
+                                영상이 1개뿐인 표현은 같은 장면만 반복됩니다 — 다른 장면을 추가할 후보입니다.
+                                순서를 바꾸려면 구글시트의 <code>level_order</code>를 고치고 <b>쇼츠 콘텐츠 새로고침</b>을 누르세요.
+                            </p>
+                        </>
+                    )}
+                </div>
+            )}
 
             {/* ── 체험단 분석 Tab ────────────────────────────────────────── */}
             {activeTab === 'trial' && (
