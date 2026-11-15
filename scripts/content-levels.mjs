@@ -17,6 +17,7 @@ import {
   levelRank, levelLabel, getLevels, clipsOfLevel, expressionsOfLevel,
   expressionKeyOf, stageKeyOf, sortClipsByLevel,
 } from '../src/lib/levels.ts';
+import { splitCaption } from '../src/lib/caption.ts';
 
 for (const f of ['.env.local', '.env']) {
   const p = path.join(process.cwd(), f);
@@ -53,6 +54,7 @@ const clips = rows
     level: String(r.get('level') || '').trim(),
     level_order: parseInt(r.get('level_order') || '0', 10) || 0,
     category: String(r.get('category') || '').trim(),
+    script_en: String(r.get('script_en') || '').trim(),
     // scene 은 예전 이름이 context_tag 였다 — 둘 중 있는 쪽을 읽는다
     scene: String(r.get('scene') ?? r.get('context_tag') ?? '').trim(),
     speak: isTrue(r.get('speak_mode')),
@@ -87,6 +89,17 @@ for (const c of clips) {
     fatal.push(`${c.clip_id} (${c.row}행) scene 허용 외 값: "${c.scene}" — ${SCENES.join(' / ')} 중 하나`);
   }
   if (!c.category) warn.push(`${c.clip_id} (${c.row}행) category 비어 있음 — 필터에서 빠집니다`);
+
+  // 자막 문장이 따로 있으면, 말할 말이 그 안에 실제로 들려야 한다.
+  // 안 들리는 말을 시키면 듣기 연습도 말하기 연습도 성립하지 않는다.
+  if (c.script_en) {
+    const marked = splitCaption(c.script_en, c.target_phrase).some(p => p.hit);
+    if (!marked) {
+      fatal.push(`${c.clip_id} (${c.row}행) script_en 안에 target_phrase("${c.target_phrase}")가 없습니다 — 들리지 않는 말을 시키게 됩니다`);
+    }
+    const sn = wordsOf(c.script_en);
+    if (sn > 40) warn.push(`${c.clip_id} (${c.row}행) script_en ${sn}단어 — 자막이 길어 화면을 덮습니다. 들려줄 구간을 줄이세요`);
+  }
 
   // 말하기 과제 길이 — 긴 코치 설명을 그대로 올리면 그 스텝에서 막힌다
   const n = wordsOf(c.target_phrase);

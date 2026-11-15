@@ -13,6 +13,7 @@ import ChallengeDrill from '@/components/ChallengeDrill';
 import CollectionBoard from '@/components/CollectionBoard';
 import PushSettings from '@/components/PushSettings';
 import { STAFF_EMAILS } from '@/lib/staff';
+import { splitCaption, captionText } from '@/lib/caption';
 import { sortClipsByLevel, getCurrentLevel, clipsOfLevel, getLevels, isLevelCleared, levelLabel, expressionsOfLevel, levelProgress, getUnlockedLevels, expressionKeyOf, passedExpressionKeysByLevel, isExpressionPassedInItsLevel } from '@/lib/levels';
 import { initSessionTracking, trackTabEnter, trackClipView, trackEvent } from '@/lib/track';
 
@@ -2120,9 +2121,17 @@ export default function ShortsPage() {
                             <div className={styles.captionCard}>
                               {subtitleOn && (
                                 <>
-                                  {/* 영어(위) → 한글 번역(아래) */}
+                                  {/* 영어(위) → 한글 번역(아래).
+                                      코치가 길게 말하는 장면은 script_en 에 들린 문장
+                                      전체가 있다 — 자막은 그걸 띄우고, 그중 말할
+                                      부분만 강조한다. 비어 있으면 지금까지처럼
+                                      표현 자체가 자막이 된다. */}
                                   <p className={styles.captionEn}>
-                                    {clip.target_phrase}
+                                    {splitCaption(captionText(clip), clip.target_phrase).map((part, i) => (
+                                      part.hit
+                                        ? <mark key={i} className={styles.captionHit}>{part.text}</mark>
+                                        : <span key={i}>{part.text}</span>
+                                    ))}
                                   </p>
                                   {clip.translation && clip.translation.trim() !== '' && (
                                     <p className={styles.captionKr}>"{clip.translation}"</p>

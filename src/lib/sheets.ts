@@ -75,6 +75,12 @@ export type ClipItem = {
      * 값 검증은 `npm run content`가 한다.
      */
     category:     string;
+    /**
+     * 자막에 띄울 영어 문장 — 코치가 길게 말하는 장면용.
+     * 비어 있으면 target_phrase 가 그대로 자막이 된다(대부분의 클립).
+     * 말하기 과제·채점·도장판은 언제나 target_phrase 를 쓴다.
+     */
+    script_en:    string;
 
     // 재생 구간
     start_sec: number;  // 클립 시작 시점 (영상 전체 중 관련 구간 시작)
@@ -189,6 +195,7 @@ export async function getClipItems(): Promise<ClipItem[]> {
                     situation_image: row.get('situation_image') || '',
                     situation_desc:  row.get('situation_desc')  || '',
                     category:        String(row.get('category') || '').trim(),
+                    script_en:       String(row.get('script_en') || '').trim(),
 
                     notes: row.get('notes') || '',
                 } satisfies ClipItem;
@@ -250,10 +257,12 @@ export function extractYouTubeId(url: string): string | null {
 export type NewClipInput = Omit<
     ClipItem,
     'speak_mode' | 'model_audio_us' | 'model_audio_uk' | 'level' | 'level_order'
-    | 'situation_image' | 'situation_desc' | 'category'
+    | 'situation_image' | 'situation_desc' | 'category' | 'script_en'
 > & {
     /** 상황 분류 — 자동 생성 클립은 비워 두고 나중에 시트에서 채운다 */
     category?: string;
+    /** 긴 자막 — 자동 생성 클립은 비워 둔다 */
+    script_en?: string;
     speak_mode: boolean;
     model_audio_us?: string;
     model_audio_uk?: string;
