@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireStaffAuth } from '@/utils/supabaseServer';
 import { getSupabaseAdmin } from '@/utils/supabase';
 import { isStaffEmail, TRIAL_START_KST } from '@/lib/staff';
+import { getLevels, clipsOfLevel, expressionsOfLevel, levelLabel } from '@/lib/levels';
 import { getClipItems } from '@/lib/sheets';
 
 export const dynamic = 'force-dynamic';
@@ -268,6 +269,42 @@ export async function GET(req: Request) {
       if (v.speak_completed) { a.completed += 1; totalCompleted += 1; }
     }
 
+    // ── 장면 소진율 ─────────────────────────────────────────
+    // 스텝을 클리어하면 추가 장면(1바퀴 이후)은 전부 "그 뒤"에 남는다.
+    // 바로 다음 스텝으로 넘어가면 그 장면들을 못 보므로, 실제로 보는지를 잰다.
+    //  - seenRate      : 그 스텝에 들어온 학생이 그 스텝 장면 중 몇 %를 봤나
+    //  - extraSeenRate : 그중 "추가 장면"만 따로 — 복습·듣기 콘텐츠가 닿는지
+    const viewedByPlayer = new Map<string, Set<string>>();
+    for (const v of clipViews) {
+      let set = viewedByPlayer.get(v.player_id);
+      if (!set) { set = new Set<string>(); viewedByPlayer.set(v.player_id, set); }
+      set.add(v.clip_id);
+    }
+    const sceneCoverage = getLevels(clipItems).map(level => {
+      const ids = clipsOfLevel(clipItems, level).map((c: any) => c.clip_id);
+      const exprCount = expressionsOfLevel(clipItems, level).length;
+      // 1바퀴(표현당 한 장면) 이후에 오는 장면들 — 번호가 뒤인 쪽
+      const extraIds = ids.slice(exprCount);
+      const rates: number[] = [];
+      const extraRates: number[] = [];
+      for (const seen of viewedByPlayer.values()) {
+        const hit = ids.filter(id => seen.has(id)).length;
+        if (hit === 0) continue;                       // 아직 도달 못 한 학생은 뺀다
+        rates.push(hit / ids.length);
+        if (extraIds.length) extraRates.push(extraIds.filter(id => seen.has(id)).length / extraIds.length);
+      }
+      const avg = (arr: number[]) => (arr.length ? Math.round((arr.reduce((n, x) => n + x, 0) / arr.length) * 100) : null);
+      return {
+        level,
+        label: levelLabel(level, clipItems),
+        scenes: ids.length,
+        extraScenes: extraIds.length,
+        players: rates.length,
+        seenRate: avg(rates),
+        extraSeenRate: extraIds.length ? avg(extraRates) : null,
+      };
+    });
+
     // ── 클립 메타(표현 문구·레벨) ────────────────────────────
     const clipMeta = new Map<string, { phrase: string; level: string }>();
     for (const c of clipItems) {
@@ -288,6 +325,7 @@ export async function GET(req: Request) {
     return NextResponse.json({
       generatedAt: new Date().toISOString(),
       filter: { since, includeStaff, excludedCount: excluded.size },
+      sceneCoverage,
       todayKst: kstDate(new Date().toISOString()),
       players: [...byPlayer.values()],
       playerClip: [...playerClip.values()],

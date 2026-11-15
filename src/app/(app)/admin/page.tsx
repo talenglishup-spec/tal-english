@@ -198,6 +198,9 @@ export default function AdminPage() {
     const [contentLoading, setContentLoading] = useState(false);
     const [contentError, setContentError] = useState('');
     const [openLevels, setOpenLevels] = useState<Set<string>>(new Set());
+    // 레벨별 장면 소진율 — 학생이 추가 장면까지 실제로 보는지
+    type Coverage = { level: string; scenes: number; extraScenes: number; players: number; seenRate: number | null; extraSeenRate: number | null };
+    const [coverage, setCoverage] = useState<Map<string, Coverage>>(new Map());
 
     const fetchContent = async () => {
         setContentLoading(true);
@@ -209,6 +212,20 @@ export default function AdminPage() {
             if (!res.ok) throw new Error(data.error || '콘텐츠를 불러오지 못했습니다.');
             const overview = buildOverview((data.items || []) as OverviewClip[]);
             setContent(overview);
+
+            // 시청 기록은 체험단 분석 쪽에 있다 — 실패해도 현황 자체는 보여준다
+            try {
+                const qs = new URLSearchParams(window.location.search);
+                const pass = new URLSearchParams();
+                if (qs.get('since')) pass.set('since', qs.get('since')!);
+                if (qs.get('staff')) pass.set('staff', qs.get('staff')!);
+                const cRes = await fetch('/api/admin/trial-analytics' + (pass.toString() ? `?${pass}` : ''));
+                const cData = await cRes.json();
+                const rows: Coverage[] = cData?.sceneCoverage || [];
+                setCoverage(new Map(rows.map(r => [r.level, r])));
+            } catch (e) {
+                setCoverage(new Map());
+            }
             // 처음엔 첫 스텝만 펼쳐 둔다 — 전체가 열려 있으면 한눈에 안 들어온다
             setOpenLevels(new Set(overview.levels.slice(0, 1).map(l => l.level)));
         } catch (e: any) {
@@ -572,6 +589,26 @@ export default function AdminPage() {
                                             <span style={{ flex: 1, minWidth: 40 }}>
                                                 <span style={{ display: 'block', height: 7, borderRadius: 4, background: '#2962ff', width: width + '%' }} />
                                             </span>
+                                            {(() => {
+                                                const cov = coverage.get(lv.level);
+                                                if (!cov || cov.seenRate === null) return null;
+                                                // 추가 장면이 있는 스텝만 "추가" 수치를 따로 보여준다
+                                                const low = cov.extraSeenRate !== null && cov.extraSeenRate < 50;
+                                                return (
+                                                    <span
+                                                        title={`${cov.players}명 기준 · 장면 ${cov.scenes}개 중 평균 ${cov.seenRate}% 시청`}
+                                                        style={{
+                                                            fontSize: '0.72rem', fontWeight: 700, whiteSpace: 'nowrap',
+                                                            borderRadius: 99, padding: '2px 8px',
+                                                            background: low ? '#fbefd8' : '#eef1f8',
+                                                            color: low ? '#9a6708' : '#4a5268',
+                                                        }}
+                                                    >
+                                                        소진 {cov.seenRate}%
+                                                        {cov.extraSeenRate !== null ? ` · 추가 ${cov.extraSeenRate}%` : ''}
+                                                    </span>
+                                                );
+                                            })()}
                                         </button>
 
                                         {open && (
@@ -624,6 +661,8 @@ export default function AdminPage() {
                             })}
 
                             <p className={styles.sectionHint} style={{ marginTop: '1rem' }}>
+                                <b>소진</b>은 그 스텝에 들어온 학생이 장면 중 몇 %를 봤는지, <b>추가</b>는 그중 1바퀴 이후 장면(복습·듣기)만 따로 센 값입니다.
+                                추가가 50% 미만이면 클리어하자마자 다음 스텝으로 넘어간다는 뜻입니다.<br />
                                 영상이 1개뿐인 표현은 같은 장면만 반복됩니다 — 다른 장면을 추가할 후보입니다.
                                 순서를 바꾸려면 구글시트의 <code>level_order</code>를 고치고 <b>쇼츠 콘텐츠 새로고침</b>을 누르세요.
                             </p>
