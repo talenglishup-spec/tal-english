@@ -209,18 +209,50 @@ export function expressionsOfLevel<T extends LevelClip>(clips: T[], level: strin
 }
 
 /**
- * 이미 통과한 "표현"의 키 집합 — 레벨과 무관하게 전체에서 모은다.
- * 같은 표현의 다른 장면을 다시 만났을 때 말하기를 또 요구하지 않으려고 쓴다.
+ * 이미 통과한 "표현"의 키 집합 — **레벨 안에서만** 센다.
+ *
+ * 같은 스텝 안에서는 같은 말을 장면마다 다시 발음시키지 않는다(1-1의 "Man on!"
+ * 7장면). 하지만 레벨이 바뀌어 다시 만나면 그때는 한 번 더 말하게 한다 —
+ * 시간이 지난 뒤 다시 꺼내 말하는 것이 복습이고, 그래야 그 스텝의 완료 판정
+ * (isExpressionPassed: 레벨 안의 클립 기준)과도 어긋나지 않는다.
+ *
+ * 예전에는 이 함수가 전체 레벨을 통틀어 셌다. 그 결과 상위 레벨에 복습용
+ * 장면을 넣으면 앱이 멈춰 세우지 않는데 완료 판정은 통과를 요구해서, 그
+ * 스텝에서 영영 진행이 막혔다.
  */
-export function passedExpressionKeys(clips: LevelClip[], passedIds: Set<string>): Set<string> {
-  const keys = new Set<string>();
+export function passedExpressionKeysByLevel(
+  clips: LevelClip[], passedIds: Set<string>
+): Map<string, Set<string>> {
+  const byLevel = new Map<string, Set<string>>();
   for (const c of clips) {
-    if (passedIds.has(c.clip_id)) keys.add(expressionKeyOf(c));
+    if (!passedIds.has(c.clip_id)) continue;
+    const lv = (c.level || '').trim();
+    let set = byLevel.get(lv);
+    if (!set) { set = new Set<string>(); byLevel.set(lv, set); }
+    set.add(expressionKeyOf(c));
   }
-  return keys;
+  return byLevel;
 }
 
-/** 표현 묶음이 완료됐는가 — 묶음 안 아무 클립이나 통과하면 완료. */
+/** 이 클립의 표현을 "그 클립이 속한 레벨에서" 이미 통과했는가 */
+export function isExpressionPassedInItsLevel(
+  byLevel: Map<string, Set<string>>, clip: LevelClip
+): boolean {
+  return !!byLevel.get((clip.level || '').trim())?.has(expressionKeyOf(clip));
+}
+
+/**
+ * 앞선 레벨에 이미 나온 표현인가 — 도장판의 "복습" 표시에 쓴다.
+ * 같은 표현이 두 번 보이는 이유를 학생이 알 수 있어야 한다.
+ */
+export function isReviewExpression(clips: LevelClip[], level: string, key: string): boolean {
+  const order = getLevels(clips);
+  const upto = order.indexOf(level);
+  if (upto <= 0) return false;
+  const earlier = new Set(order.slice(0, upto));
+  return clips.some(c => earlier.has((c.level || '').trim()) && expressionKeyOf(c) === key);
+}
+
 export function isExpressionPassed<T extends LevelClip>(
   group: ExpressionGroup<T>, passedIds: Set<string>
 ): boolean {

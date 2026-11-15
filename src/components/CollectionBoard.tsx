@@ -17,6 +17,7 @@ import { trackEvent } from '@/lib/track';
 import {
   LevelClip, getLevels, expressionsOfLevel, isExpressionPassed, isLevelCleared,
   getUnlockedLevels, getCurrentLevel, levelLabel, levelProgress,
+  isReviewExpression,
 } from '@/lib/levels';
 
 type Props = {
@@ -166,6 +167,7 @@ export default function CollectionBoard({
                 const passed = isExpressionPassed(g, passedIds);
                 const tried = !passed && g.clips.some(c => attemptedIds.has(c.clip_id));
                 const isToday = g.clips.some(c => todayPassedIds?.has(c.clip_id));
+                const isReview = isReviewExpression(clips, lv, g.key);
 
                 const rowClass = `${styles.boardExprRow} ${isToday ? styles.boardExprRowToday : ''}`;
                 const RowTag = onPractice ? 'button' : 'div';
@@ -186,7 +188,11 @@ export default function CollectionBoard({
                         {passed ? '✓' : tried ? '!' : ''}
                       </span>
                       <span className={styles.boardExprTexts}>
-                        <span className={styles.boardExprEn}>{clip.target_phrase}</span>
+                        <span className={styles.boardExprEn}>
+                          {clip.target_phrase}
+                          {/* 앞 스텝에서 이미 배운 표현 — 왜 또 나오는지 알 수 있게 */}
+                          {isReview && <span className={styles.boardExprReview}>복습</span>}
+                        </span>
                         {clip.translation && String(clip.translation).trim() !== '' && (
                           <span className={styles.boardExprKo}>{clip.translation}</span>
                         )}

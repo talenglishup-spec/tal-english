@@ -17,7 +17,7 @@ import {
   levelRank, levelLabel, sortClipsByLevel, getLevels, clipsOfLevel,
   expressionsOfLevel, levelProgress, isLevelCleared, getUnlockedLevels,
   getCurrentLevel, stageKeyOf, levelsOfStage, expressionKeyOf,
-  passedExpressionKeys, type LevelClip,
+  passedExpressionKeysByLevel, isExpressionPassedInItsLevel, isReviewExpression, type LevelClip,
 } from '../src/lib/levels.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -227,21 +227,57 @@ test('라이브 데이터는 이미 촘촘해서 표시가 그대로', () => {
   assert.equal(levelLabel('2-4', LIVE), '스텝 2-4');
 });
 
-// ── 8. 통과한 표현 — 말하기 면제 판정 ─────────────────────────
-test('passedExpressionKeys: 통과한 표현은 다른 장면에서도 통과로 인식', () => {
+// ── 8. 통과한 표현 — 말하기 면제는 "같은 스텝 안에서만" ──────
+test('같은 스텝의 다른 장면은 말하기를 면제한다', () => {
   const manOn = clipsOfLevel(LIVE, '1-1').filter(c => c.target_phrase === 'Man on!');
   assert.ok(manOn.length >= 2, '중복 장면이 있어야 의미 있는 테스트');
 
   const passed = new Set([manOn[0].clip_id]);   // 첫 장면만 통과
-  const keys = passedExpressionKeys(LIVE, passed);
+  const byLevel = passedExpressionKeysByLevel(LIVE, passed);
 
-  // 나머지 "Man on!" 장면들도 전부 통과한 표현으로 잡힌다 → 말하기 강제 안 함
   for (const c of manOn.slice(1)) {
-    assert.ok(keys.has(expressionKeyOf(c)), `${c.clip_id} 이 면제되어야 함`);
+    assert.ok(isExpressionPassedInItsLevel(byLevel, c), `${c.clip_id} 이 면제되어야 함`);
   }
-  // 아직 안 한 다른 표현은 면제 대상이 아니다
   const time = clipsOfLevel(LIVE, '1-1').find(c => c.target_phrase === 'Time!')!;
-  assert.equal(keys.has(expressionKeyOf(time)), false);
+  assert.equal(isExpressionPassedInItsLevel(byLevel, time), false, '아직 안 한 표현은 면제 아님');
+});
+
+test('레벨이 다르면 같은 표현이라도 다시 말하게 한다 — 복습', () => {
+  const clips: LevelClip[] = [
+    { clip_id: 'h1', target_phrase: 'Hold!', level: '1-20', level_order: 10 },
+    { clip_id: 'h2', target_phrase: 'Hold!', level: '1-20', level_order: 11 }, // 같은 스텝의 다른 장면
+    { clip_id: 'h3', target_phrase: 'Hold!', level: '3-10', level_order: 40 }, // 상위 스텝의 복습 장면
+  ];
+  const byLevel = passedExpressionKeysByLevel(clips, new Set(['h1']));
+
+  assert.equal(isExpressionPassedInItsLevel(byLevel, clips[1]), true, '같은 스텝 → 면제');
+  assert.equal(isExpressionPassedInItsLevel(byLevel, clips[2]), false, '다른 스텝 → 다시 말하기');
+});
+
+test('복습 장면이 있어도 상위 스텝이 막히지 않는다', () => {
+  const clips: LevelClip[] = [
+    { clip_id: 'h1', target_phrase: 'Hold!', level: '1-20', level_order: 10 },
+    { clip_id: 'n1', target_phrase: 'Press!', level: '3-10', level_order: 10 },
+    { clip_id: 'h3', target_phrase: 'Hold!', level: '3-10', level_order: 20 }, // 복습
+  ];
+  // 1-20 과 3-10 의 새 표현만 통과한 상태 — 복습 장면은 아직
+  const passed = new Set(['h1', 'n1']);
+  assert.equal(isLevelCleared(clips, '3-10', passed), false, '복습 장면도 말해야 완료');
+
+  // 복습까지 통과하면 완료된다(예전처럼 영영 막히지 않는다)
+  passed.add('h3');
+  assert.equal(isLevelCleared(clips, '3-10', passed), true);
+});
+
+test('isReviewExpression: 앞선 스텝에 나온 표현만 복습으로 본다', () => {
+  const clips: LevelClip[] = [
+    { clip_id: 'h1', target_phrase: 'Hold!', level: '1-20', level_order: 10 },
+    { clip_id: 'n1', target_phrase: 'Press!', level: '3-10', level_order: 10 },
+    { clip_id: 'h3', target_phrase: 'Hold!', level: '3-10', level_order: 20 },
+  ];
+  assert.equal(isReviewExpression(clips, '3-10', expressionKeyOf(clips[2])), true);
+  assert.equal(isReviewExpression(clips, '3-10', expressionKeyOf(clips[1])), false, '처음 나온 표현');
+  assert.equal(isReviewExpression(clips, '1-20', expressionKeyOf(clips[0])), false, '첫 등장은 복습 아님');
 });
 
 // ── 9. 피드: 보던 스텝에 머물고, 눌러야 넘어간다 ─────────────

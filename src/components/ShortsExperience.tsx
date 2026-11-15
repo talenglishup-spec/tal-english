@@ -13,7 +13,7 @@ import ChallengeDrill from '@/components/ChallengeDrill';
 import CollectionBoard from '@/components/CollectionBoard';
 import PushSettings from '@/components/PushSettings';
 import { STAFF_EMAILS } from '@/lib/staff';
-import { sortClipsByLevel, getCurrentLevel, clipsOfLevel, getLevels, isLevelCleared, levelLabel, expressionsOfLevel, levelProgress, getUnlockedLevels, expressionKeyOf, passedExpressionKeys } from '@/lib/levels';
+import { sortClipsByLevel, getCurrentLevel, clipsOfLevel, getLevels, isLevelCleared, levelLabel, expressionsOfLevel, levelProgress, getUnlockedLevels, expressionKeyOf, passedExpressionKeysByLevel, isExpressionPassedInItsLevel } from '@/lib/levels';
 import { initSessionTracking, trackTabEnter, trackClipView, trackEvent } from '@/lib/track';
 
 // ── 플레이어 아키텍처: 단일 영구 플레이어 ──────────────────────────
@@ -336,14 +336,15 @@ export default function ShortsPage() {
   const spokenDoneRef = useRef<Record<string, boolean>>({});
   // 이미 통과한 "표현"들 — 같은 말의 다른 장면에서 말하기를 또 강요하지 않으려고
   // 클립이 아니라 표현 단위로 들고 있는다.
-  const passedExprRef = useRef<Set<string>>(new Set());
+  // 레벨 → 그 레벨에서 통과한 표현 키. 같은 스텝의 중복 장면만 말하기를 면제한다.
+  const passedExprRef = useRef<Map<string, Set<string>>>(new Map());
   const clipsRef = useRef<any[]>([]);
 
   useEffect(() => { phasesRef.current = phases; }, [phases]);
   useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
   useEffect(() => { speakStageRef.current = speakStage; }, [speakStage]);
   useEffect(() => { spokenDoneRef.current = spokenDone; }, [spokenDone]);
-  useEffect(() => { passedExprRef.current = passedExpressionKeys(clips, passedClips); }, [clips, passedClips]);
+  useEffect(() => { passedExprRef.current = passedExpressionKeysByLevel(clips, passedClips); }, [clips, passedClips]);
   useEffect(() => { clipsRef.current = clips; }, [clips]);
 
   // ⑥ 오늘 훈련 활성 시청 누적초 로드 + 1초 틱 (통합 쇼츠 탭 재생 중일 때 증가)
@@ -1055,14 +1056,15 @@ export default function ShortsPage() {
       advancePhases: () => !speakModeRef.current[clipId],
       shouldAutoPause: () => {
         // 이 클립이 스픽 모드 & 이번 발화 미완료 & 스픽 오버레이 idle일 때만.
-        // 단, 이미 통과한 표현의 다른 장면이면 멈춰 세우지 않는다 — 같은 말을
-        // 장면마다 다시 발음시키면 노출이 아니라 숙제가 된다. 🎙️ 버튼은 그대로
-        // 남아 있어서 원하면 직접 눌러 말할 수 있다.
+        // 단, 같은 스텝에서 이미 통과한 표현의 다른 장면이면 멈춰 세우지 않는다 —
+        // 같은 말을 장면마다 다시 발음시키면 노출이 아니라 숙제가 된다. 🎙️ 버튼은
+        // 그대로 남아 있어서 원하면 직접 눌러 말할 수 있다.
+        // 레벨이 바뀌어 다시 만나는 복습 장면은 멈춘다(한 번 더 말해 본다).
         return (
           !!speakModeRef.current[clipId] &&
           !spokenDoneRef.current[clipId] &&
           !speakStageRef.current[clipId] &&
-          !passedExprRef.current.has(expressionKeyOf(clip))
+          !isExpressionPassedInItsLevel(passedExprRef.current, clip)
         );
       },
       onAutoPause: () => {
@@ -1778,6 +1780,10 @@ export default function ShortsPage() {
             // 축하 문구·체크 그리드도 클리어 판정과 같은 단위(표현)를 쓴다 —
             // 중복 클립까지 세면 "표현 17개 전부 통과"처럼 부풀려진다.
             const members = expressionsOfLevel(clips, celebrateLevel);
+            // 표현 수보다 장면이 많으면, 남은 장면은 전부 "1바퀴 이후"에 있다.
+            // 클리어하자마자 다음 스텝으로 넘어가면 그 장면들을 영영 못 본다 —
+            // 몇 개 남았는지 숫자로 보여줘야 "더 보기"가 선택지가 된다.
+            const extraScenes = clipsOfLevel(clips, celebrateLevel).length - members.length;
             return (
               <div className={styles.levelCelebrateOverlay}>
                 <div className={styles.celebrateConfetti}>
@@ -1800,6 +1806,11 @@ export default function ShortsPage() {
                     표현 {members.length}개 전부 통과!
                     {nextUnlockedLevel ? ` ${levelLabel(nextUnlockedLevel, clips)}이 열렸어요` : ''}
                   </p>
+                  {extraScenes > 0 && (
+                    <p className={styles.celebrateScenes}>
+                      이 스텝에 장면 {extraScenes}개가 더 있어요 — 같은 표현을 다른 상황에서 듣습니다
+                    </p>
+                  )}
                   <div className={styles.celebrateGrid}>
                     {members.map((m, i) => (
                       <span key={m.key} className={styles.celebrateCell} style={{ animationDelay: `${0.5 + i * 0.18}s` }}>✅</span>
@@ -1815,7 +1826,7 @@ export default function ShortsPage() {
                           className={styles.drillBtnGhost}
                           onClick={() => setCelebrateLevel(null)}
                         >
-                          이 스텝 더 보기
+                          {extraScenes > 0 ? `남은 장면 ${extraScenes}개 보기` : '이 스텝 더 보기'}
                         </button>
                         <button
                           type="button"

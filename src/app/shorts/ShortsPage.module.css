@@ -2808,6 +2808,16 @@
   animation: drillPop 0.5s ease 0.4s backwards;
 }
 /* 도장판 칸이 차례로 채워지는 애니메이션 */
+.celebrateScenes {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #4458c7;
+  background: #eef2ff;
+  border-radius: 999px;
+  padding: 5px 12px;
+  line-height: 1.45;
+}
 .celebrateGrid { display: flex; gap: 8px; justify-content: center; margin-top: 4px; }
 .celebrateCell {
   width: 34px;
@@ -3039,6 +3049,18 @@
   color: var(--text-dark);
   line-height: 1.35;
   word-break: keep-all;
+}
+.boardExprReview {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #4458c7;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .02em;
+  vertical-align: middle;
 }
 .boardExprKo { font-size: var(--fs-xs); font-weight: 600; color: var(--text-muted); line-height: 1.4; }
 .boardExprChevron { flex: 0 0 auto; font-size: var(--fs-lg); color: #cbd5e1; line-height: 1; }
