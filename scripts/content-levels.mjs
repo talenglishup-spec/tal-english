@@ -55,6 +55,9 @@ const clips = rows
     level_order: parseInt(r.get('level_order') || '0', 10) || 0,
     category: String(r.get('category') || '').trim(),
     script_en: String(r.get('script_en') || '').trim(),
+    youtube_url: String(r.get('youtube_url') || '').trim(),
+    start_sec: String(r.get('start_sec') || '').trim(),
+    end_sec: String(r.get('end_sec') || '').trim(),
     // scene 은 예전 이름이 context_tag 였다 — 둘 중 있는 쪽을 읽는다
     scene: String(r.get('scene') ?? r.get('context_tag') ?? '').trim(),
     speak: isTrue(r.get('speak_mode')),
@@ -107,6 +110,38 @@ for (const c of clips) {
     fatal.push(`${c.clip_id} (${c.row}행) target_phrase ${n}단어 — 선수가 통째로 말하기 어렵습니다. 핵심만 남기거나 active를 끄세요`);
   } else if (c.speak && n > PHRASE_WARN) {
     warn.push(`${c.clip_id} (${c.row}행) target_phrase ${n}단어 — 코치 설명이면 핵심만 자르는 편이 낫습니다`);
+  }
+}
+
+// ── 1-b. 같은 영상의 같은 구간이 두 번 ──────────────────────────
+// 같은 장면이 두 번 들어가면 학생이 똑같은 영상을 두 번 본다.
+// 시각만 같고 영상이 다른 경우는 흔하므로(우연히 3:29에서 시작) 반드시
+// 영상 주소까지 함께 본다.
+{
+  const bySegment = new Map();
+  for (const c of clips) {
+    if (!c.youtube_url || !c.start_sec) continue;
+    const key = `${c.youtube_url}|${c.start_sec}|${c.end_sec}`;
+    if (!bySegment.has(key)) bySegment.set(key, []);
+    bySegment.get(key).push(c);
+  }
+  for (const [, group] of bySegment) {
+    if (group.length < 2) continue;
+    const where = `${group.map(c => `${c.clip_id}(${c.row}행)`).join(', ')} — ${group[0].start_sec}~${group[0].end_sec}`;
+    const phrases = new Set(group.map(c => expressionKeyOf(c)));
+    if (phrases.size === 1) {
+      // 같은 장면 · 같은 표현 → 학생이 똑같은 영상을 두 번 본다
+      warn.push(`같은 영상의 같은 구간·같은 표현이 ${group.length}번: ${where}`);
+    } else {
+      // 한 장면에서 표현을 나눈 경우(의도된 분리). 다만 멈추는 지점이 같으면
+      // 분리한 의미가 없다 — 둘 다 같은 자리에서 멈춘다.
+      const pauses = new Set(group.map(c => c._row ? String(c._row.get('pause_at') ?? '').trim() : ''));
+      if (pauses.size === 1) {
+        warn.push(`한 장면에서 표현 ${group.length}개인데 멈춤 지점이 같음: ${where} — 각 표현이 끝나는 시각으로 나눠 주세요`);
+      } else {
+        info.push(`한 장면에서 표현 ${group.length}개(의도된 분리로 봄): ${where}`);
+      }
+    }
   }
 }
 
