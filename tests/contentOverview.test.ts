@@ -80,3 +80,68 @@ test('클립이 없으면 빈 현황을 돌려준다', () => {
     [0, 0, 0, 0],
   );
 });
+
+// ── findIssues — 어드민 화면이 보여줄 문제 목록 ────────────────
+import { findIssues } from '../src/lib/contentOverview.ts';
+
+test('정상 데이터에서는 문제가 없다', () => {
+  const clips: OverviewClip[] = [
+    { clip_id: 'a', target_phrase: 'Man on!', translation: '붙었다!', category: '수비', level: '1-10', level_order: 10, youtube_url: 'u1', start_sec: 1, end_sec: 5, pause_at: 2 },
+    { clip_id: 'b', target_phrase: 'Time!', translation: '시간있어!', category: '공격', level: '1-10', level_order: 20, youtube_url: 'u2', start_sec: 1, end_sec: 5, pause_at: 2 },
+    { clip_id: 'c', target_phrase: 'Turn!', translation: '돌아서!', category: '공격', level: '1-10', level_order: 30, youtube_url: 'u3', start_sec: 1, end_sec: 5, pause_at: 2 },
+  ];
+  assert.deepEqual(findIssues(clips), []);
+});
+
+test('clip_id 가 겹치거나 비면 치명으로 잡는다', () => {
+  const clips: OverviewClip[] = [
+    { clip_id: 'dup', target_phrase: 'A', translation: '가', category: '수비', level: '1-10', level_order: 10 },
+    { clip_id: 'dup', target_phrase: 'B', translation: '나', category: '수비', level: '1-10', level_order: 20 },
+    { clip_id: '', target_phrase: 'C', translation: '다', category: '수비', level: '1-10', level_order: 30 },
+  ];
+  const fatal = findIssues(clips).filter(i => i.rank === 'fatal');
+  assert.equal(fatal.length, 2, 'id 중복 1건 + id 빈칸 1건');
+});
+
+test('10단위가 아닌 level 을 잡는다', () => {
+  const clips: OverviewClip[] = [
+    { clip_id: 'a', target_phrase: 'A', translation: '가', category: '수비', level: '2-1', level_order: 10 },
+    { clip_id: 'b', target_phrase: 'B', translation: '나', category: '수비', level: '2-10', level_order: 10 },
+    { clip_id: 'c', target_phrase: 'C', translation: '다', category: '수비', level: 'ENC', level_order: 10 },
+  ];
+  const fatal = findIssues(clips).filter(i => i.rank === 'fatal');
+  assert.equal(fatal.length, 1);
+  assert.ok(fatal[0].text.includes('2-1'));
+});
+
+test('자막 안에 말할 표현이 없으면 치명', () => {
+  const clips: OverviewClip[] = [
+    { clip_id: 'a', target_phrase: 'Finish!', script_en: 'Keep the shape and be patient.', translation: '가', category: '공격', level: '1-10', level_order: 10 },
+  ];
+  assert.ok(findIssues(clips).some(i => i.rank === 'fatal' && i.text.includes('자막')));
+});
+
+test('한 장면에서 표현 여럿 — 멈춤이 같으면 주의, 다르면 참고', () => {
+  const base = { translation: '가', category: '수비', level: '1-10', youtube_url: 'same', start_sec: 10, end_sec: 14 };
+  const same: OverviewClip[] = [
+    { ...base, clip_id: 'a', target_phrase: 'Drop!', level_order: 10, pause_at: 11 },
+    { ...base, clip_id: 'b', target_phrase: 'Hold!', level_order: 20, pause_at: 11 },
+    { ...base, clip_id: 'c', target_phrase: 'Over!', level_order: 30, pause_at: 11 },
+  ];
+  assert.ok(findIssues(same).some(i => i.rank === 'warn' && i.text.includes('멈춤 지점이 같습니다')));
+
+  const split = same.map((c, i) => ({ ...c, pause_at: 11 + i }));
+  const issues = findIssues(split);
+  assert.ok(issues.some(i => i.rank === 'info'));
+  assert.ok(!issues.some(i => i.text.includes('멈춤 지점이 같습니다')));
+});
+
+test('얇은 스텝과 번호 중복을 주의로 잡는다', () => {
+  const clips: OverviewClip[] = [
+    { clip_id: 'a', target_phrase: 'A', translation: '가', category: '수비', level: '1-10', level_order: 10, youtube_url: 'u1' },
+    { clip_id: 'b', target_phrase: 'A', translation: '가', category: '수비', level: '1-10', level_order: 10, youtube_url: 'u2' },
+  ];
+  const warns = findIssues(clips).filter(i => i.rank === 'warn');
+  assert.ok(warns.some(i => i.text.includes('얇습니다')));
+  assert.ok(warns.some(i => i.text.includes('같은 번호')));
+});

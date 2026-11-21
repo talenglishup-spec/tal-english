@@ -6,7 +6,7 @@ import {
     AXIS_LABELS, MIN_CELL, ageOf, computeMetrics, groupMetrics, clipStats,
     type SegmentAxis, type TrialPlayer, type PlayerClip,
 } from '@/lib/trialSegments';
-import { buildOverview, type Overview, type OverviewClip } from '@/lib/contentOverview';
+import { buildOverview, findIssues, type Overview, type OverviewClip, type Issue } from '@/lib/contentOverview';
 
 type Attempt = {
     attempt_id: string;
@@ -201,6 +201,8 @@ export default function AdminPage() {
     // 레벨별 장면 소진율 — 학생이 추가 장면까지 실제로 보는지
     type Coverage = { level: string; scenes: number; extraScenes: number; players: number; seenRate: number | null; extraSeenRate: number | null };
     const [coverage, setCoverage] = useState<Map<string, Coverage>>(new Map());
+    // 터미널 점검(npm run content)과 같은 눈으로 본 문제 목록
+    const [issues, setIssues] = useState<Issue[]>([]);
 
     const fetchContent = async () => {
         setContentLoading(true);
@@ -210,8 +212,10 @@ export default function AdminPage() {
             const res = await fetch('/api/content/items?all=1');
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || '콘텐츠를 불러오지 못했습니다.');
-            const overview = buildOverview((data.items || []) as OverviewClip[]);
+            const clips = (data.items || []) as OverviewClip[];
+            const overview = buildOverview(clips);
             setContent(overview);
+            setIssues(findIssues(clips));
 
             // 시청 기록은 체험단 분석 쪽에 있다 — 실패해도 현황 자체는 보여준다
             try {
@@ -564,6 +568,48 @@ export default function AdminPage() {
                                     </div>
                                 ))}
                             </div>
+
+                            {/* 점검 결과 — 고칠 것이 있으면 숫자보다 먼저 보여준다 */}
+                            {(() => {
+                                const n = (r: Issue['rank']) => issues.filter(i => i.rank === r).length;
+                                const tone: Record<Issue['rank'], { bg: string; fg: string; label: string }> = {
+                                    fatal: { bg: '#fae6e3', fg: '#a82f26', label: '치명' },
+                                    warn: { bg: '#fbefd8', fg: '#9a6708', label: '주의' },
+                                    info: { bg: '#eef1f8', fg: '#4a5268', label: '참고' },
+                                };
+                                return (
+                                    <div style={{ border: '1px solid #e6e8ef', borderRadius: 12, background: '#fff', padding: '0.9rem 1rem', marginBottom: '1rem' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginBottom: issues.length ? '0.7rem' : 0 }}>
+                                            <b style={{ fontSize: '0.92rem' }}>점검</b>
+                                            {n('fatal') === 0 && n('warn') === 0 ? (
+                                                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1b7f4b', background: '#e2f2e8', borderRadius: 99, padding: '2px 10px' }}>
+                                                    이상 없음
+                                                </span>
+                                            ) : (
+                                                (['fatal', 'warn', 'info'] as const).map(r => n(r) > 0 && (
+                                                    <span key={r} style={{ fontSize: '0.78rem', fontWeight: 700, color: tone[r].fg, background: tone[r].bg, borderRadius: 99, padding: '2px 10px' }}>
+                                                        {tone[r].label} {n(r)}
+                                                    </span>
+                                                ))
+                                            )}
+                                            <span style={{ fontSize: '0.75rem', color: '#8b93a7', marginLeft: 'auto' }}>
+                                                유튜브 외부 재생 가능 여부는 터미널 점검에서 확인합니다
+                                            </span>
+                                        </div>
+                                        {issues.length > 0 && (
+                                            <ul style={{ margin: 0, paddingLeft: '1.1rem', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                                                {issues.map((i, idx) => (
+                                                    <li key={idx} style={{ fontSize: '0.84rem', color: '#4a5268' }}>
+                                                        <span style={{ fontWeight: 700, color: tone[i.rank].fg }}>[{tone[i.rank].label}]</span>{' '}
+                                                        {i.text}
+                                                        {i.where && <span style={{ color: '#8b93a7', fontFamily: 'ui-monospace, monospace', fontSize: '0.78rem' }}> — {i.where}</span>}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
+                                    </div>
+                                );
+                            })()}
 
                             {content.levels.map(lv => {
                                 const open = openLevels.has(lv.level);
